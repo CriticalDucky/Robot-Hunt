@@ -1,0 +1,21 @@
+local Enums = {}
+
+Enums.AccessoryType = require(script:WaitForChild "AccessoryType")
+
+Enums.CurrencyType = require(script:WaitForChild "CurrencyType")
+
+Enums.ItemCategory = require(script:WaitForChild "ItemCategory")
+
+Enums.ItemTypeAccessory = require(script:WaitForChild "ItemTypeAccessory")
+
+Enums.ModelType = require(script:WaitForChild "ModelType")
+
+Enums.PlayerPermissionLevel = require(script:WaitForChild "PlayerPermissionLevel")
+
+Enums.PurchaseResponseType = require(script:WaitForChild "PurchaseResponseType")
+
+Enums.SetSettingResponseType = require(script:WaitForChild "SetSettingResponseType")
+
+Enums.ShopType = require(script:WaitForChild "ShopType")
+
+return Enums
