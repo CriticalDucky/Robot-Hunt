@@ -50,16 +50,20 @@
       "$className": "ServerStorage",
       "$path": "src/ServerStorage",
 
-      "Cmdr": {
-        "$path": "vendor/evaera/Cmdr/Cmdr"
-      },
+      "Vendor": {
+        "$className": "Folder",
 
-      "ProfileService": {
-        "$path": "vendor/MadStudioRoblox/ProfileService/ProfileService.lua"
-      },
-
-      "ReplicaService": {
-        "$path": "vendor/MadStudioRoblox/ReplicaService/src/ServerScriptService/ReplicaService.lua"
+        "Cmdr": {
+          "$path": "vendor/evaera/Cmdr/Cmdr"
+        },
+  
+        "ProfileService": {
+          "$path": "vendor/MadStudioRoblox/ProfileService/ProfileService.lua"
+        },
+  
+        "ReplicaService": {
+          "$path": "vendor/MadStudioRoblox/ReplicaService/src/ServerScriptService/ReplicaService.lua"
+        }
       }
     },
 
