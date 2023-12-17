@@ -1,0 +1,36 @@
+[submodule "evaera/roblox-lua-promise"]
+	path = vendor/evaera/roblox-lua-promise
+	url = https://github.com/evaera/roblox-lua-promise.git
+[submodule "Elttob/Fusion"]
+	path = vendor/Elttob/Fusion
+	url = https://github.com/Elttob/Fusion.git
+[submodule "MadStudioRoblox/ReplicaService"]
+	path = vendor/MadStudioRoblox/ReplicaService
+	url = https://github.com/MadStudioRoblox/ReplicaService.git
+[submodule "MadStudioRoblox/ProfileService"]
+	path = vendor/MadStudioRoblox/ProfileService
+	url = https://github.com/MadStudioRoblox/ProfileService.git
+[submodule "Quenty/NevermoreEngine"]
+	path = vendor/Quenty/NevermoreEngine
+	url = https://github.com/Quenty/NevermoreEngine.git
+[submodule "evaera/Cmdr"]
+	path = vendor/evaera/Cmdr
+	url = https://github.com/evaera/Cmdr.git
+[submodule "roblox-lua-promise"]
+	path = vendor/evaera/roblox-lua-promise
+	url = https://github.com/evaera/roblox-lua-promise.git
+[submodule "vendor/Elttob/Fusion"]
+	path = vendor/Elttob/Fusion
+	url = https://github.com/Elttob/Fusion.git
+[submodule "vendor/MadStudioRoblox/ReplicaService"]
+	path = vendor/MadStudioRoblox/ReplicaService
+	url = https://github.com/MadStudioRoblox/ReplicaService.git
+[submodule "vendor/MadStudioRoblox/ProfileService"]
+	path = vendor/MadStudioRoblox/ProfileService
+	url = https://github.com/MadStudioRoblox/ProfileService.git
+[submodule "vendor/Quenty/NevermoreEngine"]
+	path = vendor/Quenty/NevermoreEngine
+	url = https://github.com/Quenty/NevermoreEngine.git
+[submodule "vendor/evaera/Cmdr"]
+	path = vendor/evaera/Cmdr
+	url = https://github.com/evaera/Cmdr.git
