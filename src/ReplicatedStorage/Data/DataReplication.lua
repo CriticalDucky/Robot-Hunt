@@ -6,7 +6,7 @@ local ServerStorage = game:GetService "ServerStorage"
 local isServer = RunService:IsServer()
 
 local PlayerDataManager = if isServer
-	then require(ServerStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild "PlayerDataManager")
+	then require(ServerStorage:WaitForChild("Data"):WaitForChild "PlayerDataManager")
 	else nil
 
 --#endregion
