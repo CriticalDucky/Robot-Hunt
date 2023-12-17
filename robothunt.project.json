@@ -4,52 +4,92 @@
     "$className": "DataModel",
 
     "ReplicatedStorage": {
-      "Shared": {
-        "$path": "src/ReplicatedStorage"
+      "$className": "ReplicatedStorage",
+      "$path": "src/ReplicatedStorage",
+
+      "Vendor": {
+        "$className": "Folder",
+
+        "ReplicaService": {
+          "$path": "vendor/MadStudioRoblox/ReplicaService/src/ReplicatedStorage"
+        },
+
+        "Loadstring": {
+          "$path": "vendor/Reinitialized/Loadstring"
+        }
+      }
+    },
+
+    "ReplicatedFirst": {
+      "$className": "ReplicatedFirst",
+      "$path": "src/ReplicatedFirst",
+
+      "Vendor": {
+        "$className": "Folder",
+
+        "Fusion": {
+          "$path": "vendor/Elttob/Fusion/src"
+        },
+
+        "Promise": {
+          "$path": "vendor/evaera/roblox-lua-promise/lib"
+        },
+
+        "Signal": {
+          "$path": "vendor/Quenty/NevermoreEngine/src/signal/src/Shared"
+        }
       }
     },
 
     "ServerScriptService": {
-      "Server": {
-        "$path": "src/ServerScriptService"
-      }
+      "$className": "ServerScriptService",
+      "$path": "src/ServerScriptService"
     },
 
     "ServerStorage": {
-      "Server": {
-        "$path": "src/ServerStorage"
+      "$className": "ServerStorage",
+      "$path": "src/ServerStorage",
+
+      "Cmdr": {
+        "$path": "vendor/evaera/Cmdr/Cmdr"
+      },
+
+      "ProfileService": {
+        "$path": "vendor/MadStudioRoblox/ProfileService/ProfileService.lua"
+      },
+
+      "ReplicaService": {
+        "$path": "vendor/MadStudioRoblox/ReplicaService/src/ServerScriptService/ReplicaService.lua"
       }
     },
 
     "StarterPlayer": {
       "StarterPlayerScripts": {
-        "Client": {
-          "$path": "src/StarterPlayer/StarterPlayerScripts"
-        }
+        "$className": "StarterPlayerScripts",
+        "$path": "src/StarterPlayer/StarterPlayerScripts"
       },
       "StarterCharacterScripts": {
-        "Client": {
-          "$path": "src/StarterPlayer/StarterCharacterScripts"
-        }
+        "$className": "StarterCharacterScripts",
+        "$path": "src/StarterPlayer/StarterCharacterScripts"
       }
     },
 
     "Workspace": {
+      "$className": "Workspace",
+      "$path": "src/Workspace",
       "$properties": {
         "FilteringEnabled": true
+      },
+
+      "Terrain": {
+        "$className": "Terrain"
       }
     },
+
     "Lighting": {
+      "$className": "Lighting",
       "$properties": {
-        "Ambient": [
-          0,
-          0,
-          0
-        ],
-        "Brightness": 2,
-        "GlobalShadows": true,
-        "Outlines": false,
-        "Technology": "Voxel"
+        "Technology": "Future"
       }
     }
   }
