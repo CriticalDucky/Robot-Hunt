@@ -9,10 +9,6 @@ export type Accessory = {
 	type: number,
 }
 
-export type Furniture = {
-	type: number,
-}
-
 type Use = Fusion.Use
 
 export type ItemCategory = { InventoryItem }
@@ -65,22 +61,6 @@ export type TimeInfo = number | (
 	min: number?,
 	sec: number?,
 }
-
-export type PartyUnit = {
-	partyType: UserEnum,
-	halfHourId: number,
-	time: TimeRange,
-}
-
-export type Home = {
-	type: number,
-}
-
-export type HomeServerInfo = {
-	serverCode: string,
-	privateServerId: string,
-}
-
 export type InventoryItem = {
 	id: string,
 	itemCategory: UserEnum,
@@ -89,24 +69,6 @@ export type InventoryItem = {
 	permanent: boolean?,
 }
 
-export type PlacedItem = {
-	itemId: string,
-	pivotCFrame: CFrame | { [any]: any },
-}
-
 export type Promise = typeof(Promise.new(function() end))
-
-export type ServerIdentifier = {
-	serverType: UserEnum,
-	jobId: string?,
-	worldIndex: number?,
-	locationEnum: UserEnum?,
-	homeOwner: number?,
-	partyType: UserEnum?,
-	partyIndex: number?,
-	minigameType: UserEnum?,
-	minigameIndex: number?,
-	privateServerId: string?,
-}
 
 return nil

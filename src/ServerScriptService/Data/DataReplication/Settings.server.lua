@@ -15,20 +15,6 @@ type PlayerPersistentData = Types.PlayerPersistentData
 
 --#endregion
 
-DataReplication.registerActionAsync("SetSettingFindOpenWorld", function(player: Player, value: boolean)
-	if typeof(value) ~= "boolean" then
-		DataReplication.replicateAsync(
-			"SetSettingFindOpenWorld",
-			(PlayerDataManager.viewPersistentData(player) :: PlayerPersistentData).settings.findOpenWorld,
-			player
-		)
-
-		return
-	end
-
-	PlayerDataManager.setValuePersistent(player, { "settings", "findOpenWorld" }, value)
-end)
-
 DataReplication.registerActionAsync("SetSettingHomeLock", function(player: Player, value: number)
 	local validValue = false
 
