@@ -1,4 +1,3 @@
---!strict
 
 local OFFLINE_PROFILE_RETRIEVAL_INTERVAL = 5
 
@@ -11,11 +10,10 @@ local ServerStorage = game:GetService "ServerStorage"
 local serverStorageVendor = ServerStorage.Vendor
 
 local ProfileService = require(serverStorageVendor.ProfileService)
-local ReplicaService = require(serverStorageVendor.ReplicaService)
 
-local PlayerDataConfig = require(ReplicatedFirst.Shared.Configuration.PlayerDataConfig)
-local Table = require(ReplicatedFirst.Shared.Utility.Table)
-local Types = require(ReplicatedFirst.Shared.Utility.Types)
+local PlayerDataConfig = require(ReplicatedFirst.Configuration.PlayerDataConfig)
+local Table = require(ReplicatedFirst.Utility.Table)
+local Types = require(ReplicatedFirst.Utility.Types)
 
 type DataTreeDictionary = Types.DataTreeDictionary
 type DataTreeValue = Types.DataTreeValue
@@ -40,7 +38,6 @@ local function filterProfileForPublic(data: PlayerPersistentData): PlayerPersist
 	filteredData.inventory = Table.deepCopy(data.inventory)
 
 	filteredData.settings = {}
-	filteredData.settings.homeLock = data.settings.homeLock
 
 	return filteredData
 end

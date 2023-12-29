@@ -17,6 +17,7 @@ export type UserEnum = string | number
 
 export type Profile = {
 	Data: PlayerPersistentData,
+	[any]: any,
 }
 
 export type DataTreeArray = { DataTreeValue }
