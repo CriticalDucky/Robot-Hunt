@@ -9,7 +9,7 @@ local isServer = RunService:IsServer()
 
 -- Source
 
-local replicatedStorageSharedData = ReplicatedStorage:WaitForChild("Shared"):WaitForChild "Data"
+local replicatedStorageSharedData = ReplicatedStorage:WaitForChild "Data"
 
 local DataReplication = require(replicatedStorageSharedData:WaitForChild "DataReplication")
 
