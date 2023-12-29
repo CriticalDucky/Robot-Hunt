@@ -4,9 +4,6 @@
 [submodule "Elttob/Fusion"]
 	path = vendor/Elttob/Fusion
 	url = https://github.com/Elttob/Fusion.git
-[submodule "MadStudioRoblox/ReplicaService"]
-	path = vendor/MadStudioRoblox/ReplicaService
-	url = https://github.com/MadStudioRoblox/ReplicaService.git
 [submodule "MadStudioRoblox/ProfileService"]
 	path = vendor/MadStudioRoblox/ProfileService
 	url = https://github.com/MadStudioRoblox/ProfileService.git
