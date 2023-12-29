@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
-local DataReplication = require(ReplicatedStorage.Shared.Data.DataReplication)
+local DataReplication = require(ReplicatedStorage.Data.DataReplication)
 
 --#endregion
 
