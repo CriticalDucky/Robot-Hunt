@@ -1,35 +1,17 @@
 --#region Imports
 
-local Players = game:GetService "Players"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
-local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local RunService = game:GetService "RunService"
 
-assert(RunService:IsClient(), "ClientState can only be required on the client")
+assert(RunService:IsClient(), "ClientState can only be required on the client.")
 
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
-local ReplicaCollection = require(ReplicatedStorage:WaitForChild("Replication"):WaitForChild "ReplicaCollection")
+local Types = require(ReplicatedFirst:WaitForChild("Shared"):WaitForChild("Utility"):WaitForChild "Types")
+
+type PlayerPersistentData = Types.PlayerPersistentData
 
 local Value = Fusion.Value
-
-local player = Players.LocalPlayer
-
---#endregion
-
---#region Private Player Data
-
-local privatePlayerData = ReplicaCollection.waitForReplica(`PrivatePlayerData{player.UserId}`).Data
-
---#endregion
-
---#region Public Player Data
-
-local publicPlayerData = ReplicaCollection.waitForReplica("PublicPlayerData").Data
-
-local publicPlayerDataState = Value(publicPlayerData)
-
-publicPlayerData:ListenToRaw(function(action) publicPlayerDataState:set(publicPlayerData) end)
 
 --#endregion
 
@@ -42,18 +24,29 @@ publicPlayerData:ListenToRaw(function(action) publicPlayerDataState:set(publicPl
 ]]
 local ClientState = {
 	currency = {
-		money = Value(privatePlayerData.currency.money),
+		money = Value(),
+	},
+
+	external = {
+		publicPlayerData = Value(),
+		worldPopulationList = Value(),
+	},
+
+	home = {
+		selected = Value(),
 	},
 
 	inventory = {
-		accessories = Value(privatePlayerData.inventory.accessories),
+		accessories = Value(),
+		furniture = Value(),
+		homes = Value(),
 	},
 
-	publicPlayerData = publicPlayerDataState,
-
 	settings = {
-		musicVolume = Value(privatePlayerData.settings.musicVolume),
-		sfxVolume = Value(privatePlayerData.settings.sfxVolume),
+		findOpenWorld = Value(),
+		homeLock = Value(),
+		musicVolume = Value(),
+		sfxVolume = Value(),
 	},
 }
 

@@ -1,6 +1,64 @@
-local Table = {}
+--!strict
 
-_G.Table = Table -- NOT for use in production code, only for debugging purposes
+local function tableToString(t: { [any]: any }, indent: number?, initialIndent: number?): string
+	local textElements: { string } = {}
+
+	table.insert(textElements, "{")
+
+	for k, v in pairs(t) do
+		if indent then
+			table.insert(textElements, "\n")
+			table.insert(textElements, (" "):rep(indent):rep((initialIndent or 0) + 1))
+		else
+			table.insert(textElements, " ")
+		end
+
+		if typeof(k) == "string" then
+			table.insert(textElements, k)
+		elseif typeof(k) == "number" then
+			table.insert(textElements, ("[%s]"):format(tostring(k)))
+		elseif typeof(k) == "table" then
+			table.insert(textElements, "[table]")
+		elseif typeof(k) == "Instance" then
+			table.insert(textElements, ("[%s: %s]"):format(k.Name, k.ClassName))
+		else
+			table.insert(textElements, ("[%s: %s]"):format(tostring(k), typeof(k)))
+		end
+
+		table.insert(textElements, " = ")
+
+		if typeof(v) == "string" then
+			table.insert(textElements, ("%q"):format(v))
+		elseif typeof(v) == "number" then
+			table.insert(textElements, tostring(v))
+		elseif typeof(v) == "table" then
+			table.insert(textElements, tableToString(v, indent, if indent then (initialIndent or 0) + 1 else nil))
+		elseif typeof(v) == "Instance" then
+			table.insert(textElements, ("%s: %s"):format(v.Name, v.ClassName))
+		else
+			table.insert(textElements, ("%s: %s"):format(tostring(v), typeof(v)))
+		end
+
+		table.insert(textElements, ",")
+	end
+
+	if #textElements > 1 and not indent then
+		table.remove(textElements)
+	end
+
+	if #textElements > 1 and indent then
+		table.insert(textElements, "\n")
+		table.insert(textElements, (" "):rep(indent):rep(initialIndent or 0))
+	else
+		table.insert(textElements, " ")
+	end
+
+	table.insert(textElements, "}")
+
+	return table.concat(textElements)
+end
+
+local Table = {}
 
 function Table.dictLen(dict) -- returns the length of a dictionary (table with no sequential keys)
 	local count = 0
@@ -12,7 +70,7 @@ function Table.dictLen(dict) -- returns the length of a dictionary (table with n
 	return count
 end
 
-function Table.deepCopy<T>(t: { T } | T) -- returns a deep copy of a table
+function Table.deepCopy<T>(t: T): T -- returns a deep copy of a table
 	if type(t) == "table" then
 		local copy = {}
 
@@ -20,16 +78,11 @@ function Table.deepCopy<T>(t: { T } | T) -- returns a deep copy of a table
 			copy[k] = Table.deepCopy(v)
 		end
 
-		return copy
+		return (copy :: any) :: T
 	end
 
 	return t
 end
-
---[[
-	Makes a deep copy of the provided table and deep freezes it.
-]]
-function Table.deepSnapshot<T>(t: T): T return Table.deepFreeze(Table.deepCopy(t)) end
 
 function Table.copy(t) -- returns a shallow copy of a table
 	assert(type(t) == "table", "Table.copy: t must be a table")
@@ -52,7 +105,7 @@ function Table.hasValue(t, value) -- returns true if the table has the value
 	return false
 end
 
-function Table.findMax(t) -- returns the key and value of the maximum value in a table
+function Table.findMax<T>(t: {[T]: number}) -- returns the key and value of the maximum value in a table
 	local k, v
 
 	for key, value in pairs(t) do
@@ -64,7 +117,7 @@ function Table.findMax(t) -- returns the key and value of the maximum value in a
 	return k, v
 end
 
-function Table.findMin(t) -- returns the key and value of the minimum value in a table
+function Table.findMin<T>(t: {[T]: number}) -- returns the key and value of the minimum value in a table
 	local k, v
 
 	for key, value in pairs(t) do
@@ -76,40 +129,44 @@ function Table.findMin(t) -- returns the key and value of the minimum value in a
 	return k, v
 end
 
-function Table.print(t, note, printTypes) -- takes a table and prints it to the console recursively with an optional note and printTypes flag
-	local MAX_PRINTS = 300
-	local prints = 0
-
-	local function printTable(t, indent)
-		if prints >= MAX_PRINTS then return end
-
-		for k, v in pairs(t) do
-			local baseString = (printTypes and " (%s)" or "")
-			local keyType = baseString:format(typeof(k))
-			local valueType = baseString:format(typeof(v))
-
-			if type(v) == "table" then
-				print(indent .. tostring(k) .. keyType .. ":")
-
-				prints += 1
-
-				printTable(v, indent .. "    ")
-			else
-				print(indent .. tostring(k) .. keyType .. " : " .. tostring(v) .. valueType)
-
-				prints += 1
-			end
-		end
-	end
-
-	print("Printing", note or tostring(t))
-
-	if type(t) == "table" then
-		printTable(t, "")
-	else
-		print(t)
-	end
+function Table.toString(table: { [any]: any }, indent: number?)
+	return tableToString(table, indent)
 end
+
+-- function Table.print(t, note, printTypes) -- takes a table and prints it to the console recursively with an optional note and printTypes flag
+-- 	local MAX_PRINTS = 300
+-- 	local prints = 0
+
+-- 	local function printTable(t, indent)
+-- 		if prints >= MAX_PRINTS then return end
+
+-- 		for k, v in pairs(t) do
+-- 			local baseString = (printTypes and " (%s)" or "")
+-- 			local keyType = baseString:format(typeof(k))
+-- 			local valueType = baseString:format(typeof(v))
+
+-- 			if type(v) == "table" then
+-- 				print(indent .. tostring(k) .. keyType .. ":")
+
+-- 				prints += 1
+
+-- 				printTable(v, indent .. "    ")
+-- 			else
+-- 				print(indent .. tostring(k) .. keyType .. " : " .. tostring(v) .. valueType)
+
+-- 				prints += 1
+-- 			end
+-- 		end
+-- 	end
+
+-- 	print("Printing", note or tostring(t))
+
+-- 	if type(t) == "table" then
+-- 		printTable(t, "")
+-- 	else
+-- 		print(t)
+-- 	end
+-- end
 
 function Table.merge(...) -- merges multiple tables into one, later tables overwrite earlier tables
 	local merged = {}
@@ -163,12 +220,12 @@ function Table.recursiveIterate(t, callback)
 	recursiveIterate(t, {})
 end
 
-function Table.findFirstKey(t, callback) -- returns the first key that passes the callback
-	for k, v in pairs(t) do
-		if not callback or callback(k, v) then return k, v end
-	end
-	return
-end
+-- function Table.findFirstKey(t, callback) -- returns the first key that passes the callback
+-- 	for k, v in pairs(t) do
+-- 		if not callback or callback(k, v) then return k, v end
+-- 	end
+-- 	return
+-- end
 
 function Table.hasAnything(t) -- returns true if the table has anything in it
 	for _, _ in pairs(t) do
@@ -196,60 +253,60 @@ function Table.deepReconcile(template, t) -- reconciles t with template, adding 
 	deepReconcile(template, t)
 end
 
-function Table.safeIndex(t, ...) -- safely indexes a table using a path, returns nil if normally would error
-	local value = t
+-- function Table.safeIndex(t, ...) -- safely indexes a table using a path, returns nil if normally would error
+-- 	local value = t
 
-	for _, key in pairs { ... } do
-		if type(value) == "table" then
-			value = value[key]
-		else
-			return nil
-		end
-	end
+-- 	for _, key in pairs { ... } do
+-- 		if type(value) == "table" then
+-- 			value = value[key]
+-- 		else
+-- 			return nil
+-- 		end
+-- 	end
 
-	return value
-end
+-- 	return value
+-- end
 
-function Table.deepToNumber(t, copy) -- converts all values to numbers if possible
-	t = if copy then Table.deepCopy(t) else t
+-- function Table.deepToNumber(t, copy) -- converts all values to numbers if possible
+-- 	t = if copy then Table.deepCopy(t) else t
 
-	local function deepToNumber(t1)
-		for k, v in pairs(t1) do
-			if type(v) == "table" then
-				deepToNumber(v)
-			else
-				t1[k] = tonumber(v) or v
-			end
-		end
-	end
+-- 	local function deepToNumber(t1)
+-- 		for k, v in pairs(t1) do
+-- 			if type(v) == "table" then
+-- 				deepToNumber(v)
+-- 			else
+-- 				t1[k] = tonumber(v) or v
+-- 			end
+-- 		end
+-- 	end
 
-	deepToNumber(t)
+-- 	deepToNumber(t)
 
-	return t
-end
+-- 	return t
+-- end
 
-function Table.deepToNumberKeys(t, copy): { [any]: any } -- converts all string keys to numbers if possible
-	t = if copy then Table.deepCopy(t) else t
+-- function Table.deepToNumberKeys(t, copy): { [any]: any } -- converts all string keys to numbers if possible
+-- 	t = if copy then Table.deepCopy(t) else t
 
-	local function deepToNumberKeys(t1)
-		for k, v in pairs(Table.copy(t1)) do
-			if type(v) == "table" then deepToNumberKeys(v) end
+-- 	local function deepToNumberKeys(t1)
+-- 		for k, v in pairs(Table.copy(t1)) do
+-- 			if type(v) == "table" then deepToNumberKeys(v) end
 
-			if type(k) == "string" then
-				local numberKey = tonumber(k)
+-- 			if type(k) == "string" then
+-- 				local numberKey = tonumber(k)
 
-				if numberKey then
-					t1[numberKey] = v
-					t1[k] = nil
-				end
-			end
-		end
-	end
+-- 				if numberKey then
+-- 					t1[numberKey] = v
+-- 					t1[k] = nil
+-- 				end
+-- 			end
+-- 		end
+-- 	end
 
-	deepToNumberKeys(t)
+-- 	deepToNumberKeys(t)
 
-	return t
-end
+-- 	return t
+-- end
 
 function Table.selectWithKeys(t, keys) -- takes in an array of keys and returns a table with only those keys
 	local selected = {}

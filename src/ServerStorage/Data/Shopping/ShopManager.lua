@@ -17,7 +17,7 @@ local Shops = require(replicatedShoppingFolder.Shops)
 local PlayerDataManager = require(dataFolder.PlayerDataManager)
 local InventoryManager = require(inventoryFolder.InventoryManager)
 local Items = require(replicatedStorageSharedData.Inventory.Items)
-local Currency = require(dataFolder.Currency.Currency)
+-- local Currency = require(dataFolder.Currency.Currency)
 local purchaseResponseType = require(enumsFolder.PurchaseResponseType)
 
 local ShopManager = {}
@@ -33,9 +33,9 @@ function ShopManager.canPlayerBuyItem(player, shopEnum, itemIndex)
 
 	local shopInfoTable = Shops[shopEnum]
 	local shopItem = shopInfoTable.items[itemIndex]
-	local itemInfo = Items[shopItem.itemCategory][shopItem.item]
+	-- local itemInfo = Items[shopItem.itemCategory][shopItem.item]
 
-	local playerData = PlayerDataManager.viewPersistentData(player.UserId)
+	local playerData = PlayerDataManager.getPersistentData(player.UserId)
 
 	if not playerData then
 		warn "Player data not found"
@@ -47,10 +47,10 @@ function ShopManager.canPlayerBuyItem(player, shopEnum, itemIndex)
 		return false, purchaseResponseType.invalid
 	end
 
-	if not select(2, Currency.hasAmount(player, itemInfo.priceCurrencyType, itemInfo.price)) then
-		warn "Player does not have enough currency"
-		return false, purchaseResponseType.invalid
-	end
+	-- if not select(2, Currency.hasAmount(player, itemInfo.priceCurrencyType, itemInfo.price)) then
+	-- 	warn "Player does not have enough currency"
+	-- 	return false, purchaseResponseType.invalid
+	-- end
 
 	if not select(2, InventoryManager.isInventoryFull(player, shopItem.itemCategory, 1)) then
 		warn "Player inventory is full"
@@ -93,11 +93,11 @@ function ShopManager.purchaseShopItem(player, shopEnum, itemIndex)
 		return false, response
 	end
 
-	if not Currency.increment(player, itemInfo.priceCurrencyType, -itemInfo.price) then
-		warn "Failed to increment currency"
+	-- if not Currency.increment(player, itemInfo.priceCurrencyType, -itemInfo.price) then
+	-- 	warn "Failed to increment currency"
 
-		return false, purchaseResponseType.error
-	end
+	-- 	return false, purchaseResponseType.error
+	-- end
 
 	InventoryManager.newItemInInventory(shopItem.itemCategory, shopItem.item, player)
 
