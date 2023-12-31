@@ -1,15 +1,11 @@
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 
-local enumsFolder = ReplicatedFirst.Enums
+local Enums = require(ReplicatedFirst:WaitForChild "Enums")
 
-local AccessoryTypeEnum = require(enumsFolder.AccessoryType)
+local ItemTypeAccessory = Enums.ItemTypeAccessory
 
 return {
-	[AccessoryTypeEnum.hat_var1] = {
-		name = "Hat",
-	},
-
-	[AccessoryTypeEnum.hat_var2] = {
+	[ItemTypeAccessory.devAccessory] = {
 		name = "Hat",
 	},
 }
