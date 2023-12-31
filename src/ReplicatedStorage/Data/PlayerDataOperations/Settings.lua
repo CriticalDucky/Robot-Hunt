@@ -10,9 +10,9 @@ local isServer = RunService:IsServer()
 
 -- Source
 
-local replicatedStorageSharedData = ReplicatedStorage:WaitForChild("Shared"):WaitForChild "Data"
+local replicatedStorageSharedData = ReplicatedStorage:WaitForChild "Data"
 
-local PlayerDataManager = if isServer then require(ServerStorage.Shared.Data.PlayerDataManager) else nil
+local PlayerDataManager = if isServer then require(ServerStorage.Data.PlayerDataManager) else nil
 local ClientState = if not isServer then require(replicatedStorageSharedData:WaitForChild "ClientState") else nil
 local ClientServerCommunication = require(replicatedStorageSharedData:WaitForChild "ClientServerCommunication")
 
@@ -22,56 +22,6 @@ local ClientServerCommunication = require(replicatedStorageSharedData:WaitForChi
 	A submodule of `PlayerData` that handles the player's settings.
 ]]
 local Settings = {}
-
---[[
-	Sets the player's *Find Open World* setting.
-
-	---
-
-	The player parameter is **required** on the server and **ignored** on the client.
-]]
-function Settings.setSettingFindOpenWorld(value: boolean, player: Player?)
-	if isServer and not player then
-		warn "A player must be provided when calling from the server."
-		return
-	elseif not isServer and player then
-		warn "No player needs to be given when calling from the client, so this parameter will be ignored."
-	end
-
-	if isServer then
-		PlayerDataManager.setValuePersistentAsync(player, { "settings", "findOpenWorld" }, value)
-		ClientServerCommunication.replicateAsync("SetSettingFindOpenWorld", value, player)
-	else
-		ClientState.playerSettings.findOpenWorld:set(value)
-		ClientServerCommunication.replicateAsync("SetSettingFindOpenWorld", value)
-	end
-end
-
---[[
-	Sets the player's *Home Lock* setting.
-
-	---
-
-	The given home lock type must be a valid `HomeLockType` enum value.
-
-	The player parameter is **required** on the server and **ignored** on the client.
-]]
-function Settings.setSettingHomeLock(homeLockType: number, player: Player?)
-	if isServer and not player then
-		warn "A player must be provided when calling from the server."
-		return
-	elseif not isServer and player then
-		warn "No player needs to be given when calling from the client, so this parameter will be ignored."
-	end
-
-	if isServer then
-		PlayerDataManager.setValuePersistentAsync(player, { "settings", "homeLock" }, homeLockType)
-		ClientServerCommunication.replicateAsync("SetSettingHomeLock", homeLockType, player)
-	else
-		ClientState.playerSettings.homeLock:set(homeLockType)
-		ClientServerCommunication.replicateAsync("SetSettingHomeLock", homeLockType)
-	end
-end
 
 --[[
 	Sets the player's *Music Volume* setting.

@@ -1,7 +1,5 @@
 local Enums = {}
 
-Enums.AccessoryType = require(script:WaitForChild "AccessoryType")
-
 Enums.CurrencyType = require(script:WaitForChild "CurrencyType")
 
 Enums.ItemCategory = require(script:WaitForChild "ItemCategory")

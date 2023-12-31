@@ -11,12 +11,12 @@ local isServer = RunService:IsServer()
 
 -- Source
 
-local replicatedStorageSharedData = ReplicatedStorage:WaitForChild("Shared"):WaitForChild "Data"
+local replicatedStorageSharedData = ReplicatedStorage:WaitForChild "Data"
 
 local ClientServerCommunication = require(replicatedStorageSharedData:WaitForChild "ClientServerCommunication")
-local Id = require(ReplicatedFirst:WaitForChild("Shared"):WaitForChild("Utility"):WaitForChild "Id")
-local PlayerDataManager = if isServer then require(ServerStorage.Shared.Data.PlayerDataManager) else nil
-local Types = require(ReplicatedFirst:WaitForChild("Shared"):WaitForChild("Utility"):WaitForChild "Types")
+local Id = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Id")
+local PlayerDataManager = if isServer then require(ServerStorage.Data.PlayerDataManager) else nil
+local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
 
 -- Types
 

@@ -1,5 +1,5 @@
 local External = {}
 
-External.WorldPopulationList = require(script:WaitForChild "WorldPopulationList")
+-- External.WorldPopulationList = require(script:WaitForChild "WorldPopulationList")
 
 return External

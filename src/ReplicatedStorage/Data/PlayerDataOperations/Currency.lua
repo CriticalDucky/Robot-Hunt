@@ -10,10 +10,10 @@ local isServer = RunService:IsServer()
 
 -- Source
 
-local replicatedStorageSharedData = ReplicatedStorage:WaitForChild("Shared"):WaitForChild "Data"
+local replicatedStorageData = ReplicatedStorage:WaitForChild "Data"
 
-local PlayerDataManager = if isServer then require(ServerStorage.Shared.Data.PlayerDataManager) else nil
-local ClientServerCommunication = require(replicatedStorageSharedData:WaitForChild "ClientServerCommunication")
+local PlayerDataManager = if isServer then require(ServerStorage.Data.PlayerDataManager) else nil
+local ClientServerCommunication = require(replicatedStorageData:WaitForChild "ClientServerCommunication")
 
 --#endregion
 
