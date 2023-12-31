@@ -7,7 +7,7 @@ assert(RunService:IsClient(), "ClientState can only be required on the client.")
 
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
-local Types = require(ReplicatedFirst:WaitForChild("Shared"):WaitForChild("Utility"):WaitForChild "Types")
+local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
 
 type PlayerPersistentData = Types.PlayerPersistentData
 
@@ -32,19 +32,11 @@ local ClientState = {
 		worldPopulationList = Value(),
 	},
 
-	home = {
-		selected = Value(),
-	},
-
 	inventory = {
 		accessories = Value(),
-		furniture = Value(),
-		homes = Value(),
 	},
 
 	settings = {
-		findOpenWorld = Value(),
-		homeLock = Value(),
 		musicVolume = Value(),
 		sfxVolume = Value(),
 	},
