@@ -6,7 +6,7 @@
 
 local ServerStorage = game:GetService "ServerStorage"
 
-local ServerDirectives = require(ServerStorage.Shared.Utility.ServerDirectives)
+local ServerDirectives = require(ServerStorage.Utility.ServerDirectives)
 
 ServerDirectives.kickingPlayer:Connect(function(player, reason) warn(`Kicking player {player.Name}. - {reason}`) end)
 

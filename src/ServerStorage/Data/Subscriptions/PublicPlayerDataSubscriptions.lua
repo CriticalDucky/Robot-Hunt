@@ -9,9 +9,9 @@ local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ServerStorage = game:GetService "ServerStorage"
 
-local ClientServerCommunication = require(ReplicatedStorage.Shared.Data.ClientServerCommunication)
-local PlayerDataManager = require(ServerStorage.Shared.Data.PlayerDataManager)
-local Types = require(ReplicatedFirst.Shared.Utility.Types)
+local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
+local PlayerDataManager = require(ServerStorage.Data.PlayerDataManager)
+local Types = require(ReplicatedFirst.Utility.Types)
 
 type PlayerPersistentData = Types.PlayerPersistentData
 type PlayerPersistentDataPublic = Types.PlayerPersistentDataPublic
@@ -24,10 +24,6 @@ local function filter(data: PlayerPersistentData): PlayerPersistentDataPublic
 	local publicData = {}
 
 	publicData.inventory = data.inventory
-
-	publicData.settings = {
-		homeLock = data.settings.homeLock,
-	}
 
 	return publicData
 end

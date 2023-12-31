@@ -2,8 +2,7 @@
 
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 
-local Enums = require(ReplicatedFirst.Shared.Enums)
-local Types = require(ReplicatedFirst.Shared.Utility.Types)
+local Types = require(ReplicatedFirst.Utility.Types)
 
 type PlayerPersistentData = Types.PlayerPersistentData
 type PlayerTempData = Types.PlayerTempData
@@ -22,17 +21,11 @@ local PlayerDataTemplates: PlayerDataTemplates = {
 			money = 0,
 		},
 
-		home = {},
-
 		inventory = {
 			accessories = {},
-			furniture = {},
-			homes = {},
 		},
 
 		settings = {
-			findOpenWorld = true,
-			homeLock = Enums.HomeLockType.unlocked,
 			musicVolume = 1,
 			sfxVolume = 1,
 		},

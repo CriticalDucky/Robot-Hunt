@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
-local SafeRetry = require(ReplicatedStorage.Shared.Utility.SafeRetry)
+local SafeRetry = require(ReplicatedStorage.Utility.SafeRetry)
 
 local DataStoreUtility = {}
 

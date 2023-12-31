@@ -6,7 +6,7 @@ local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
 local replicatedFirstVendor = ReplicatedFirst:WaitForChild("Vendor")
-local replicatedStorageSharedData = ReplicatedStorage:WaitForChild("Shared"):WaitForChild "Data"
+local replicatedStorageSharedData = ReplicatedStorage:WaitForChild "Data"
 
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
 

@@ -48,9 +48,6 @@ export type PlayerPersistentDataPublic = {
 	inventory: {
 		accessories: { [string]: ItemAccessory? },
 	},
-	settings: {
-		homeLock: number,
-	},
 }
 
 export type PlayerTempData = {}

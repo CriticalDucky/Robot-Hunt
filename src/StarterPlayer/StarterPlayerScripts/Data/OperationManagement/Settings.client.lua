@@ -4,22 +4,12 @@
 
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
-local replicatedStorageSharedData = ReplicatedStorage:WaitForChild("Shared"):WaitForChild "Data"
+local replicatedStorageData = ReplicatedStorage:WaitForChild "Data"
 
-local ClientState = require(replicatedStorageSharedData:WaitForChild "ClientState")
-local ClientServerCommunication = require(replicatedStorageSharedData:WaitForChild "ClientServerCommunication")
+local ClientState = require(replicatedStorageData:WaitForChild "ClientState")
+local ClientServerCommunication = require(replicatedStorageData:WaitForChild "ClientServerCommunication")
 
 --#endregion
-
-ClientServerCommunication.registerActionAsync(
-	"SetSettingFindOpenWorld",
-	function(value: boolean) ClientState.settings.findOpenWorld:set(value) end
-)
-
-ClientServerCommunication.registerActionAsync(
-	"SetSettingHomeLock",
-	function(value: number) ClientState.settings.homeLock:set(value) end
-)
 
 ClientServerCommunication.registerActionAsync(
 	"SetSettingMusicVolume",

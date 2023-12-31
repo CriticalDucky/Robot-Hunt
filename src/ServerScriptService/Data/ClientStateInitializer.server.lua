@@ -5,8 +5,8 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ServerStorage = game:GetService "ServerStorage"
 
-local ClientServerCommunication = require(ReplicatedStorage.Shared.Data.ClientServerCommunication)
-local PlayerDataManager = require(ServerStorage.Shared.Data.PlayerDataManager)
+local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
+local PlayerDataManager = require(ServerStorage.Data.PlayerDataManager)
 
 --#endregion
 

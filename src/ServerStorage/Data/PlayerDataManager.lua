@@ -13,10 +13,10 @@ local serverStorageVendor = ServerStorage.Vendor
 
 local ProfileService = require(serverStorageVendor.ProfileService)
 
-local PlayerDataTemplates = require(ServerStorage.Shared.Configuration.PlayerDataTemplates)
-local ServerDirectives = require(ServerStorage.Shared.Utility.ServerDirectives)
-local Table = require(ReplicatedFirst.Shared.Utility.Table)
-local Types = require(ReplicatedFirst.Shared.Utility.Types)
+local PlayerDataTemplates = require(ServerStorage.Configuration.PlayerDataTemplates)
+local ServerDirectives = require(ServerStorage.Utility.ServerDirectives)
+local Table = require(ReplicatedFirst.Utility.Table)
+local Types = require(ReplicatedFirst.Utility.Types)
 
 type DataTreeDictionary = Types.DataTreeDictionary
 type DataTreeValue = Types.DataTreeValue

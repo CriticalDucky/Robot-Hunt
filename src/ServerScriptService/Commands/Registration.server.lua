@@ -1,6 +1,6 @@
 local ServerStorage = game:GetService("ServerStorage")
 
-local commandsFolder = ServerStorage.Shared.Commands
+local commandsFolder = ServerStorage.Commands
 local hooksFolder = commandsFolder.Hooks
 local customCommandsFolder = commandsFolder.Commands
 

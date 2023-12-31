@@ -2,9 +2,8 @@ local Players = game:GetService "Players"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
-local replicatedFirstShared = ReplicatedFirst:WaitForChild "Shared"
-local utilityFolder = replicatedFirstShared:WaitForChild "Utility"
-local enumsFolder = replicatedFirstShared:WaitForChild "Enums"
+local utilityFolder = ReplicatedFirst:WaitForChild "Utility"
+local enumsFolder = ReplicatedFirst:WaitForChild "Enums"
 
 local Cmdr = require(ReplicatedStorage:WaitForChild "CmdrClient" :: ModuleScript)
 local PlayerPermission = require(utilityFolder:WaitForChild "PlayerPermission")
