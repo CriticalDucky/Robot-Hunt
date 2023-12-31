@@ -10,10 +10,6 @@
       "Vendor": {
         "$className": "Folder",
 
-        "ReplicaService": {
-          "$path": "vendor/MadStudioRoblox/ReplicaService/src/ReplicatedStorage"
-        },
-
         "Loadstring": {
           "$path": "vendor/Reinitialized/Loadstring"
         }
@@ -59,10 +55,6 @@
   
         "ProfileService": {
           "$path": "vendor/MadStudioRoblox/ProfileService/ProfileService.lua"
-        },
-  
-        "ReplicaService": {
-          "$path": "vendor/MadStudioRoblox/ReplicaService/src/ServerScriptService/ReplicaService.lua"
         }
       }
     },
