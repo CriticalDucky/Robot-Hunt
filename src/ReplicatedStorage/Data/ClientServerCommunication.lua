@@ -7,9 +7,9 @@ local ServerStorage = game:GetService "ServerStorage"
 local isServer = RunService:IsServer()
 
 local PlayerDataManager = if isServer
-	then require(ServerStorage:WaitForChild("Shared"):WaitForChild("Data"):WaitForChild "PlayerDataManager")
+	then require(ServerStorage:WaitForChild("Data"):WaitForChild "PlayerDataManager")
 	else nil
-local Types = require(ReplicatedFirst:WaitForChild("Shared"):WaitForChild("Utility"):WaitForChild("Types"))
+local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild("Types"))
 
 type DataTreeValue = Types.DataTreeValue
 
