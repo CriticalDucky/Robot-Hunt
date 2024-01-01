@@ -26,56 +26,41 @@ type Promise = Types.Promise
 local currentPhasePromise: Promise? = nil
 local isResults: boolean = false
 
-local function enoughPlayers()
-	local playerCount = 0
-
-	for _, player in Players:GetPlayers() do
-		local character = player.Character
-		local isDataLoaded = true -- PlayerDataManager.persistentDataIsLoaded(player)
-		--and PlayerDataManager.tempDataIsLoaded(player)
-
-		if (character and character.Parent == workspace) and isDataLoaded then
-			playerCount += 1
-		end
-	end
-
-	return playerCount >= RoundConfiguration.minPlayers
-end
-
 local function loop()
-	if not currentPhasePromise and enoughPlayers() and not isResults then
+    local enoughPlayers = #PlayerDataManager.getPlayersWithDataLoaded() >= RoundConfiguration.minPlayers
+
+	if not currentPhasePromise and enoughPlayers and not isResults then
 		currentPhasePromise = Modules.Intermission.begin():andThen(function() return Rounds.DefaultRound.begin() end)
 
-		if currentPhasePromise then
-			currentPhasePromise:finally(function()
-				print "Results started"
+        assert(currentPhasePromise)
 
-				isResults = true
-                currentPhasePromise = nil
+        currentPhasePromise:finally(function()
+            print "Results started"
 
-				task.wait(RoundConfiguration.resultsLength)
+            isResults = true
+            currentPhasePromise = nil
 
-				print "Results ended"
-				
-				isResults = false
+            task.wait(RoundConfiguration.resultsLength)
 
-				if enoughPlayers() then
-					loop()
-				else
-					print "Not enough players, waiting for more"
-				end
-			end)
-		end
-	elseif currentPhasePromise and not enoughPlayers() and not isResults then
-		print "canceling promise"
+            print "Results ended"
+            
+            isResults = false
+
+            if enoughPlayers then
+                loop()
+            else
+                print "Not enough players, waiting for more"
+            end
+        end)
+	elseif currentPhasePromise and not enoughPlayers and not isResults then
 		currentPhasePromise:cancel()
 		currentPhasePromise = nil
-	elseif currentPhasePromise and enoughPlayers() then
+	elseif currentPhasePromise and enoughPlayers then
 		-- Do nothing; we're already in a round
     elseif isResults then
         -- Do nothing; we're in results
-	else -- not currentPhasePromise and not enoughPlayers() and not isResults
-		print(currentPhasePromise, enoughPlayers())
+	else
+		print(currentPhasePromise, enoughPlayers)
 	end
 end
 
