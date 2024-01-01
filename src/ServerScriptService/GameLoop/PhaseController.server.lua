@@ -31,40 +31,48 @@ local function enoughPlayers()
 
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
-		local isDataLoaded = PlayerDataManager.persistentDataIsLoaded(player)
-			and PlayerDataManager.tempDataIsLoaded(player)
+		local isDataLoaded = true -- PlayerDataManager.persistentDataIsLoaded(player)
+		--and PlayerDataManager.tempDataIsLoaded(player)
 
 		if (character and character.Parent == workspace) and isDataLoaded then
 			playerCount += 1
 		end
 	end
+
+	return playerCount >= RoundConfiguration.minPlayers
 end
 
 local function loop()
 	if not currentPhasePromise and enoughPlayers() then
-		currentPhasePromise = Modules.Intermission.begin()
-        :andThen(function() return Rounds.DefaultRound.begin() end)
-        :finally(function()
-            print("Results started")
+		currentPhasePromise = Modules.Intermission
+			.begin()
+			:andThen(function() return Rounds.DefaultRound.begin() end)
+			:finally(function()
+				print "Results started"
 
-            isResults = true
+				isResults = true
 
-            return Promise.delay(RoundConfiguration.resultsLength)
-        end)
-        :finally(function()
-            currentPhasePromise = nil
-            isResults = false
+				task.wait(RoundConfiguration.resultsLength)
+			end)
+			:finally(function()
+				currentPhasePromise = nil
+				isResults = false
 
-            if enoughPlayers() then
-                loop()
-            else
-                print("Not enough players, waiting for more")
-            end
-        end)
+				if enoughPlayers() then
+					loop()
+				else
+					print "Not enough players, waiting for more"
+				end
+			end)
 	elseif currentPhasePromise and not enoughPlayers() and not isResults then
-        currentPhasePromise:cancel()
-        currentPhasePromise = nil
-    end
+        print("canceling promise")
+		currentPhasePromise:cancel()
+		currentPhasePromise = nil
+	elseif currentPhasePromise and enoughPlayers() then
+		-- Do nothing; we're already in a round
+	else -- not currentPhasePromise and not enoughPlayers() and not isResults
+		print(currentPhasePromise, enoughPlayers())
+	end
 end
 
 RunService.Heartbeat:Connect(loop)

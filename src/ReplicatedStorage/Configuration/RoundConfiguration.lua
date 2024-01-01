@@ -1,6 +1,6 @@
 --!strict
 
-local MINUTE = 60
+local MINUTE = 60/6
 
 type RoundConfiguration = {
 	defaultRound: {
