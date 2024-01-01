@@ -272,6 +272,13 @@ function PlayerDataManager.getPlayersWithLoadedTempData()
 	return players
 end
 
+function PlayerDataManager.getPlayersWithDataLoaded()
+	local playersWithTempData = PlayerDataManager.getPlayersWithLoadedTempData()
+	local playersWithPersistentData = PlayerDataManager.getPlayersWithLoadedPersistentData()
+
+	return Table.arrayIntersection(playersWithTempData, playersWithPersistentData)
+end
+
 --[[
 	Returns the player's temporary data, or `nil` if it is not loaded. The returned table may be modified.
 ]]
@@ -291,6 +298,13 @@ end
 function PlayerDataManager.tempDataIsLoaded(player: Player): boolean
 	--
 	return tempDatas[player] ~= nil
+end
+
+--[[
+	Returns if the player's data is loaded, checking both persistent and temporary data.
+]]
+function PlayerDataManager.dataIsLoaded(player: Player): boolean
+	return PlayerDataManager.persistentDataIsLoaded(player) and PlayerDataManager.tempDataIsLoaded(player)
 end
 
 --[[
