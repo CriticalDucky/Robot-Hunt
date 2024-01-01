@@ -14,6 +14,7 @@ function PhaseOne.begin()
     return Promise.new(function(resolve, reject, onCancel)
         onCancel(function()
             print("Phase One cancelled")
+            timer:cancel()
         end)
 
         timer:andThen(function()

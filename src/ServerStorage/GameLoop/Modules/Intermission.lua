@@ -14,6 +14,7 @@ function Intermission.begin()
     return Promise.new(function(resolve, reject, onCancel)
         onCancel(function()
             print("Intermission cancelled")
+            timer:cancel()
         end)
 
         timer:andThen(function()

@@ -14,6 +14,7 @@ function Hiding.begin()
     return Promise.new(function(resolve, reject, onCancel)
         onCancel(function()
             print("Hiding cancelled")
+            timer:cancel()
         end)
 
         timer:andThen(function()
