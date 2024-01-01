@@ -180,6 +180,18 @@ function Table.merge(...) -- merges multiple tables into one, later tables overw
 	return merged
 end
 
+function Table.arrayIntersection(t1, t2) -- returns an array of the values that are in both tables
+	local intersection = {}
+
+	for _, v in pairs(t1) do
+		if Table.hasValue(t2, v) then
+			table.insert(intersection, v)
+		end
+	end
+
+	return intersection
+end
+
 function Table.compare(t1, t2) -- compares two tables recursively, returns true if they are the same
 	if type(t1) ~= "table" or type(t2) ~= "table" then return t1 == t2 end
 
