@@ -11,6 +11,8 @@ type RoundConfiguration = {
 
 	intermissionLength: number,
 	resultsLength: number,
+
+	minPlayers: number,
 }
 
 --[[
@@ -25,6 +27,8 @@ local RoundConfiguration: RoundConfiguration = {
 
 	intermissionLength = 15,
 	resultsLength = 10,
+
+	minPlayers = 2,
 }
 
 return RoundConfiguration
