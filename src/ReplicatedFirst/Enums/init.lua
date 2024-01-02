@@ -14,4 +14,8 @@ Enums.PurchaseResponseType = require(script:WaitForChild "PurchaseResponseType")
 
 Enums.SetSettingResponseType = require(script:WaitForChild "SetSettingResponseType")
 
+Enums.RoundType = require(script:WaitForChild "RoundType")
+
+Enums.PhaseType = require(script:WaitForChild "PhaseType")
+
 return Enums
