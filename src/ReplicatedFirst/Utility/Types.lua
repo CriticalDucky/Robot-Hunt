@@ -62,7 +62,6 @@ export type TimeRange = {
 }
 
 export type TimeInfo = number | (
-	Use?
 ) -> TimeInfo | {
 	year: number?,
 	month: number?,
