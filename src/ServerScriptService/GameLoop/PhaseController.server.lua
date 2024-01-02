@@ -10,57 +10,76 @@ local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ServerStorage = game:GetService "ServerStorage"
 local RunService = game:GetService "RunService"
-local Players = game:GetService "Players"
+
+local GameLoop = ServerStorage.GameLoop
 
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local Rounds = require(ServerStorage.GameLoop.Rounds)
 local Modules = require(ServerStorage.GameLoop.Modules)
 local PlayerDataManager = require(ServerStorage.Data.PlayerDataManager)
 local Types = require(ReplicatedFirst.Utility.Types)
-local Promise = require(ReplicatedFirst.Vendor.Promise)
+local Enums = require(ReplicatedFirst.Enums)
+local Actions = require(GameLoop.Actions)
+local RoundData = require(GameLoop.RoundData)
+
+local RoundType = Enums.RoundType
+local PhaseType = Enums.PhaseType
 
 type Promise = Types.Promise
 
 --#endregion
 
-local currentPhasePromise: Promise? = nil
+local currentRoundPromise: Promise? = nil
 local isResults: boolean = false
 
+local function enoughPlayers()
+	return #PlayerDataManager.getPlayersWithDataLoaded() >= RoundConfiguration.minPlayers
+end
+
 local function loop()
-    local enoughPlayers = #PlayerDataManager.getPlayersWithDataLoaded() >= RoundConfiguration.minPlayers
+	if not currentRoundPromise and enoughPlayers() and not isResults then
+		currentRoundPromise = Modules.Intermission
+			.begin()
+			:andThen(function() return Rounds[RoundType.defaultRound].begin() end)
 
-	if not currentPhasePromise and enoughPlayers and not isResults then
-		currentPhasePromise = Modules.Intermission.begin():andThen(function() return Rounds.DefaultRound.begin() end)
+		assert(currentRoundPromise)
 
-        assert(currentPhasePromise)
+		currentRoundPromise:finally(function()
+			print "Results started"
 
-        currentPhasePromise:finally(function()
-            print "Results started"
+			isResults = true
+			currentRoundPromise = nil
+			
+			RoundData.data.currentPhaseType = Enums.PhaseType.Hiding
+			RoundData.data.currentRoundType = nil
+			RoundData.data.phaseStartTime = os.time()
+			Actions.replicateRoundData()
 
-            isResults = true
-            currentPhasePromise = nil
+			task.wait(RoundConfiguration.timeLengths.lobby[PhaseType.Results])
 
-            task.wait(RoundConfiguration.resultsLength)
+			print "Results ended"
 
-            print "Results ended"
-            
-            isResults = false
+			isResults = false
 
-            if enoughPlayers then
-                loop()
-            else
-                print "Not enough players, waiting for more"
-            end
-        end)
-	elseif currentPhasePromise and not enoughPlayers and not isResults then
-		currentPhasePromise:cancel()
-		currentPhasePromise = nil
-	elseif currentPhasePromise and enoughPlayers then
+			if enoughPlayers() then
+				loop()
+			else
+				print "Not enough players, waiting for more"
+
+				RoundData.data.currentPhaseType = Enums.PhaseType.NotEnoughPlayers
+				RoundData.data.phaseStartTime = nil
+				Actions.replicateRoundData()
+			end
+		end)
+	elseif currentRoundPromise and not enoughPlayers() and not isResults then
+		currentRoundPromise:cancel()
+		currentRoundPromise = nil
+	elseif currentRoundPromise and enoughPlayers() then
 		-- Do nothing; we're already in a round
-    elseif isResults then
-        -- Do nothing; we're in results
+	elseif isResults then
+		-- Do nothing; we're in results and nothing can change that
 	else
-		print(currentPhasePromise, enoughPlayers)
+		print(currentRoundPromise, enoughPlayers())
 	end
 end
 
