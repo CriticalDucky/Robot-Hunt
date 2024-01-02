@@ -1,21 +1,21 @@
--- --#region Imports
+--#region Imports
 
--- local ReplicatedStorage = game:GetService "ReplicatedStorage"
+local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
--- local replicatedStorageSharedData = ReplicatedStorage:WaitForChild("Shared"):WaitForChild "Data"
+local replicatedStorageData = ReplicatedStorage:WaitForChild "Data"
 
--- local ClientServerCommunication = require(replicatedStorageSharedData:WaitForChild "ClientServerCommunication")
+local ClientServerCommunication = require(replicatedStorageData:WaitForChild "ClientServerCommunication")
 
--- --#endregion
+--#endregion
 
--- local WorldPopulationList = {}
+local WorldPopulationList = {}
 
--- function WorldPopulationList.SubscribeToWorldPopulationList()
--- 	ClientServerCommunication.replicateAsync "SubscribeToWorldPopulationList"
--- end
+function WorldPopulationList.SubscribeToWorldPopulationList()
+	ClientServerCommunication.replicateAsync "SubscribeToWorldPopulationList"
+end
 
--- function WorldPopulationList.UnsubscribeFromWorldPopulationList()
---     ClientServerCommunication.replicateAsync "UnsubscribeFromWorldPopulationList"
--- end
+function WorldPopulationList.UnsubscribeFromWorldPopulationList()
+    ClientServerCommunication.replicateAsync "UnsubscribeFromWorldPopulationList"
+end
 
--- return WorldPopulationList
+return WorldPopulationList
