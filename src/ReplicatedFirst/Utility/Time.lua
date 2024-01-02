@@ -4,52 +4,105 @@ local RunService = game:GetService "RunService"
 local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
 local utilityFolder = ReplicatedFirst:WaitForChild "Utility"
 
-local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
 local Types = require(utilityFolder:WaitForChild "Types")
+local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
 local Value = Fusion.Value
-local peek = Fusion.peek
 
 type TimeInfo = Types.TimeInfo
 type TimeRange = Types.TimeRange
-type Use = Fusion.Use
 
-local unixTimeValue = Value(os.time())
+local timeValue = Value.new(workspace:GetServerTimeNow())
 
-local function date(string, use: Use?)
-	return tonumber(os.date(string, (use or peek)(unixTimeValue)))
-end
+local function date(format: string, time: number?): number
+	local timeString = os.date(format, time or workspace:GetServerTimeNow())
 
-if RunService:IsClient() then
-	local ReplicatedStorage = game:GetService "ReplicatedStorage"
-	local replicationFolder = ReplicatedStorage:WaitForChild "Replication"
-	local ReplicaCollection = require(replicationFolder:WaitForChild "ReplicaCollection")
+	local number = tonumber(timeString)
 
-	local unixTimeReplica = ReplicaCollection.waitForReplica "ServerUnixTime"
+	assert(timeString, "Error: os.date returned nil")
+	assert(number, "Error: os.date returned a non-number")
 
-	unixTimeReplica:ListenToChange(
-		{ "timeInfo", "unix" },
-		function(newTime) -- Listen to changes to the server's unix time.
-			unixTimeValue:set(newTime) -- Update the time value.
-		end
-	)
-	unixTimeValue:set(unixTimeReplica.Data.timeInfo.unix or os.time())
-
-	task.spawn(function()
-		while true do
-			unixTimeValue:set(peek(unixTimeValue) + 1) -- Increment the time value by 1 every second. This is imprecise, but the time will be calibrated when the server's time is received.
-			task.wait(1)
-		end
-	end)
-else
-	task.spawn(function()
-		while true do
-			unixTimeValue:set(os.time())
-			task.wait(1)
-		end
-	end)
+	return number
 end
 
 local Time = {}
+
+--[[
+    Gets the current year. Returns a number (e.g. 2020).
+]]
+function Time.currentYear(unixTime: number?): number
+	return date("%Y", unixTime)
+end
+
+--[[
+    Gets the current month. Returns a number from 1 to 12.
+]]
+function Time.currentMonth(unixTime: number?): number
+	return date("%m", unixTime)
+end
+
+--[[
+    Gets the current day. Returns a number from 1 to 31.
+]]
+function Time.currentDay(unixTime: number?): number
+	return date("%d", unixTime)
+end
+
+--[[
+    Gets the current hour. Returns a number from 0 to 23.
+]]
+function Time.currentHour(unixTime: number?): number
+	return date("%H", unixTime)
+end
+
+--[[
+    Gets the current minute. Returns a number from 0 to 59.
+]]
+function Time.currentMinute(unixTime: number?): number
+	return date("%M", unixTime)
+end
+
+--[[
+    Gets the current second. Returns a number from 0 to 59.
+]]
+function Time.currentSecond(unixTime: number?): number
+	return date("%S", unixTime)
+end
+
+--[[
+    Gets the unix time that corresponds to the given time info.
+
+    TimeInfo is a table or function that returns a table with the following keys:
+    ```lua
+    TimeInfo = {
+        year: number
+        month: number
+        day: number
+        hour: number
+        min: number
+        sec: number
+    } | () -> TimeInfo
+    ```
+    TimeInfo can also be a number, in which case it will be returned as is.
+
+    WARNING: Nil keys will be replaced with the current time. This is sometimes
+    undesirable, so make sure your time info is complete with 0 values.
+]]
+function Time.getUnixFromTimeInfo(timeInfo: TimeInfo): number
+	if type(timeInfo) == "function" then timeInfo = timeInfo() :: TimeInfo end
+
+	if type(timeInfo) == "number" then return timeInfo end
+
+	if type(timeInfo) ~= "table" then error "Error: timeInfo is not a table" end
+
+	return os.time {
+		year = timeInfo.year or Time.currentYear(),
+		month = timeInfo.month or Time.currentMonth(),
+		day = timeInfo.day or Time.currentDay(),
+		hour = timeInfo.hour or Time.currentHour(),
+		min = timeInfo.min or Time.currentMinute(),
+		sec = timeInfo.sec or Time.currentSecond(),
+	}
+end
 
 local TimeRange = {}
 TimeRange.__index = TimeRange
@@ -84,9 +137,9 @@ TimeRange.isATimeRange = true
 			min = 0,
 			sec = 0,
 		}, {
-			hour = 13,
-			min = 0,
-			sec = 0,
+			hour = 12,
+			min = 59,
+			sec = 59,
 		})
 	```
 
@@ -120,12 +173,12 @@ TimeRange.isATimeRange = true
 	that is a group of other TimeRanges that are groups of other TimeRanges, etc.
 ]]
 function TimeRange.new(introduction: TimeInfo?, closing: TimeInfo?): TimeRange
-	local self = setmetatable({}, TimeRange)
+	local newTimeRange = setmetatable({}, TimeRange)
 
-	self.introduction = introduction
-	self.closing = closing
+	newTimeRange.introduction = introduction
+	newTimeRange.closing = closing
 
-	return self
+	return newTimeRange
 end
 
 --[[
@@ -133,11 +186,11 @@ end
 	When :isInRange() is called on this TimeRange, it will return true if any of the TimeRanges in the group are in range.
 ]]
 function TimeRange.newGroup(...: TimeRange): TimeRange
-	local self = setmetatable({}, TimeRange)
+	local newTimeRange = setmetatable({}, TimeRange)
 
-	self.timeRanges = { ... }
+	newTimeRange.timeRanges = { ... }
 
-	return self
+	return newTimeRange
 end
 
 -- Returns a boolean indicating whether the given TimeRange is in fact a TimeRange (via duck typing)
@@ -163,8 +216,8 @@ end
 
 	timeInfo can also be nil, in which case the current time will be used.
 ]]
-function TimeRange:isInRange(timeInfo: TimeInfo?, use: Use?)
-	timeInfo = timeInfo or Time.getUnix(use)
+function TimeRange:isInRange(timeInfo: TimeInfo?)
+	timeInfo = timeInfo or workspace:GetServerTimeNow()
 
 	if self.timeRanges then
 		for _, timeRange in ipairs(self.timeRanges) do
@@ -173,21 +226,21 @@ function TimeRange:isInRange(timeInfo: TimeInfo?, use: Use?)
 
 		return false
 	else
-		local timeInfoUnix = Time.getUnixFromTimeInfo(timeInfo :: TimeInfo, use)
+		local timeInfoUnix = Time.getUnixFromTimeInfo(timeInfo :: TimeInfo)
 		local introduction = self.introduction
 		local closing = self.closing
 
 		if introduction and closing then
-			local introductionUnix = Time.getUnixFromTimeInfo(introduction, use)
-			local closingUnix = Time.getUnixFromTimeInfo(closing, use)
+			local introductionUnix = Time.getUnixFromTimeInfo(introduction)
+			local closingUnix = Time.getUnixFromTimeInfo(closing)
 
 			return introductionUnix <= timeInfoUnix and timeInfoUnix < closingUnix
 		elseif introduction then
-			local introductionUnix = Time.getUnixFromTimeInfo(introduction, use)
+			local introductionUnix = Time.getUnixFromTimeInfo(introduction)
 
 			return introductionUnix <= timeInfoUnix
 		elseif closing then
-			local closingUnix = Time.getUnixFromTimeInfo(closing, use)
+			local closingUnix = Time.getUnixFromTimeInfo(closing)
 
 			return timeInfoUnix < closingUnix
 		else
@@ -206,10 +259,10 @@ end
 	* If the TimeRange is infinite, it will return nil.
 	* If the TimeRange is not in range, it will return 0.
 ]]
-function TimeRange:distanceToClosing(timeInfo: TimeInfo?, use: Use?): number?
-	timeInfo = timeInfo or Time.getUnix(use)
+function TimeRange:distanceToClosing(timeInfo: TimeInfo?): number?
+	timeInfo = timeInfo or workspace:GetServerTimeNow()
 
-	local timeInfoUnix = Time.getUnixFromTimeInfo(timeInfo :: TimeInfo, use)
+	local timeInfoUnix = Time.getUnixFromTimeInfo(timeInfo :: TimeInfo)
 	local closing = self.closing
 
 	if self.timeRanges then
@@ -217,7 +270,7 @@ function TimeRange:distanceToClosing(timeInfo: TimeInfo?, use: Use?): number?
 
 		for _, timeRange in ipairs(self.timeRanges) do
 			if timeRange:isInRange(timeInfoUnix) then
-				local distanceToClosing = timeRange:distanceToClosing(timeInfoUnix, use)
+				local distanceToClosing = timeRange:distanceToClosing(timeInfoUnix)
 
 				if distanceToClosing > distance and distanceToClosing > 0 then
 					distance = distanceToClosing
@@ -232,7 +285,7 @@ function TimeRange:distanceToClosing(timeInfo: TimeInfo?, use: Use?): number?
 		end
 	else
 		if closing then
-			local closingUnix = Time.getUnixFromTimeInfo(closing, use)
+			local closingUnix = Time.getUnixFromTimeInfo(closing)
 
 			if closingUnix <= timeInfoUnix then
 				return 0
@@ -254,15 +307,15 @@ end
 	* If the TimeRange is infinite, it will return nil.
 	* If the TimeRange is in range, it will return 0.
 ]]
-function TimeRange:distanceToIntroduction(timeInfo: TimeInfo?, use: Use?): number?
-	local timeInfoUnix = if timeInfo then Time.getUnixFromTimeInfo(timeInfo, use) else Time.getUnix(use)
+function TimeRange:distanceToIntroduction(timeInfo: TimeInfo?): number?
+	local timeInfoUnix = if timeInfo then Time.getUnixFromTimeInfo(timeInfo) else workspace:GetServerTimeNow()
 
 	if self.timeRanges then
 		local distance = math.huge
 
 		for _, timeRange in ipairs(self.timeRanges) do
 			if not timeRange:isInRange(timeInfoUnix) then
-				local distanceToIntroduction = timeRange:distanceToIntroduction(timeInfoUnix, use)
+				local distanceToIntroduction = timeRange:distanceToIntroduction(timeInfoUnix)
 
 				if distanceToIntroduction < distance then
 					distance = distanceToIntroduction
@@ -279,7 +332,7 @@ function TimeRange:distanceToIntroduction(timeInfo: TimeInfo?, use: Use?): numbe
 		local introduction = self.introduction
 
 		if introduction then
-			local introductionUnix = Time.getUnixFromTimeInfo(introduction, use)
+			local introductionUnix = Time.getUnixFromTimeInfo(introduction)
 
 			if introductionUnix <= timeInfoUnix then
 				return 0
@@ -290,93 +343,6 @@ function TimeRange:distanceToIntroduction(timeInfo: TimeInfo?, use: Use?): numbe
 			return nil
 		end
 	end
-end
-
---[[
-    Gets the *server's* unix time.
-    Recommended to use over os.time() as it is more accurate and will not be affected by the client's clock.
-    It will also dynamically update in Fusion computed values as long as use passes in a computed use function.
-]]
-function Time.getUnix(use: Use?)
-	return (use or peek)(unixTimeValue)
-end
-
---[[
-    Gets the current year. Returns a number (e.g. 2020).
-]]
-function Time.currentYear(use: Use?): number
-	return date("%Y", use)
-end
-
---[[
-    Gets the current month. Returns a number from 1 to 12.
-]]
-function Time.currentMonth(use: Use?): number
-	return date("%m", use)
-end
-
---[[
-    Gets the current day. Returns a number from 1 to 31.
-]]
-function Time.currentDay(use: Use?): number
-	return date("%d", use)
-end
-
---[[
-    Gets the current hour. Returns a number from 0 to 23.
-]]
-function Time.currentHour(use: Use?): number
-	return date("%H", use)
-end
-
---[[
-    Gets the current minute. Returns a number from 0 to 59.
-]]
-function Time.currentMinute(use: Use?): number
-	return date("%M", use)
-end
-
---[[
-    Gets the current second. Returns a number from 0 to 59.
-]]
-function Time.currentSecond(use: Use?): number
-	return date("%S", use)
-end
-
---[[
-    Gets the unix time that corresponds to the given time info.
-
-    TimeInfo is a table or function that returns a table with the following keys:
-    ```lua
-    TimeInfo = {
-        year: number
-        month: number
-        day: number
-        hour: number
-        min: number
-        sec: number
-    } | () -> TimeInfo
-    ```
-    TimeInfo can also be a number, in which case it will be returned as is.
-
-    WARNING: Nil keys will be replaced with the current time. This is sometimes
-    undesirable, so make sure your time info is complete with 0 values.
-]]
-function Time.getUnixFromTimeInfo(timeInfo: TimeInfo, use: Use?): number
-	if type(timeInfo) == "function" then timeInfo = timeInfo(use) :: TimeInfo end
-
-	if type(timeInfo) == "number" then return timeInfo end
-
-	if type(timeInfo) ~= "table" then error "Error: timeInfo is not a table" end
-
-	return os.time {
-		year = timeInfo.year or Time.currentYear(use),
-		month = timeInfo.month or Time.currentMonth(use),
-		day = timeInfo.day or Time.currentDay(use),
-		hour = timeInfo.hour or Time.currentHour(use),
-		min = timeInfo.min or Time.currentMinute(use),
-		sec = timeInfo.sec or Time.currentSecond(use),
-	}
 end
 
 --[[
@@ -459,5 +425,9 @@ function Time.newRangeGroup(...: TimeRange)
 
 	return TimeRange.newGroup(...)
 end
+
+RunService.RenderStepped:Connect(function()
+	timeValue:set(workspace:GetServerTimeNow())
+end)
 
 return Time
