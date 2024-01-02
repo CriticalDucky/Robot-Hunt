@@ -2,31 +2,32 @@
 
 local MINUTE = 60/6
 
-type RoundConfiguration = {
-	defaultRound: {
-		hidingTime: number,
-        phaseOneLength: number,
-        phaseTwoLength: number,
-    },
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
-	intermissionLength: number,
-	resultsLength: number,
+local Enums = require(ReplicatedFirst:WaitForChild("Enums"))
 
-	minPlayers: number,
-}
+local PhaseType = Enums.PhaseType
+local RoundType = Enums.RoundType
+
+type RoundType = number
+type PhaseType = number
 
 --[[
 	Configuration for player data.
 ]]
-local RoundConfiguration: RoundConfiguration = {
-	defaultRound = {
-		hidingTime = MINUTE*0.5,
-		phaseOneLength = MINUTE*2.5,
-		phaseTwoLength = MINUTE*2.5,
-	},
+local RoundConfiguration = {
+	timeLengths = {
+		[RoundType.defaultRound] = {
+			[PhaseType.Hiding] = MINUTE*0.5,
+			[PhaseType.PhaseOne] = MINUTE*2.5,
+			[PhaseType.PhaseTwo] = MINUTE*2.5,
+		},
 
-	intermissionLength = 15,
-	resultsLength = 10,
+		lobby = {
+			[PhaseType.Intermission] = 15,
+			[PhaseType.Results] = 10,
+		}
+	},
 
 	minPlayers = 2,
 }
