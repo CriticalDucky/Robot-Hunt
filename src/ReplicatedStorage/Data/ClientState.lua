@@ -30,6 +30,7 @@ local ClientState = {
 	external = {
 		publicPlayerData = Value(),
 		worldPopulationList = Value(),
+		roundData = Value(),
 	},
 
 	inventory = {
