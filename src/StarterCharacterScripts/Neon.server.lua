@@ -1,6 +1,6 @@
-local HIDERS_COLOR = Color3.fromRGB(79, 144, 219)
-local SEEKERS_COLOR = Color3.fromRGB(224, 91, 93)
-local LOBBY_COLOR = Color3.fromRGB(223, 94, 223)
+local HIDERS_COLOR = Color3.fromRGB(99, 153, 213)
+local SEEKERS_COLOR = Color3.fromRGB(220, 116, 118)
+local LOBBY_COLOR = Color3.fromRGB(220, 122, 220)
 
 local players = game:GetService("Players")
 local teams = game:GetService("Teams")
