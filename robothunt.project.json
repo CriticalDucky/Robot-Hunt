@@ -60,15 +60,21 @@
     },
 
     "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$path": "src/StarterPlayer",
+
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "$path": "src/StarterPlayer/StarterPlayerScripts"
+        "$path": "src/StarterPlayerScripts"
       },
+  
       "StarterCharacterScripts": {
         "$className": "StarterCharacterScripts",
-        "$path": "src/StarterPlayer/StarterCharacterScripts"
+        "$path": "src/StarterCharacterScripts"
       }
     },
+
+    
 
     "Workspace": {
       "$className": "Workspace",
@@ -79,6 +85,40 @@
 
       "Terrain": {
         "$className": "Terrain"
+      }
+    },
+
+    "Teams": {
+      "$className": "Teams",
+
+      "Lobby": {
+        "$className": "Team",
+        "$properties": {
+          "AutoAssignable": true,
+          "TeamColor": {
+            "BrickColor": 104
+          }
+        }
+      },
+
+      "Hiders": {
+        "$className": "Team",
+        "$properties": {
+          "AutoAssignable": false,
+          "TeamColor": {
+            "BrickColor": 23
+          }
+        }
+      },
+
+      "Seekers": {
+        "$className": "Team",
+        "$properties": {
+          "AutoAssignable": false,
+          "TeamColor": {
+            "BrickColor": 21
+          }
+        }
       }
     },
 

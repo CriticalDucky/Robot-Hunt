@@ -8,11 +8,13 @@ local name = player.Name
 local plate = character:WaitForChild("Plate")
 local surfaceGui = plate:WaitForChild("SurfaceGui")
 local frame = surfaceGui:WaitForChild("Frame")
-local TextLabel = frame:WaitForChild("TextLabel")
+local TextLabel: TextLabel = frame:WaitForChild("TextLabel")
 
 local splitName = string.split(name, "")
 local unfilteredString = ""
 local filteredResult
+
+TextLabel.FontFace = Font.fromName("Jura")
 
 for _, v in pairs(splitName) do
 	if string.match(v, "%u") then
