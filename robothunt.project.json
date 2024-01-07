@@ -101,7 +101,7 @@
         }
       },
 
-      "Hiders": {
+      "Rebels": {
         "$className": "Team",
         "$properties": {
           "AutoAssignable": false,
@@ -111,7 +111,7 @@
         }
       },
 
-      "Seekers": {
+      "Hunters": {
         "$className": "Team",
         "$properties": {
           "AutoAssignable": false,
