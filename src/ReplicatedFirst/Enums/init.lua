@@ -18,4 +18,8 @@ Enums.RoundType = require(script:WaitForChild "RoundType")
 
 Enums.PhaseType = require(script:WaitForChild "PhaseType")
 
+Enums.PlayerStatus = require(script:WaitForChild "PlayerStatus")
+
+Enums.TeamType = require(script:WaitForChild "TeamType")
+
 return Enums
