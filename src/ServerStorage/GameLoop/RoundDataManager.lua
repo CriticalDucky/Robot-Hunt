@@ -11,11 +11,17 @@ local Enums = require(ReplicatedFirst.Enums)
 type PlayerData = {
 	playerId: number,
 
-	-- True if the player is alive, false if they are dead
-	alive: boolean,
+	-- The players current status enum (Enums.PlayerStatus)
+	status: number,
+
+    -- The player's current team enum (Enums.TeamType)
+    team: number,
 
 	-- The player's current health (0-100)
 	health: number,
+    
+    -- The player's current life support (0-100)
+    lifeSupport: number,
 }
 
 type RoundData = {
@@ -46,8 +52,10 @@ RoundDataManager.data = roundData
 function RoundDataManager.filterPlayerData(playerData: PlayerData, player: Player)
 	return {
 		playerId = playerData.playerId,
-		alive = playerData.alive,
+		status = playerData.status,
+        team = playerData.team,
 		health = playerData.health,
+        lifeSupport = playerData.lifeSupport,
 	}
 end
 
