@@ -16,7 +16,7 @@ function Hiding.begin()
 	print "Hiding started"
 	RoundDataManager.data.currentPhaseType = Enums.PhaseType.Hiding
 	RoundDataManager.data.phaseStartTime = os.time()
-	Actions.replicateRoundData()
+	RoundDataManager.replicateDataAsync()
 
 	local timer = Promise.delay(RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.Hiding])
 

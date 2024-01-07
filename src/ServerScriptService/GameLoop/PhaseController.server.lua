@@ -53,7 +53,7 @@ local function loop()
 			RoundDataManager.data.currentPhaseType = Enums.PhaseType.Hiding
 			RoundDataManager.data.currentRoundType = nil
 			RoundDataManager.data.phaseStartTime = os.time()
-			Actions.replicateRoundData()
+			RoundDataManager.replicateDataAsync()
 
 			task.wait(RoundConfiguration.timeLengths.lobby[PhaseType.Results])
 
@@ -68,7 +68,7 @@ local function loop()
 
 				RoundDataManager.data.currentPhaseType = Enums.PhaseType.NotEnoughPlayers
 				RoundDataManager.data.phaseStartTime = nil
-				Actions.replicateRoundData()
+				RoundDataManager.replicateDataAsync()
 			end
 		end)
 	elseif currentRoundPromise and not enoughPlayers() and not isResults then

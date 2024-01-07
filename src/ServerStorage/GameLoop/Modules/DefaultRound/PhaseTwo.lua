@@ -16,7 +16,7 @@ function PhaseTwo.begin()
     print("Phase Two started")
     RoundDataManager.data.currentPhaseType = Enums.PhaseType.PhaseTwo
     RoundDataManager.data.phaseStartTime = os.time()
-    Actions.replicateRoundData()
+    RoundDataManager.replicateDataAsync()
 
     local timer = Promise.delay(RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.PhaseTwo])
 

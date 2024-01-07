@@ -16,7 +16,7 @@ function Intermission.begin()
     print("Intermission started")
     RoundDataManager.data.currentPhaseType = Enums.PhaseType.Intermission
     RoundDataManager.data.phaseStartTime = os.time()
-    Actions.replicateRoundData()
+    RoundDataManager.replicateDataAsync()
 
     local timer = Promise.delay(RoundConfiguration.timeLengths.lobby[Enums.PhaseType.Intermission])
 
