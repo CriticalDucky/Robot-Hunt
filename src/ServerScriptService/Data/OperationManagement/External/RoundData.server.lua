@@ -10,6 +10,6 @@ local RoundDataManager = require(ServerStorage.GameLoop.RoundDataManager)
 
 --#endregion
 
-ClientServerCommunication.registerActionAsync("UpdateRoundData", function(player: Player, value)
-    ClientServerCommunication.replicateAsync("UpdateRoundData", RoundDataManager.getFilteredData(), player)
+ClientServerCommunication.registerActionAsync("UpdateRoundData", function(player: Player)
+    RoundDataManager.replicateDataAsync(player)
 end)
