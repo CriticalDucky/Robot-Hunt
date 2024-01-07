@@ -20,7 +20,7 @@ local PlayerDataManager = require(ServerStorage.Data.PlayerDataManager)
 local Types = require(ReplicatedFirst.Utility.Types)
 local Enums = require(ReplicatedFirst.Enums)
 local Actions = require(GameLoop.Actions)
-local RoundData = require(GameLoop.RoundData)
+local RoundDataManager = require(GameLoop.RoundDataManager)
 
 local RoundType = Enums.RoundType
 local PhaseType = Enums.PhaseType
@@ -50,9 +50,9 @@ local function loop()
 			isResults = true
 			currentRoundPromise = nil
 			
-			RoundData.data.currentPhaseType = Enums.PhaseType.Hiding
-			RoundData.data.currentRoundType = nil
-			RoundData.data.phaseStartTime = os.time()
+			RoundDataManager.data.currentPhaseType = Enums.PhaseType.Hiding
+			RoundDataManager.data.currentRoundType = nil
+			RoundDataManager.data.phaseStartTime = os.time()
 			Actions.replicateRoundData()
 
 			task.wait(RoundConfiguration.timeLengths.lobby[PhaseType.Results])
@@ -66,8 +66,8 @@ local function loop()
 			else
 				print "Not enough players, waiting for more"
 
-				RoundData.data.currentPhaseType = Enums.PhaseType.NotEnoughPlayers
-				RoundData.data.phaseStartTime = nil
+				RoundDataManager.data.currentPhaseType = Enums.PhaseType.NotEnoughPlayers
+				RoundDataManager.data.phaseStartTime = nil
 				Actions.replicateRoundData()
 			end
 		end)

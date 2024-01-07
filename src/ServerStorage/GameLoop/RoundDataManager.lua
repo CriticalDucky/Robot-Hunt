@@ -11,22 +11,40 @@ type RoundData = {
     currentPhaseType: number?,
     -- The Unix timestamp of when the phase started
     phaseStartTime: number?,
+
+    --[[
+        An array players in the round.
+        Round player data is not deleted when a player leaves the round, but alive is set to false.
+    ]]
+    players: {
+        [number]: {
+            playerId: number,
+
+            -- True if the player is alive, false if they are dead
+            alive: boolean,
+
+            -- The player's current health (0-100)
+            health: number,
+        }?,
+    },
 }
 
 local roundData: RoundData = {
     currentRoundType = nil,
     currentPhaseType = Enums.PhaseType.NotEnoughPlayers,
     phaseStartTime = nil,
+
+    players = {},
 }
 
-local RoundDataController = {}
+local RoundDataManager = {}
 
-RoundDataController.data = roundData
+RoundDataManager.data = roundData
 
 --[[
     Retrieves the round data and returns a filtered version of it for the client.
 ]]
-function RoundDataController.getFilteredData()
+function RoundDataManager.getFilteredData()
     local filteredData = {}
 
     filteredData.currentRoundType = roundData.currentRoundType
@@ -36,4 +54,4 @@ function RoundDataController.getFilteredData()
     return filteredData
 end
 
-return RoundDataController
+return RoundDataManager

@@ -5,7 +5,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local GameLoop = ServerStorage.GameLoop
 
 local Actions = require(GameLoop.Actions)
-local RoundData = require(GameLoop.RoundData)
+local RoundDataManager = require(GameLoop.RoundDataManager)
 local Promise = require(ReplicatedFirst.Vendor.Promise)
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local Enums = require(ReplicatedFirst.Enums)
@@ -14,8 +14,8 @@ local Intermission = {}
 
 function Intermission.begin()
     print("Intermission started")
-    RoundData.data.currentPhaseType = Enums.PhaseType.Intermission
-    RoundData.data.phaseStartTime = os.time()
+    RoundDataManager.data.currentPhaseType = Enums.PhaseType.Intermission
+    RoundDataManager.data.phaseStartTime = os.time()
     Actions.replicateRoundData()
 
     local timer = Promise.delay(RoundConfiguration.timeLengths.lobby[Enums.PhaseType.Intermission])

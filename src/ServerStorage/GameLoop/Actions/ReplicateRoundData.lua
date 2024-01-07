@@ -7,13 +7,13 @@ local ServerStorage = game:GetService "ServerStorage"
 local Players = game:GetService "Players"
 
 local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
-local RoundData = require(ServerStorage.GameLoop.RoundData)
+local RoundDataManager = require(ServerStorage.GameLoop.RoundDataManager)
 
 --#endregion
 
 local function replicate()
     for _, player in ipairs(Players:GetPlayers()) do
-        ClientServerCommunication.replicateAsync("UpdateRoundData", RoundData.getFilteredData(), player)
+        ClientServerCommunication.replicateAsync("UpdateRoundData", RoundDataManager.getFilteredData(), player)
     end
 end
 

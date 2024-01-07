@@ -6,12 +6,12 @@ local GameLoop = ServerStorage.GameLoop
 local Enums = require(ReplicatedFirst.Enums)
 local Modules = require(GameLoop.Modules)
 -- local Actions = require(GameLoop.Actions)
-local RoundData = require(GameLoop.RoundData)
+local RoundDataManager = require(GameLoop.RoundDataManager)
 
 local DefaultRound = {}
 
 function DefaultRound.begin()
-	RoundData.data.currentRoundType = Enums.RoundType.defaultRound
+	RoundDataManager.data.currentRoundType = Enums.RoundType.defaultRound
 
 	return Modules.DefaultRound.Hiding
 		.begin()
