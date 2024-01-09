@@ -5,8 +5,10 @@ local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
 
 local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
+local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 
 local Enums = require(ReplicatedFirst.Enums)
+local PhaseType = Enums.PhaseType
 
 type PlayerData = {
 	playerId: number,
@@ -45,11 +47,7 @@ local roundData: RoundData = {
 	playerData = {},
 }
 
-local RoundDataManager = {}
-
-RoundDataManager.data = roundData
-
-function RoundDataManager.filterPlayerData(playerData: PlayerData, player: Player)
+local function filterPlayerData(playerData: PlayerData, player: Player)
 	return {
 		playerId = playerData.playerId,
 		status = playerData.status,
@@ -62,7 +60,7 @@ end
 --[[
     Retrieves the round data and returns a filtered version of it for the client.
 ]]
-function RoundDataManager.getFilteredData(player: Player)
+function filterData(player: Player)
 	local filteredData = {}
 
 	filteredData.currentRoundType = roundData.currentRoundType
@@ -72,31 +70,53 @@ function RoundDataManager.getFilteredData(player: Player)
     filteredData.playerData = {}
 
     for _, playerData in ipairs(roundData.playerData) do
-        table.insert(filteredData.playerData, RoundDataManager.filterPlayerData(playerData, player))
+        table.insert(filteredData.playerData, filterPlayerData(playerData, player))
     end
 
 	return filteredData
 end
 
+local RoundDataManager = {}
+
+RoundDataManager.data = roundData
+
 function RoundDataManager.initializedRoundDataAsync(player: Player?)
 	local players = if player then { player } else Players:GetPlayers()
 
 	for _, player in ipairs(players) do
-		ClientServerCommunication.replicateAsync("InitializeRoundData", RoundDataManager.getFilteredData(player), player)
+		ClientServerCommunication.replicateAsync("InitializeRoundData", filterData(player), player)
 	end
 end
 
-function RoundDataManager.replicateRoundTypeAsync()
-	ClientServerCommunication.replicateAsync("UpdateRoundType", roundData.currentRoundType)
+function RoundDataManager.setPhaseToResultsAsync(endTime: number)
+    roundData.currentPhaseType = PhaseType.Results
+    roundData.currentRoundType = nil
+    roundData.phaseEndTime = endTime
+
+    ClientServerCommunication.replicateAsync("SetPhaseToResults", {
+        phaseEndTime = endTime,
+    })
 end
 
-function RoundDataManager.replicatePhaseTypeAsync()
-	ClientServerCommunication.replicateAsync("UpdatePhaseType", roundData.currentPhaseType)
+function RoundDataManager.setPhaseToIntermissionAsync(endTime)
+    roundData.currentPhaseType = PhaseType.Intermission
+    roundData.phaseEndTime = endTime
+
+    table.clear(roundData.playerData)
+
+    ClientServerCommunication.replicateAsync("SetPhaseToIntermission", {
+        phaseEndTime = endTime,
+    })
 end
 
-function RoundDataManager.replicatePhaseEndTimeAsync()
-	ClientServerCommunication.replicateAsync("UpdatePhaseEndTime", roundData.phaseEndTime)
+function RoundDataManager.setPhaseToNotEnoughPlayersAsync()
+    roundData.currentPhaseType = PhaseType.NotEnoughPlayers
+    roundData.phaseEndTime = nil
+
+    ClientServerCommunication.replicateAsync("SetPhaseToNotEnoughPlayers")
 end
+
+
 
 --[[
     Replicates round player data to all clients.
@@ -115,7 +135,7 @@ function RoundDataManager.replicatePlayerDataAsync(targetPlayer: Player?)
         end
 
         if playerData then
-            playerData = RoundDataManager.filterPlayerData(playerData, targetPlayer)
+            playerData = filterPlayerData(playerData, targetPlayer)
         end
     end
 
@@ -129,7 +149,7 @@ function RoundDataManager.replicatePlayerDataAsync(targetPlayer: Player?)
             local filteredPlayerDatas = {}
 
             for _, newData in ipairs(roundData.playerData) do
-                table.insert(filteredPlayerDatas, RoundDataManager.filterPlayerData(newData, player))
+                table.insert(filteredPlayerDatas, filterPlayerData(newData, player))
             end
 
             data.playerData = filteredPlayerDatas
