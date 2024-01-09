@@ -10,27 +10,27 @@ local Promise = require(ReplicatedFirst.Vendor.Promise)
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local Enums = require(ReplicatedFirst.Enums)
 
-local Hiding = {}
+local Infiltration = {}
 
-function Hiding.begin()
-	print "Hiding started"
-	RoundDataManager.data.currentPhaseType = Enums.PhaseType.Hiding
+function Infiltration.begin()
+	print "Infiltration started"
+	RoundDataManager.data.currentPhaseType = Enums.PhaseType.Infiltration
 	RoundDataManager.data.phaseStartTime = os.time()
 	RoundDataManager.replicateDataAsync()
 
-	local timer = Promise.delay(RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.Hiding])
+	local timer = Promise.delay(RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.Infiltration])
 
 	return Promise.new(function(resolve, reject, onCancel)
 		onCancel(function()
-			print "Hiding cancelled"
+			print "Infiltration cancelled"
 			timer:cancel()
 		end)
 
 		timer:andThen(function()
-			print "Hiding ended"
+			print "Infiltration ended"
 			resolve()
 		end)
 	end)
 end
 
-return Hiding
+return Infiltration
