@@ -1,6 +1,6 @@
 local DefaultRound = {}
 
-DefaultRound.Hiding = require(script.Hiding)
+DefaultRound.Infiltration = require(script.Infiltration)
 
 DefaultRound.PhaseOne = require(script.PhaseOne)
 
