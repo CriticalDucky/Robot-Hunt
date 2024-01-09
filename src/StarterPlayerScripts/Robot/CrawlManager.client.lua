@@ -138,7 +138,6 @@ local function onCrawlRequest(_, inputState)
     if inputState == Enum.UserInputState.Begin then
         isCrawling:set(true)
     elseif inputState == Enum.UserInputState.End then
-        print("Ended")
         isCrawling:set(false)
     end
 end
