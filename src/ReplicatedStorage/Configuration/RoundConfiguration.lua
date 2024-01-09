@@ -18,7 +18,7 @@ type PhaseType = number
 local RoundConfiguration = {
 	timeLengths = {
 		[RoundType.defaultRound] = {
-			[PhaseType.Hiding] = MINUTE*0.5,
+			[PhaseType.Infiltration] = MINUTE*0.5,
 			[PhaseType.PhaseOne] = MINUTE*2.5,
 			[PhaseType.PhaseTwo] = MINUTE*2.5,
 		},
@@ -28,6 +28,8 @@ local RoundConfiguration = {
 			[PhaseType.Results] = 10,
 		}
 	},
+
+	hunterToRebelRatio = 1/3,
 
 	minPlayers = 2,
 }
