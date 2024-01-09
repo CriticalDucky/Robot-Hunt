@@ -408,4 +408,19 @@ function Table.deepFreeze(t)
 	return t
 end
 
+function Table.randomArraySelection(t, n) -- returns a new table of n random values from the provided table
+	t = table.clone(t)
+
+	local randomSelection = {}
+
+	for i = 1, n do
+		local randomIndex = math.random(1, #t)
+
+		table.insert(randomSelection, t[randomIndex])
+		table.remove(t, randomIndex)
+	end
+
+	return randomSelection
+end
+
 return Table
