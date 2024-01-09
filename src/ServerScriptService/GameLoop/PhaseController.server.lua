@@ -32,9 +32,7 @@ type Promise = Types.Promise
 local currentRoundPromise: Promise? = nil
 local isResults: boolean = false
 
-local function enoughPlayers()
-	return #PlayerDataManager.getPlayersWithDataLoaded() >= RoundConfiguration.minPlayers
-end
+local function enoughPlayers() return #Actions.getEligiblePlayers() >= RoundConfiguration.minPlayers end
 
 local function loop()
 	if not currentRoundPromise and enoughPlayers() and not isResults then
@@ -49,13 +47,12 @@ local function loop()
 
 			isResults = true
 			currentRoundPromise = nil
-			
-			RoundDataManager.data.currentPhaseType = Enums.PhaseType.Hiding
-			RoundDataManager.data.currentRoundType = nil
-			RoundDataManager.data.phaseStartTime = os.time()
-			RoundDataManager.replicateDataAsync()
 
-			task.wait(RoundConfiguration.timeLengths.lobby[PhaseType.Results])
+			local resultsEndTime = os.time() + RoundConfiguration.timeLengths.lobby[PhaseType.Results]
+
+			RoundDataManager.setPhaseToResultsAsync(resultsEndTime)
+
+			repeat RunService.Heartbeat:Wait() until os.time() >= resultsEndTime
 
 			print "Results ended"
 
@@ -66,9 +63,7 @@ local function loop()
 			else
 				print "Not enough players, waiting for more"
 
-				RoundDataManager.data.currentPhaseType = Enums.PhaseType.NotEnoughPlayers
-				RoundDataManager.data.phaseStartTime = nil
-				RoundDataManager.replicateDataAsync()
+				RoundDataManager.setPhaseToNotEnoughPlayersAsync()
 			end
 		end)
 	elseif currentRoundPromise and not enoughPlayers() and not isResults then
@@ -79,7 +74,7 @@ local function loop()
 	elseif isResults then
 		-- Do nothing; we're in results and nothing can change that
 	else
-		print(currentRoundPromise, enoughPlayers())
+		-- Do nothing; we're waiting for more players
 	end
 end
 
