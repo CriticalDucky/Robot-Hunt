@@ -14,11 +14,10 @@ local Intermission = {}
 
 function Intermission.begin()
     print("Intermission started")
-    RoundDataManager.data.currentPhaseType = Enums.PhaseType.Intermission
-    RoundDataManager.data.phaseStartTime = os.time()
-    RoundDataManager.replicateDataAsync()
 
-    local timer = Promise.delay(RoundConfiguration.timeLengths.lobby[Enums.PhaseType.Intermission])
+    local intermissionLength = RoundConfiguration.timeLengths.lobby[Enums.PhaseType.Intermission]
+
+    local timer = Promise.delay(intermissionLength)
 
     return Promise.new(function(resolve, reject, onCancel)
         onCancel(function()
@@ -30,6 +29,8 @@ function Intermission.begin()
             print("Intermission ended")
             resolve()
         end)
+
+        RoundDataManager.setPhaseToIntermissionAsync(intermissionLength)
     end)
 end
 
