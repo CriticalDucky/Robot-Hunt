@@ -41,6 +41,11 @@ local ClientState = {
 		musicVolume = Value(),
 		sfxVolume = Value(),
 	},
+
+	actions = {
+		isCrawling = Value(),
+		isHacking = Value(),
+	}
 }
 
 return ClientState
