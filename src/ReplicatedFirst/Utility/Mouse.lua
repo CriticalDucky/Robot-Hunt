@@ -2,13 +2,11 @@ local UserInputService = game:GetService("UserInputService")
 
 local Mouse = {}
 
-function Mouse.getTarget(whitelist)
+function Mouse.getTarget(whitelist, ignoreList)
     local screenPosition = UserInputService:GetMouseLocation()
     local currentCamera = workspace.CurrentCamera
 
-    if not currentCamera then
-        return
-    end
+    assert(currentCamera, "Mouse.getTarget() requires a camera to be present in the workspace")
 
     local ray = currentCamera:ViewportPointToRay(screenPosition.X, screenPosition.Y, 1000)
 
@@ -17,9 +15,12 @@ function Mouse.getTarget(whitelist)
     if whitelist then
         rayCastParams.FilterType = Enum.RaycastFilterType.Include
         rayCastParams.FilterDescendantsInstances = whitelist
+    elseif ignoreList then
+        rayCastParams.FilterType = Enum.RaycastFilterType.Exclude
+        rayCastParams.FilterDescendantsInstances = ignoreList
     end
 
-    return workspace:Raycast(currentCamera.CFrame.Position, ray.Direction * 1000, rayCastParams)
+    return workspace:Raycast(currentCamera.CFrame.Position, ray.Direction * 1000, rayCastParams), ray
 end
 
 --#region Testing
