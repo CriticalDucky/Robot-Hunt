@@ -45,6 +45,7 @@ local ClientState = {
 	actions = {
 		isCrawling = Value(),
 		isHacking = Value(),
+		isShooting = Value(),
 	}
 }
 
