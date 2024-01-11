@@ -136,9 +136,10 @@ local function onCrawlRequest(_, inputState)
     end
 
     if inputState == Enum.UserInputState.Begin then
-        isCrawling:set(not peek(isCrawling))
+        isCrawling:set(true)
+        ClientState.actions.isShooting:set(false)
     elseif inputState == Enum.UserInputState.End then
-        -- isCrawling:set(false)
+        isCrawling:set(false)
     end
 end
 
