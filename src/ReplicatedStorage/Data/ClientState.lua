@@ -10,8 +10,11 @@ local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusi
 local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
 
 type PlayerPersistentData = Types.PlayerPersistentData
+type RoundPlayerData = Types.RoundPlayerData
+type Value<T> = Fusion.Value<T>
 
 local Value = Fusion.Value
+local peek = Fusion.peek
 
 --#endregion
 
@@ -24,13 +27,18 @@ local Value = Fusion.Value
 ]]
 local ClientState = {
 	currency = {
-		money = Value(),
+		money = Value(nil :: number?),
 	},
 
 	external = {
 		publicPlayerData = Value(),
-		worldPopulationList = Value(),
-		roundData = Value(),
+		roundData = {
+			currentRoundType = Value(nil :: number?),
+			currentPhaseType = Value(nil :: number?),
+			phaseEndTime = Value(nil :: number?),
+
+			playerData = Value({nil :: RoundPlayerData?}),
+		},
 	},
 
 	inventory = {
@@ -38,14 +46,14 @@ local ClientState = {
 	},
 
 	settings = {
-		musicVolume = Value(),
-		sfxVolume = Value(),
+		musicVolume = Value(1 :: number),
+		sfxVolume = Value(1 :: number),
 	},
 
 	actions = {
-		isCrawling = Value(),
-		isHacking = Value(),
-		isShooting = Value(),
+		isCrawling = Value(false :: boolean),
+		isHacking = Value(false :: boolean),
+		isShooting = Value(false :: boolean),
 	}
 }
 
