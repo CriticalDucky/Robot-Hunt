@@ -23,33 +23,19 @@ function Mouse.getTarget(whitelist, ignoreList)
     return workspace:Raycast(currentCamera.CFrame.Position, ray.Direction * 1000, rayCastParams), ray
 end
 
---#region Testing
+--[[ 
+    Uses Mouse.getTarget to get the raycast result.
+    Then, if the raycast result is nil, it returns the ray's origin + the ray's direction * 1000.
+    Otherwise, it returns the raycast result's Position.
+]]
+function Mouse.getWorldPosition(whitelist, ignoreList): Vector3
+    local raycastResult, ray = Mouse.getTarget(whitelist, ignoreList)
 
--- local smallGreenSphere do
---     local sphere = Instance.new("Part")
---     sphere.Shape = Enum.PartType.Ball
---     sphere.Size = Vector3.new(0.4, 0.4, 0.4)
---     sphere.Color = Color3.new(0, 1, 0)
---     sphere.Anchored = true
---     sphere.Material = Enum.Material.Neon
---     sphere.CanCollide = false
---     sphere.CanTouch = false
---     sphere.CanQuery = false
---     sphere.Parent = game.Workspace
---     smallGreenSphere = sphere
--- end
-
--- RunService.RenderStepped:Connect(function()
---     local targetInfo = Mouse.getTarget()
---     if targetInfo then
---         smallGreenSphere.CFrame = CFrame.lookAt(targetInfo.Position, targetInfo.Position + targetInfo.Normal) + targetInfo.Normal
---     else
---         print("No target")
---     end
--- end)
-
--- print("Mouse script is loaded")
-
---#endregion
+    if raycastResult then
+        return raycastResult.Position
+    else
+        return ray.Origin + ray.Direction * 1000
+    end
+end
 
 return Mouse
