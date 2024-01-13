@@ -36,29 +36,16 @@ local function shootThread()
         RunService.RenderStepped:Wait()
 
         if humanoidRootPart then
-            local raycastResult, ray = Mouse.getTarget(nil, {player.Character})
+            local mouseWorldPosition = Mouse.getWorldPosition(nil, {player.Character})
 
-            -- Make the humanoid root part look at the raycast result (but make sure its only rotating on the Y axis)
+            -- Make the humanoid root part look at the position (but make sure its only rotating on the Y axis)
 
-            local lookVector do
-                if not raycastResult then
-                    local mousePosition = ray.Origin + ray.Direction * 250
-
-                    lookVector = Vector3.new(
-                        mousePosition.X,
-                        humanoidRootPart.Position.Y,
-                        mousePosition.Z
-                    )
-                else
-                    lookVector = Vector3.new(
-                        raycastResult.Position.X,
-                        humanoidRootPart.Position.Y,
-                        raycastResult.Position.Z
-                    )
-                end
-            end
+            local lookVector = Vector3.new(
+                mouseWorldPosition.X,
+                humanoidRootPart.Position.Y,
+                mouseWorldPosition.Z
+            )
             
-
             humanoidRootPart.CFrame = CFrame.lookAt(
                 humanoidRootPart.Position,
                 lookVector
