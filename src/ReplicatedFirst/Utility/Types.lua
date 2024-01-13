@@ -50,6 +50,22 @@ export type PlayerPersistentDataPublic = {
 	},
 }
 
+export type RoundPlayerData = {
+	playerId: number,
+
+	-- The players current status enum (Enums.PlayerStatus)
+	status: number,
+
+    -- The player's current team enum (Enums.TeamType)
+    team: number,
+
+	-- The player's current health (0-100)
+	health: number,
+    
+    -- The player's current life support (0-100)
+    lifeSupportTimeLeft: number?,
+}
+
 export type PlayerTempData = {}
 
 export type TimeRange = {
