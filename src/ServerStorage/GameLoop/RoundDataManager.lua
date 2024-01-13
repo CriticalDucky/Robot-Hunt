@@ -8,35 +8,23 @@ local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCom
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 
 local Enums = require(ReplicatedFirst.Enums)
+local Types = require(ReplicatedFirst.Utility.Types)
 local PhaseType = Enums.PhaseType
 
-type PlayerData = {
-	playerId: number,
-
-	-- The players current status enum (Enums.PlayerStatus)
-	status: number,
-
-    -- The player's current team enum (Enums.TeamType)
-    team: number,
-
-	-- The player's current health (0-100)
-	health: number,
-    
-    -- The player's current life support (0-100)
-    lifeSupport: number,
-}
+type RoundPlayerData = Types.RoundPlayerData
+type RoundPlayerDataStatus = RoundPlayerData
 
 type RoundData = {
 	-- The current round type enum (Enums.RoundType)
 	currentRoundType: number?,
 
 	-- The current phase type enum (Enums.PhaseType)
-	currentPhaseType: number?,
+	currentPhaseType: number,
 
 	-- The Unix timestamp of when the phase should end
 	phaseEndTime: number?,
 
-	playerData: { PlayerData },
+	playerData: { RoundPlayerData },
 }
 
 local roundData: RoundData = {
@@ -47,13 +35,13 @@ local roundData: RoundData = {
 	playerData = {},
 }
 
-local function filterPlayerData(playerData: PlayerData, player: Player)
+local function filterPlayerData(playerData: RoundPlayerData, player: Player)
 	return {
 		playerId = playerData.playerId,
 		status = playerData.status,
         team = playerData.team,
 		health = playerData.health,
-        lifeSupport = playerData.lifeSupport,
+        lifeSupportTimeLeft = playerData.lifeSupportTimeLeft,
 	}
 end
 
@@ -124,7 +112,7 @@ end
     If targetPlayer is provided, only replicate the data for that player.
 ]]
 function RoundDataManager.replicatePlayerDataAsync(targetPlayer: Player?)
-    local playerData: PlayerData?
+    local playerData: RoundPlayerData?
 
     if targetPlayer then
         for _, data in ipairs(roundData.playerData) do
