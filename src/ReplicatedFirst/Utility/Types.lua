@@ -53,17 +53,43 @@ export type PlayerPersistentDataPublic = {
 export type RoundPlayerData = {
 	playerId: number,
 
-	-- The players current status enum (Enums.PlayerStatus)
+	-- The players current status enum (Enums.PlayerStatus). The player is alive, dead, or in life support.
 	status: number,
+
+	-- The playerId of the last player to attack this player
+	lastAttackerId: number?,
+	killedById: number?,
+	-- The list of userids that are attacking this player.
+	attackers: { number },
 
     -- The player's current team enum (Enums.TeamType)
     team: number,
 
-	-- The player's current health (0-100)
+	-- The player's current health, armor, life support (0-100)
 	health: number,
-    
-    -- The player's current life support (0-100)
-    lifeSupportTimeLeft: number?,
+	armor: number,
+	lifeSupport: number,
+
+	-- The player's ammo
+	ammo: number?,
+
+	-- The player's gun data. Replicated to other players only.
+	gunData: {
+		-- Whether or not the player is shooting
+		isShooting: boolean,
+
+		-- The position the player is shooting. Only exists on the client
+		hitPosition: Vector3?,
+	}?,
+
+	-- The player's round statistics
+	stats: {
+		-- The total damage the player has dealt
+		damageDealt: number,
+
+		-- The total kills the player has
+		kills: number,
+	},
 }
 
 export type PlayerTempData = {}
