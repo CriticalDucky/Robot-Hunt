@@ -28,114 +28,153 @@ local player = Players.LocalPlayer
 local trackAim: AnimationTrack?
 local humanoid: Humanoid?
 local humanoidRootPart: BasePart?
+local gunTipAttachmentObjectValue: ObjectValue?
+local hitboxObjectValue: ObjectValue?
 
 local thread: thread?
 
 local function shootThread()
-    while true do
-        RunService.RenderStepped:Wait()
+	while true do
+		RunService.RenderStepped:Wait()
 
-        if humanoidRootPart then
-            local mouseWorldPosition = Mouse.getWorldPosition(nil, {player.Character})
+		local gunTipAttachment = gunTipAttachmentObjectValue and gunTipAttachmentObjectValue.Value
+		local hitbox = hitboxObjectValue and hitboxObjectValue.Value
 
-            -- Make the humanoid root part look at the position (but make sure its only rotating on the Y axis)
+		local function isAnythingIntersectingGun(): boolean
+			local overlapParams = OverlapParams.new()
 
-            local lookVector = Vector3.new(
-                mouseWorldPosition.X,
-                humanoidRootPart.Position.Y,
-                mouseWorldPosition.Z
-            )
-            
-            humanoidRootPart.CFrame = CFrame.lookAt(
-                humanoidRootPart.Position,
-                lookVector
-            )
-        end
+			local intersectingParts = workspace:GetPartsInPart(hitbox, overlapParams)
 
-        print("shooting")
-    end
+			for _, part in ipairs(intersectingParts) do
+				if part:IsDescendantOf(player.Character) then continue end
+
+				return true
+			end
+
+			return false
+		end
+
+		if humanoidRootPart and gunTipAttachment and hitbox then
+			local direction, hitPosition
+
+			do
+				local mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, 256)
+
+				-- Make the humanoid root part look at the position (but make sure its only rotating on the Y axis)
+
+				local lookVector = Vector3.new(mouseWorldPosition.X, humanoidRootPart.Position.Y, mouseWorldPosition.Z)
+
+				humanoidRootPart.CFrame = CFrame.lookAt(humanoidRootPart.Position, lookVector)
+
+				if isAnythingIntersectingGun() then
+					ClientState.actions.gunHitPosition:set(nil)
+
+					continue
+				end
+
+				direction = (mouseWorldPosition - gunTipAttachment.WorldPosition).Unit
+
+				local params = RaycastParams.new()
+				params.FilterDescendantsInstances = { player.Character }
+				params.FilterType = Enum.RaycastFilterType.Exclude
+				params.IgnoreWater = true
+
+				local raycastResult = workspace:Raycast(gunTipAttachment.WorldPosition, direction * 256, params)
+
+				hitPosition = if raycastResult then raycastResult.Position else mouseWorldPosition
+			end
+
+			ClientState.actions.gunHitPosition:set(hitPosition)
+
+			-- TODO: Replicate to server
+		end
+	end
 end
 
 local function onCharacterAdded(character)
-    humanoid = character:WaitForChild "Humanoid"
-    humanoidRootPart = character:WaitForChild "HumanoidRootPart"
+	humanoid = character:WaitForChild "Humanoid"
+	humanoidRootPart = character:WaitForChild "HumanoidRootPart"
 
-    assert(humanoid and humanoid:IsA("Humanoid"), "Object is not a humanoid")
+	local referencesFolder: Configuration = character:WaitForChild("Gun"):WaitForChild("References") :: Configuration
 
-    local animator: Instance | Animator = humanoid:WaitForChild "Animator"
+	gunTipAttachmentObjectValue = referencesFolder:WaitForChild("AttachmentTip") :: ObjectValue
+	hitboxObjectValue = referencesFolder:WaitForChild("Hitbox") :: ObjectValue
 
-    assert(animator:IsA("Animator"), "Object is not an animator")
+	assert(humanoid and humanoid:IsA "Humanoid", "Object is not a humanoid")
 
-    trackAim = animator:LoadAnimation(aimAnimation)
+	local animator: Instance | Animator = humanoid:WaitForChild "Animator"
 
-    assert(trackAim, "Could not load aim animation")
+	assert(animator:IsA "Animator", "Object is not an animator")
 
-    trackAim.Priority = Enum.AnimationPriority.Action
+	trackAim = animator:LoadAnimation(aimAnimation)
+
+	assert(trackAim, "Could not load aim animation")
+
+	trackAim.Priority = Enum.AnimationPriority.Action
 end
 
 player.CharacterAdded:Connect(onCharacterAdded)
 
-if player.Character then
-    onCharacterAdded(player.Character)
-end
+if player.Character then onCharacterAdded(player.Character) end
 
 player.CharacterRemoving:Connect(function()
-    isShooting:set(false)
+	isShooting:set(false)
 
-    if not humanoid or not trackAim then
-        return
-    end
+	if not humanoid or not trackAim then return end
 
-    trackAim:Stop()
-    trackAim:Destroy()
-    trackAim = nil
+	trackAim:Stop()
+	trackAim:Destroy()
+	trackAim = nil
 
-    humanoid = nil
-    humanoidRootPart = nil
+	humanoid = nil
+	humanoidRootPart = nil
+
+	gunTipAttachmentObjectValue = nil
+	hitboxObjectValue = nil
 end)
 
 local function onShootingStatusChange()
-    local isShooting = peek(isShooting)
-    local isDead = not humanoid or not trackAim or not humanoidRootPart
+	local isShooting = peek(isShooting)
+	local isDead = not humanoid or not trackAim or not humanoidRootPart
 
-    if not isShooting then
-        if thread then
-            task.cancel(thread)
-            thread = nil
-        end
+	if not isShooting then
+		if thread then
+			task.cancel(thread)
+			thread = nil
+		end
 
-        if not isDead and trackAim then
-            trackAim:Stop()
-        end
-    else -- isShooting == true
-        if isDead or not trackAim then
-            return
-        end
+		local newPlayerData = peek(ClientState.external.roundData.playerData)
 
-        trackAim:Play()
+		if newPlayerData[player.UserId] then
+			local gunData = newPlayerData[player.UserId] and newPlayerData[player.UserId].gunData or {}
 
-        if not thread then
-            thread = task.spawn(shootThread)
-        end
-    end 
+			gunData.hitPosition = nil
+
+			ClientState.external.roundData.playerData:set(newPlayerData)
+		end
+
+		if not isDead and trackAim then trackAim:Stop() end
+	else -- isShooting == true
+		if isDead or not trackAim then return end
+
+		trackAim:Play()
+
+		if not thread then thread = task.spawn(shootThread) end
+	end
 end
 
 Observer(isShooting):onChange(onShootingStatusChange)
 
 local function onShootRequest(_, inputState)
-    if not humanoid or not trackAim or not humanoidRootPart then
-        return
-    end
+	if not humanoid or not trackAim or not humanoidRootPart then return end
 
-    if peek(isHacking) or peek(isCrawling) then
-        return
-    end
+	if peek(isHacking) or peek(isCrawling) then return end
 
-    if inputState == Enum.UserInputState.Begin then
-        isShooting:set(true)
-    elseif inputState == Enum.UserInputState.End then
-        isShooting:set(false) 
-    end
+	if inputState == Enum.UserInputState.Begin then
+		isShooting:set(true)
+	elseif inputState == Enum.UserInputState.End then
+		isShooting:set(false)
+	end
 end
 
 ContextActionService:BindAction("Shoot", onShootRequest, true, Enum.UserInputType.MouseButton1)
