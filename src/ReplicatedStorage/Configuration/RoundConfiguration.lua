@@ -29,6 +29,11 @@ local RoundConfiguration = {
 		}
 	},
 
+	gunStrengthMultiplier = 29/30,
+	gunPowerupMultiplier = 1.2,
+	hunterBeamColor = Color3.fromRGB(254, 51, 51),
+	rebelBeamColor = Color3.fromRGB(0, 255, 0),
+
 	hunterToRebelRatio = 1/3,
 
 	minPlayers = 2,
