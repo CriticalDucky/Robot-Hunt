@@ -54,6 +54,8 @@ local ClientState = {
 		isCrawling = Value(false :: boolean),
 		isHacking = Value(false :: boolean),
 		isShooting = Value(false :: boolean),
+
+		gunHitPosition = Value(nil :: Vector3?),
 	}
 }
 
