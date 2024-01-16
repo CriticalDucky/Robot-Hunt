@@ -35,7 +35,7 @@ local roundData: RoundData = {
 	playerData = {},
 }
 
-local function filterPlayerData(playerData: RoundPlayerData, player: Player)
+local function filterPlayerData(playerData: RoundPlayerData, player: Player): RoundPlayerData
 	return {
 		playerId = playerData.playerId,
 
@@ -53,7 +53,9 @@ local function filterPlayerData(playerData: RoundPlayerData, player: Player)
 
         ammo = playerData.ammo,
 
-        gunData = if playerData.playerId ~= player.UserId then playerData.gunData else nil,
+        gunHitPosition = if playerData.playerId ~= player.UserId then playerData.gunHitPosition else nil,
+
+		actions = playerData.actions,
 		
 		stats = playerData.stats,
 	}
