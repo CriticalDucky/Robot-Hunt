@@ -17,10 +17,6 @@ local peek = Fusion.peek
 local Value = Fusion.Value
 local Computed = Fusion.Computed
 
-local isShooting = ClientState.actions.isShooting
-local isCrawling = ClientState.actions.isCrawling
-local isHacking = ClientState.actions.isHacking
-
 local aimAnimation = Instance.new "Animation"
 aimAnimation.AnimationId = AIM_ANIMATION
 
@@ -30,6 +26,20 @@ local humanoid: Humanoid?
 local humanoidRootPart: BasePart?
 local gunTipAttachmentObjectValue: ObjectValue?
 local hitboxObjectValue: ObjectValue?
+
+local isCrawling = ClientState.actions.isCrawling
+
+local isShooting = Computed(function(use)
+	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
+
+	return playerData and playerData.actions.isShooting or false
+end)
+
+local isHacking = Computed(function(use)
+	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
+
+	return playerData and playerData.actions.isHacking or false
+end)
 
 local thread: thread?
 
@@ -67,7 +77,15 @@ local function shootThread()
 				humanoidRootPart.CFrame = CFrame.lookAt(humanoidRootPart.Position, lookVector)
 
 				if isAnythingIntersectingGun() then
-					ClientState.actions.gunHitPosition:set(nil)
+					local newPlayerData = peek(ClientState.external.roundData.playerData)
+
+					local playerData = newPlayerData[player.UserId]
+
+					if playerData then
+						playerData.gunHitPosition = nil
+
+						ClientState.external.roundData.playerData:set(newPlayerData)
+					end
 
 					continue
 				end
@@ -84,7 +102,15 @@ local function shootThread()
 				hitPosition = if raycastResult then raycastResult.Position else mouseWorldPosition
 			end
 
-			ClientState.actions.gunHitPosition:set(hitPosition)
+			local newPlayerData = peek(ClientState.external.roundData.playerData)
+
+			local playerData = newPlayerData[player.UserId]
+
+			if playerData then
+				playerData.gunHitPosition = hitPosition
+
+				ClientState.external.roundData.playerData:set(newPlayerData)
+			end
 
 			-- TODO: Replicate to server
 		end
@@ -118,7 +144,14 @@ player.CharacterAdded:Connect(onCharacterAdded)
 if player.Character then onCharacterAdded(player.Character) end
 
 player.CharacterRemoving:Connect(function()
-	isShooting:set(false)
+	local newPlayerData = peek(ClientState.external.roundData.playerData)
+	local playerData = newPlayerData[player.UserId]
+
+	if playerData then
+		playerData.actions.isShooting = false
+
+		ClientState.external.roundData.playerData:set(newPlayerData)
+	end
 
 	if not humanoid or not trackAim then return end
 
@@ -145,10 +178,10 @@ local function onShootingStatusChange()
 
 		local newPlayerData = peek(ClientState.external.roundData.playerData)
 
-		if newPlayerData[player.UserId] then
-			local gunData = newPlayerData[player.UserId] and newPlayerData[player.UserId].gunData or {}
+		local playerData = newPlayerData[player.UserId]
 
-			gunData.hitPosition = nil
+		if playerData then
+			playerData.gunHitPosition = nil
 
 			ClientState.external.roundData.playerData:set(newPlayerData)
 		end
@@ -170,11 +203,18 @@ local function onShootRequest(_, inputState)
 
 	if peek(isHacking) or peek(isCrawling) then return end
 
+	local newPlayerData = peek(ClientState.external.roundData.playerData)
+	local playerData = newPlayerData[player.UserId]
+
+	if not playerData then return end
+
 	if inputState == Enum.UserInputState.Begin then
-		isShooting:set(true)
+		playerData.actions.isShooting = true
 	elseif inputState == Enum.UserInputState.End then
-		isShooting:set(false)
+		playerData.actions.isShooting = true
 	end
+
+	ClientState.external.roundData.playerData:set(newPlayerData)
 end
 
 ContextActionService:BindAction("Shoot", onShootRequest, true, Enum.UserInputType.MouseButton1)

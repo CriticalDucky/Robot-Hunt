@@ -131,13 +131,21 @@ local function onCrawlRequest(_, inputState)
         return
     end
 
-    if peek(ClientState.actions.isHacking) then
+    local playerDatas = peek(ClientState.external.roundData.playerData)
+    local playerData = playerDatas[player.UserId]
+
+    if playerData and playerData.actions.isHacking then
         return
     end
 
     if inputState == Enum.UserInputState.Begin then
         isCrawling:set(true)
-        ClientState.actions.isShooting:set(false)
+
+        if playerData then
+            playerData.actions.isShooting = false
+
+            ClientState.external.roundData.playerData:set(playerDatas)
+        end
     elseif inputState == Enum.UserInputState.End then
         isCrawling:set(false)
     end

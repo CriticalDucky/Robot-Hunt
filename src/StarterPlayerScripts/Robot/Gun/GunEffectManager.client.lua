@@ -39,18 +39,16 @@ local function onPlayerAdded(player)
 		return nil
 	end)
 
-	local gunHitPosition = ClientState.actions.gunHitPosition
+	local gunHitPosition = Computed(function(use)
+		local roundPlayerData = use(roundPlayerData)
+
+		if not roundPlayerData then return end
+
+		return roundPlayerData.gunHitPosition
+	end)
 
 	local isShooting = Computed(function(use): boolean
-		if player == localPlayer then
-			return use(ClientState.actions.isShooting)
-		else
-			local roundPlayerData = use(roundPlayerData)
-
-			if not roundPlayerData then return false end
-
-			return roundPlayerData.gunData and roundPlayerData.gunData.isShooting
-		end
+		return use(roundPlayerData) and use(roundPlayerData).actions.isShooting
 	end)
 
 	local function onCharacterAdded(character)
