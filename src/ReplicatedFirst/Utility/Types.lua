@@ -73,14 +73,17 @@ export type RoundPlayerData = {
 	-- The player's ammo
 	ammo: number?,
 
-	-- The player's gun data. Replicated to other players only.
-	gunData: {
+	-- The position the player is shooting. Only exists on the client
+	gunHitPosition: Vector3?,
+
+	-- The player's various actions.
+	actions: {
 		-- Whether or not the player is shooting
 		isShooting: boolean,
 
-		-- The position the player is shooting. Only exists on the client
-		hitPosition: Vector3?,
-	}?,
+		-- Whether or not the player is hacking
+		isHacking: boolean,
+	},
 
 	-- The player's round statistics
 	stats: {
