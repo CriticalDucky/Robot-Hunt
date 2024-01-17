@@ -35,17 +35,14 @@ local ClientServerCommunication = {}
 
 	`data` is the data to replicate with the action. This can be any replicatable value.
 
-	`player` is the client to replicate to, when called from the server. It is **required** on the server and
-	**ignored** on the client.
+	`player` is the client to replicate to, when called from the server. It is **optonal** on the server and
+	**ignored** on the client. If it is not specified on the server, the action will be replicated to all clients.
 
 	The given action must be registered for it to replicate. If it is not, this function will yield until it is. See
 	`StateReplication.registerActionAsync` for more information.
 ]]
 function ClientServerCommunication.replicateAsync(action: string, data: DataTreeValue, player: Player?)
-	if isServer and not player then
-		warn "Player parameter is missing, so no actions will be replicated."
-		return
-	elseif not isServer and player then
+	if not isServer and player then
 		warn "Player parameter is unnecessary on the client, so it will be ignored."
 	end
 
@@ -68,7 +65,11 @@ function ClientServerCommunication.replicateAsync(action: string, data: DataTree
 	end
 
 	if isServer then
-		actionEvent:FireClient(player, data)
+		if player then
+			actionEvent:FireClient(player, data)
+		else
+			actionEvent:FireAllClients(data)
+		end
 	else
 		actionEvent:FireServer(data)
 	end
