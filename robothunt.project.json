@@ -88,40 +88,6 @@
       }
     },
 
-    "Teams": {
-      "$className": "Teams",
-
-      "Lobby": {
-        "$className": "Team",
-        "$properties": {
-          "AutoAssignable": true,
-          "TeamColor": {
-            "BrickColor": 104
-          }
-        }
-      },
-
-      "Rebels": {
-        "$className": "Team",
-        "$properties": {
-          "AutoAssignable": false,
-          "TeamColor": {
-            "BrickColor": 23
-          }
-        }
-      },
-
-      "Hunters": {
-        "$className": "Team",
-        "$properties": {
-          "AutoAssignable": false,
-          "TeamColor": {
-            "BrickColor": 21
-          }
-        }
-      }
-    },
-
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
