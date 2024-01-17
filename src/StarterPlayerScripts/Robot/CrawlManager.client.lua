@@ -86,6 +86,8 @@ player.CharacterRemoving:Connect(function()
         return
     end
 
+    assert(trackCrawl and trackIdle)
+
     trackCrawl:Stop()
     trackIdle:Stop()
 
@@ -105,6 +107,8 @@ local function onCrawlingStatusChange()
     if not humanoid or not trackCrawl or not trackIdle or not humanoidRootPart then
         return
     end
+
+    assert(trackCrawl and trackIdle and humanoidRootPart)
 
     local state = peek(state)
 
