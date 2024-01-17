@@ -12,7 +12,6 @@ local Types = require(ReplicatedFirst.Utility.Types)
 local PhaseType = Enums.PhaseType
 
 type RoundPlayerData = Types.RoundPlayerData
-type RoundPlayerDataStatus = RoundPlayerData
 
 type RoundData = {
 	-- The current round type enum (Enums.RoundType)
@@ -24,7 +23,9 @@ type RoundData = {
 	-- The Unix timestamp of when the phase should end
 	phaseEndTime: number?,
 
-	playerData: { RoundPlayerData },
+	playerData: {
+		[number --[[userId]]]: RoundPlayerData,
+	},
 }
 
 local roundData: RoundData = {
@@ -39,24 +40,24 @@ local function filterPlayerData(playerData: RoundPlayerData, player: Player): Ro
 	return {
 		playerId = playerData.playerId,
 
-        status = playerData.status,
+		status = playerData.status,
 
 		lastAttackerId = playerData.lastAttackerId,
 		killedById = playerData.killedById,
-        attackers = playerData.attackers,
-		
+		attackers = playerData.attackers,
+
 		team = playerData.team,
 
 		health = playerData.health,
-        armor = playerData.armor,
+		armor = playerData.armor,
 		lifeSupport = playerData.lifeSupport,
 
-        ammo = playerData.ammo,
+		ammo = playerData.ammo,
 
-        gunHitPosition = if playerData.playerId ~= player.UserId then playerData.gunHitPosition else nil,
+		gunHitPosition = if playerData.playerId ~= player.UserId then playerData.gunHitPosition else nil,
 
 		actions = playerData.actions,
-		
+
 		stats = playerData.stats,
 	}
 end
@@ -120,43 +121,193 @@ function RoundDataManager.setPhaseToNotEnoughPlayersAsync()
 	ClientServerCommunication.replicateAsync "SetPhaseToNotEnoughPlayers"
 end
 
---[[
-    Replicates round player data to all clients.
+function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlayerData
+	return {
+		playerId = player.UserId,
 
-    If targetPlayer is provided, only replicate the data for that player.
-]]
-function RoundDataManager.replicatePlayerDataAsync(targetPlayer: Player?)
-	local playerData: RoundPlayerData?
+		status = Enums.PlayerStatus.alive,
 
-	if targetPlayer then
-		for _, data in ipairs(roundData.playerData) do
-			if data.playerId == targetPlayer.UserId then
-				playerData = data
-				break
-			end
-		end
+		lastAttackerId = nil,
+		killedById = nil,
+		attackers = {},
 
-		if playerData then playerData = filterPlayerData(playerData, targetPlayer) end
-	end
+		team = team,
 
-	local data = {
-		playerData = playerData or {},
-		targetPlayerId = targetPlayer and targetPlayer.UserId or nil,
+		health = 100,
+		armor = 0,
+		lifeSupport = 100,
+
+		ammo = 100,
+
+		gunHitPosition = nil,
+
+		actions = {
+			isHacking = false,
+			isShooting = false,
+		},
+
+		stats = {
+			damageDealt = 0,
+			kills = 0,
+		},
 	}
+end
 
-	for _, player in ipairs(Players:GetPlayers()) do
-		if not targetPlayer then
-			local filteredPlayerDatas = {}
+function RoundDataManager.addAttacker(victim: Player, attacker: Player)
+	local victimData = roundData.playerData[victim.UserId]
 
-			for _, newData in ipairs(roundData.playerData) do
-				table.insert(filteredPlayerDatas, filterPlayerData(newData, player))
-			end
+	victimData.lastAttackerId = attacker.UserId
+	victimData.attackers[attacker.UserId] = true
 
-			data.playerData = filteredPlayerDatas
-		end
+	ClientServerCommunication.replicateAsync("updateAttackers", {
+		victimId = victim.UserId,
+		attackers = victimData.attackers,
+	})
+end
 
-		ClientServerCommunication.replicateAsync("UpdatePlayerData", data, player)
+function RoundDataManager.removeAttacker(victim: Player, attacker: Player)
+	local victimData = roundData.playerData[victim.UserId]
+
+	victimData.attackers[attacker.UserId] = nil
+
+	ClientServerCommunication.replicateAsync("updateAttackers", {
+		victimId = victim.UserId,
+		attackers = victimData.attackers,
+	})
+end
+
+function RoundDataManager.killPlayer(victim: Player, killer: Player?)
+	local playerData = roundData.playerData[victim.UserId]
+
+	playerData.status = Enums.PlayerStatus.dead
+	playerData.health = 0
+	playerData.armor = 0
+	playerData.lifeSupport = 0
+
+	if killer then
+		playerData.killedById = killer and killer.UserId or nil
+
+		local killerData = roundData.playerData[killer.UserId]
+
+		killerData.stats.kills += 1
 	end
+
+	ClientServerCommunication.replicateAsync("killPlayer", {
+		victimId = victim.UserId,
+		killedById = playerData.killedById,
+	})
+end
+
+function RoundDataManager.lifeSupportPlayer(player: Player)
+	local playerData = roundData.playerData[player.UserId]
+
+	playerData.status = Enums.PlayerStatus.lifeSupport
+	playerData.health = 0
+	playerData.armor = 0
+	playerData.lifeSupport = 0
+
+	ClientServerCommunication.replicateAsync("lifeSupportPlayer", {
+		playerId = player.UserId,
+	})
+end
+
+function RoundDataManager.revivePlayer(player: Player)
+	local playerData = roundData.playerData[player.UserId]
+
+	playerData.status = Enums.PlayerStatus.alive
+	playerData.health = 100
+	playerData.armor = 0
+	playerData.lifeSupport = 100
+
+	ClientServerCommunication.replicateAsync("revivePlayer", {
+		playerId = player.UserId,
+	})
+end
+
+function RoundDataManager.setHealth(player: Player, health: number)
+	assert(health >= 0 and health <= 100, "Health must be between 0 and 100")
+
+	local playerData = roundData.playerData[player.UserId]
+
+	playerData.health = health
+
+	ClientServerCommunication.replicateAsync("updateHealth", {
+		playerId = player.UserId,
+		health = health,
+	})
+end
+
+function RoundDataManager.incrementHealth(player: Player, amount: number)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData.health + amount >= 0 and playerData.health + amount <= 100, "Health must be between 0 and 100")
+
+	playerData.health += amount
+
+	ClientServerCommunication.replicateAsync("updateHealth", {
+		playerId = player.UserId,
+		health = playerData.health,
+	})
+end
+
+function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
+	assert(lifeSupport >= 0 and lifeSupport <= 100, "Life support must be between 0 and 100")
+
+	local playerData = roundData.playerData[player.UserId]
+
+	playerData.lifeSupport = lifeSupport
+
+	ClientServerCommunication.replicateAsync("updateLifeSupport", {
+		playerId = player.UserId,
+		lifeSupport = lifeSupport,
+	})
+end
+
+function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(
+		playerData.lifeSupport + amount >= 0 and playerData.lifeSupport + amount <= 100,
+		"Life support must be between 0 and 100"
+	)
+
+	playerData.lifeSupport += amount
+
+	ClientServerCommunication.replicateAsync("updateLifeSupport", {
+		playerId = player.UserId,
+		lifeSupport = playerData.lifeSupport,
+	})
+end
+
+function RoundDataManager.setArmor(player: Player, armor: number)
+	assert(armor >= 0 and armor <= 100, "Armor must be between 0 and 100")
+
+	local playerData = roundData.playerData[player.UserId]
+
+	playerData.armor = armor
+
+	ClientServerCommunication.replicateAsync("updateArmor", {
+		playerId = player.UserId,
+		armor = armor,
+	})
+end
+
+function RoundDataManager.incrementArmor(player: Player, amount: number)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData.armor + amount >= 0 and playerData.armor + amount <= 100, "Armor must be between 0 and 100")
+
+	playerData.armor += amount
+
+	ClientServerCommunication.replicateAsync("updateArmor", {
+		playerId = player.UserId,
+		armor = playerData.armor,
+	})
+end
+
+function RoundDataManager.setUpRound(roundType: number, playerDatas: { [number]: RoundPlayerData })
+	roundData.currentRoundType = roundType
+	roundData.playerData = playerDatas
 end
 
 return RoundDataManager
