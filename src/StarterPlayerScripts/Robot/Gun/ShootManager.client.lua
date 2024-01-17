@@ -155,6 +155,8 @@ player.CharacterRemoving:Connect(function()
 
 	if not humanoid or not trackAim then return end
 
+	assert(trackAim)
+
 	trackAim:Stop()
 	trackAim:Destroy()
 	trackAim = nil
@@ -189,6 +191,8 @@ local function onShootingStatusChange()
 		if not isDead and trackAim then trackAim:Stop() end
 	else -- isShooting == true
 		if isDead or not trackAim then return end
+		
+		assert(trackAim)
 
 		trackAim:Play()
 
