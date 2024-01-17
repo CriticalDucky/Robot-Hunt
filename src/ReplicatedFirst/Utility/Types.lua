@@ -60,10 +60,10 @@ export type RoundPlayerData = {
 	lastAttackerId: number?,
 	killedById: number?,
 	-- The list of userids that are attacking this player.
-	attackers: { number },
+	attackers: { [number]: boolean },
 
-    -- The player's current team enum (Enums.TeamType)
-    team: number,
+	-- The player's current team enum (Enums.TeamType)
+	team: number,
 
 	-- The player's current health, armor, life support (0-100)
 	health: number,
