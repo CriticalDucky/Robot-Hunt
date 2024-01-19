@@ -12,7 +12,7 @@ hunterToRebelRatio = RoundConfiguration.hunterToRebelRatio
     @param players The players to sort
     @return A table containing the sorted players
 ]]
-return function(players)
+return function(players): {number: {Player}}
 	assert(#players >= 2, "There must be at least 2 players to start a round")
 
     local sorted = {
