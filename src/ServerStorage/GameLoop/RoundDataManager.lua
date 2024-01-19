@@ -98,7 +98,8 @@ function RoundDataManager.setPhaseToResultsAsync(endTime: number)
 	roundData.currentRoundType = nil
 	roundData.phaseEndTime = endTime
 
-	ClientServerCommunication.replicateAsync("SetPhaseToResults", {
+	ClientServerCommunication.replicateAsync("SetPhase", {
+		phaseType = PhaseType.Results,
 		phaseEndTime = endTime,
 	})
 end
@@ -109,7 +110,20 @@ function RoundDataManager.setPhaseToIntermissionAsync(endTime)
 
 	table.clear(roundData.playerData)
 
-	ClientServerCommunication.replicateAsync("SetPhaseToIntermission", {
+	ClientServerCommunication.replicateAsync("SetPhase", {
+		phaseType = PhaseType.Intermission,
+		phaseEndTime = endTime,
+	})
+end
+
+function RoundDataManager.setPhaseToLoadingAsync(endTime)
+	roundData.currentPhaseType = PhaseType.Loading
+	roundData.phaseEndTime = endTime
+
+	table.clear(roundData.playerData)
+
+	ClientServerCommunication.replicateAsync("SetPhase", {
+		phaseType = PhaseType.Loading,
 		phaseEndTime = endTime,
 	})
 end
@@ -118,7 +132,9 @@ function RoundDataManager.setPhaseToNotEnoughPlayersAsync()
 	roundData.currentPhaseType = PhaseType.NotEnoughPlayers
 	roundData.phaseEndTime = nil
 
-	ClientServerCommunication.replicateAsync "SetPhaseToNotEnoughPlayers"
+	ClientServerCommunication.replicateAsync "SetPhase" {
+		phaseType = PhaseType.NotEnoughPlayers,
+	}
 end
 
 function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlayerData
@@ -156,6 +172,8 @@ end
 function RoundDataManager.addAttacker(victim: Player, attacker: Player)
 	local victimData = roundData.playerData[victim.UserId]
 
+	assert(victimData, "Victim data does not exist")
+
 	victimData.lastAttackerId = attacker.UserId
 	victimData.attackers[attacker.UserId] = true
 
@@ -168,6 +186,8 @@ end
 function RoundDataManager.removeAttacker(victim: Player, attacker: Player)
 	local victimData = roundData.playerData[victim.UserId]
 
+	assert(victimData, "Victim data does not exist")
+
 	victimData.attackers[attacker.UserId] = nil
 
 	ClientServerCommunication.replicateAsync("updateAttackers", {
@@ -178,6 +198,8 @@ end
 
 function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	local playerData = roundData.playerData[victim.UserId]
+
+	assert(playerData, "Player data does not exist")
 
 	playerData.status = Enums.PlayerStatus.dead
 	playerData.health = 0
@@ -198,21 +220,10 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	})
 end
 
-function RoundDataManager.lifeSupportPlayer(player: Player)
-	local playerData = roundData.playerData[player.UserId]
-
-	playerData.status = Enums.PlayerStatus.lifeSupport
-	playerData.health = 0
-	playerData.armor = 0
-	playerData.lifeSupport = 0
-
-	ClientServerCommunication.replicateAsync("lifeSupportPlayer", {
-		playerId = player.UserId,
-	})
-end
-
 function RoundDataManager.revivePlayer(player: Player)
 	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
 
 	playerData.status = Enums.PlayerStatus.alive
 	playerData.health = 100
@@ -225,9 +236,9 @@ function RoundDataManager.revivePlayer(player: Player)
 end
 
 function RoundDataManager.setHealth(player: Player, health: number)
-	assert(health >= 0 and health <= 100, "Health must be between 0 and 100")
-
 	local playerData = roundData.playerData[player.UserId]
+
+	assert(health >= 0 and health <= 100, "Health must be between 0 and 100")
 
 	playerData.health = health
 
@@ -240,6 +251,7 @@ end
 function RoundDataManager.incrementHealth(player: Player, amount: number)
 	local playerData = roundData.playerData[player.UserId]
 
+	assert(playerData, "Player data does not exist")
 	assert(playerData.health + amount >= 0 and playerData.health + amount <= 100, "Health must be between 0 and 100")
 
 	playerData.health += amount
@@ -251,9 +263,9 @@ function RoundDataManager.incrementHealth(player: Player, amount: number)
 end
 
 function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
-	assert(lifeSupport >= 0 and lifeSupport <= 100, "Life support must be between 0 and 100")
-
 	local playerData = roundData.playerData[player.UserId]
+
+	assert(lifeSupport >= 0 and lifeSupport <= 100, "Life support must be between 0 and 100")
 
 	playerData.lifeSupport = lifeSupport
 
@@ -266,6 +278,7 @@ end
 function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
 	local playerData = roundData.playerData[player.UserId]
 
+	assert(playerData, "Player data does not exist")
 	assert(
 		playerData.lifeSupport + amount >= 0 and playerData.lifeSupport + amount <= 100,
 		"Life support must be between 0 and 100"
@@ -280,9 +293,10 @@ function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
 end
 
 function RoundDataManager.setArmor(player: Player, armor: number)
-	assert(armor >= 0 and armor <= 100, "Armor must be between 0 and 100")
-
 	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+	assert(armor >= 0 and armor <= 100, "Armor must be between 0 and 100")
 
 	playerData.armor = armor
 
@@ -295,6 +309,7 @@ end
 function RoundDataManager.incrementArmor(player: Player, amount: number)
 	local playerData = roundData.playerData[player.UserId]
 
+	assert(playerData, "Player data does not exist")
 	assert(playerData.armor + amount >= 0 and playerData.armor + amount <= 100, "Armor must be between 0 and 100")
 
 	playerData.armor += amount
@@ -302,6 +317,35 @@ function RoundDataManager.incrementArmor(player: Player, amount: number)
 	ClientServerCommunication.replicateAsync("updateArmor", {
 		playerId = player.UserId,
 		armor = playerData.armor,
+	})
+end
+
+function RoundDataManager.setAmmo(player: Player, ammo: number)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(ammo >= 0 and ammo <= 100, "Ammo must be between 0 and 100")
+	assert(playerData, "Player data does not exist")
+
+	playerData.ammo = ammo
+
+	ClientServerCommunication.replicateAsync("updateAmmo", {
+		playerId = player.UserId,
+		ammo = ammo,
+	})
+end
+
+function RoundDataManager.incrementAmmo(player: Player, amount: number)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+	assert(playerData.ammo, "Player data ammo does not exist")
+	assert(playerData.ammo + amount >= 0 and playerData.ammo + amount <= 100, "Ammo must be between 0 and 100")
+
+	playerData.ammo += amount
+
+	ClientServerCommunication.replicateAsync("updateAmmo", {
+		playerId = player.UserId,
+		ammo = playerData.ammo,
 	})
 end
 
