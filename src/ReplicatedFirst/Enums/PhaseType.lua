@@ -6,15 +6,16 @@
 return {
     -- Lobby
     Intermission = 1,
+    Loading = 2,
     NotEnoughPlayers = 0,
 
     -- Default Round
-    Infiltration = 2,
-    PhaseOne = 3,
-    Purge = 4,
-    PhaseTwo = 5,   
+    Infiltration = 3,
+    PhaseOne = 4,
+    Purge = 5,
+    PhaseTwo = 6,   
 
     -- After Round
 
-    Results = 6,
+    Results = 7,
 }
