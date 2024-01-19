@@ -18,14 +18,15 @@ type PhaseType = number
 local RoundConfiguration = {
 	timeLengths = {
 		[RoundType.defaultRound] = {
-			[PhaseType.Infiltration] = MINUTE*0.5,
-			[PhaseType.PhaseOne] = MINUTE*2.5,
-			[PhaseType.PhaseTwo] = MINUTE*2.5,
+			[PhaseType.Infiltration] = 15,
+			[PhaseType.PhaseOne] = MINUTE*6,
+			[PhaseType.PhaseTwo] = MINUTE*6,
 		},
 
 		lobby = {
-			[PhaseType.Intermission] = 15,
+			[PhaseType.Intermission] = 30,
 			[PhaseType.Results] = 10,
+			[PhaseType.Loading] = 5,
 		}
 	},
 
