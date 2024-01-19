@@ -10,6 +10,8 @@ local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ServerStorage = game:GetService "ServerStorage"
 local RunService = game:GetService "RunService"
+local Players = game:GetService "Players"
+local Teams = game:GetService "Teams"
 
 local GameLoop = ServerStorage.GameLoop
 
@@ -52,7 +54,19 @@ local function loop()
 
 			RoundDataManager.setPhaseToResultsAsync(resultsEndTime)
 
-			repeat RunService.Heartbeat:Wait() until os.time() >= resultsEndTime
+			for _, playerData in pairs(RoundDataManager.data.playerData) do
+				local player = Players:GetPlayerByUserId(playerData.playerId or 1)
+
+				if player then
+					player.Team = Teams.Lobby
+				end
+
+				-- player:LoadCharacter()
+			end
+
+			repeat
+				RunService.Heartbeat:Wait()
+			until os.time() >= resultsEndTime
 
 			print "Results ended"
 
