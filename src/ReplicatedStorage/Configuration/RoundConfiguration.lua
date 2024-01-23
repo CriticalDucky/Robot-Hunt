@@ -37,6 +37,13 @@ local RoundConfiguration = {
 
 	hunterToRebelRatio = 1/3,
 
+	maxTerminals = 6, -- Otherwise, the number of terminals is the number of players.
+	minTerminals = 2,
+	extraTerminals = 1,
+
+	batteryLowerPercentage = 0.1, -- At least 50% of the batteries will spawn.
+	batteryUpperPercentage = 0.5, -- At most 75% of the batteries will spawn.
+
 	minPlayers = 2,
 }
 
