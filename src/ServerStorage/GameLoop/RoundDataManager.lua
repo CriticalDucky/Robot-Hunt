@@ -23,6 +23,14 @@ type RoundData = {
 	-- The Unix timestamp of when the phase should end
 	phaseEndTime: number?,
 
+	terminalData: {
+		[number]: {
+			id: number,
+			status: number,
+			progress: number,
+		},
+	},
+
 	playerData: {
 		[number --[[userId]]]: RoundPlayerData,
 	},
@@ -32,6 +40,8 @@ local roundData: RoundData = {
 	currentRoundType = nil,
 	currentPhaseType = Enums.PhaseType.NotEnoughPlayers,
 	phaseEndTime = nil,
+
+	terminalData = {},
 
 	playerData = {},
 }
@@ -83,7 +93,10 @@ end
 
 local RoundDataManager = {}
 
+local onDataUpdatedEvent = Instance.new("BindableEvent")
+
 RoundDataManager.data = roundData
+RoundDataManager.onDataUpdated = onDataUpdatedEvent.Event :: RBXScriptSignal<RoundData>
 
 function RoundDataManager.initializedRoundDataAsync(player: Player?)
 	local players = if player then { player } else Players:GetPlayers()
@@ -102,6 +115,8 @@ function RoundDataManager.setPhaseToResultsAsync(endTime: number)
 		phaseType = PhaseType.Results,
 		phaseEndTime = endTime,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.setPhaseToIntermissionAsync(endTime)
@@ -114,6 +129,8 @@ function RoundDataManager.setPhaseToIntermissionAsync(endTime)
 		phaseType = PhaseType.Intermission,
 		phaseEndTime = endTime,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.setPhaseToLoadingAsync(endTime)
@@ -126,6 +143,8 @@ function RoundDataManager.setPhaseToLoadingAsync(endTime)
 		phaseType = PhaseType.Loading,
 		phaseEndTime = endTime,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.setPhaseToNotEnoughPlayersAsync()
@@ -135,6 +154,8 @@ function RoundDataManager.setPhaseToNotEnoughPlayersAsync()
 	ClientServerCommunication.replicateAsync "SetPhase" {
 		phaseType = PhaseType.NotEnoughPlayers,
 	}
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlayerData
@@ -160,6 +181,7 @@ function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlay
 		actions = {
 			isHacking = false,
 			isShooting = false,
+			isHoldingBattery = false,
 		},
 
 		stats = {
@@ -181,6 +203,8 @@ function RoundDataManager.addAttacker(victim: Player, attacker: Player)
 		victimId = victim.UserId,
 		attackers = victimData.attackers,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.removeAttacker(victim: Player, attacker: Player)
@@ -194,6 +218,8 @@ function RoundDataManager.removeAttacker(victim: Player, attacker: Player)
 		victimId = victim.UserId,
 		attackers = victimData.attackers,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.killPlayer(victim: Player, killer: Player?)
@@ -218,6 +244,8 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 		victimId = victim.UserId,
 		killedById = playerData.killedById,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.revivePlayer(player: Player)
@@ -233,6 +261,8 @@ function RoundDataManager.revivePlayer(player: Player)
 	ClientServerCommunication.replicateAsync("revivePlayer", {
 		playerId = player.UserId,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.setHealth(player: Player, health: number)
@@ -246,6 +276,8 @@ function RoundDataManager.setHealth(player: Player, health: number)
 		playerId = player.UserId,
 		health = health,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.incrementHealth(player: Player, amount: number)
@@ -260,6 +292,8 @@ function RoundDataManager.incrementHealth(player: Player, amount: number)
 		playerId = player.UserId,
 		health = playerData.health,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
@@ -273,6 +307,8 @@ function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
 		playerId = player.UserId,
 		lifeSupport = lifeSupport,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
@@ -290,6 +326,8 @@ function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
 		playerId = player.UserId,
 		lifeSupport = playerData.lifeSupport,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.setArmor(player: Player, armor: number)
@@ -304,6 +342,8 @@ function RoundDataManager.setArmor(player: Player, armor: number)
 		playerId = player.UserId,
 		armor = armor,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.incrementArmor(player: Player, amount: number)
@@ -318,6 +358,8 @@ function RoundDataManager.incrementArmor(player: Player, amount: number)
 		playerId = player.UserId,
 		armor = playerData.armor,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.setAmmo(player: Player, ammo: number)
@@ -332,6 +374,8 @@ function RoundDataManager.setAmmo(player: Player, ammo: number)
 		playerId = player.UserId,
 		ammo = ammo,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.incrementAmmo(player: Player, amount: number)
@@ -347,11 +391,26 @@ function RoundDataManager.incrementAmmo(player: Player, amount: number)
 		playerId = player.UserId,
 		ammo = playerData.ammo,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
-function RoundDataManager.setUpRound(roundType: number, playerDatas: { [number]: RoundPlayerData })
+function RoundDataManager.setUpRound(
+	roundType: number,
+	playerDatas: { [number]: RoundPlayerData },
+	terminalData: { { id: number, status: number, progress: number } }
+)
 	roundData.currentRoundType = roundType
 	roundData.playerData = playerDatas
+	roundData.terminalData = terminalData
+
+	ClientServerCommunication.replicateAsync("setUpRound", {
+		roundType = roundType,
+		playerData = playerDatas,
+		terminalData = terminalData,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 return RoundDataManager
