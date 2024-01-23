@@ -83,6 +83,9 @@ export type RoundPlayerData = {
 
 		-- Whether or not the player is hacking
 		isHacking: boolean,
+
+		-- Whether or not the player is holding a battery
+		isHoldingBattery: boolean,
 	},
 
 	-- The player's round statistics
