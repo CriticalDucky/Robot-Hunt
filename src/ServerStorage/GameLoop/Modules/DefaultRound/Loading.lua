@@ -16,8 +16,23 @@ function Loading.begin()
     print("Loading started")
 
     local loadingLength = RoundConfiguration.timeLengths.lobby[Enums.PhaseType.Loading]
+    local endTime = os.time() + loadingLength
 
-    local timer = Promise.delay(loadingLength)
+    local timer = Promise.new(function(resolve, reject, onCancel)
+        local connection
+
+        connection = game:GetService("RunService").Stepped:Connect(function()
+            if os.time() >= endTime then
+                resolve()
+
+                connection:Disconnect()
+            end
+        end)
+
+        onCancel(function()
+            connection:Disconnect()
+        end)
+    end)
 
     return Promise.new(function(resolve, reject, onCancel)
         onCancel(function()
