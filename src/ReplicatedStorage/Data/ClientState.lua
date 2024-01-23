@@ -52,6 +52,7 @@ local ClientState = {
 
 	actions = {
 		isCrawling = Value(false :: boolean),
+		tempIsHoldingBattery = Value(false :: boolean),
 	}
 }
 
