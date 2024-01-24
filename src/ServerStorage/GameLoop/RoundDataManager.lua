@@ -31,6 +31,14 @@ type RoundData = {
 		},
 	},
 
+	batteryData: {
+		{
+			id: number,
+			model: Instance?, -- Not replicated
+			holder: number?,
+		}
+	},
+
 	playerData: {
 		[number --[[userId]]]: RoundPlayerData,
 	},
@@ -42,6 +50,8 @@ local roundData: RoundData = {
 	phaseEndTime = nil,
 
 	terminalData = {},
+
+	batteryData = {},
 
 	playerData = {},
 }
@@ -181,7 +191,6 @@ function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlay
 		actions = {
 			isHacking = false,
 			isShooting = false,
-			isHoldingBattery = false,
 		},
 
 		stats = {
@@ -390,6 +399,21 @@ function RoundDataManager.incrementAmmo(player: Player, amount: number)
 	ClientServerCommunication.replicateAsync("updateAmmo", {
 		playerId = player.UserId,
 		ammo = playerData.ammo,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
+end
+
+function RoundDataManager.updateBatteryHolder(batteryId: number, holder: Player?)
+	local batteryData = roundData.batteryData[batteryId]
+
+	assert(batteryData, "Battery data does not exist")
+
+	batteryData.holder = holder and holder.UserId or nil
+
+	ClientServerCommunication.replicateAsync("updateBatteryHolder", {
+		batteryId = batteryId,
+		holderId = batteryData.holder,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
