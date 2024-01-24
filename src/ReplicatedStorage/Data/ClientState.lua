@@ -11,6 +11,8 @@ local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Type
 
 type PlayerPersistentData = Types.PlayerPersistentData
 type RoundPlayerData = Types.RoundPlayerData
+type RoundBatteryData = Types.RoundBatteryData
+type RoundTerminalData = Types.RoundTerminalData
 type Value<T> = Fusion.Value<T>
 
 local Value = Fusion.Value
@@ -36,6 +38,9 @@ local ClientState = {
 			currentRoundType = Value(nil :: number?),
 			currentPhaseType = Value(nil :: number?),
 			phaseEndTime = Value(nil :: number?),
+
+			batteryData = Value({nil :: RoundPlayerData?}),
+			terminalData = Value({nil :: RoundPlayerData?}),
 
 			playerData = Value({nil :: RoundPlayerData?}),
 		},

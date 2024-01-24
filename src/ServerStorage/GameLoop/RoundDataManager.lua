@@ -5,13 +5,15 @@ local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
 
 local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
-local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
+-- local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 
 local Enums = require(ReplicatedFirst.Enums)
 local Types = require(ReplicatedFirst.Utility.Types)
 local PhaseType = Enums.PhaseType
 
 type RoundPlayerData = Types.RoundPlayerData
+type RoundTerminalData = Types.RoundTerminalData
+type RoundBatteryData = Types.RoundBatteryData
 
 type RoundData = {
 	-- The current round type enum (Enums.RoundType)
@@ -23,21 +25,9 @@ type RoundData = {
 	-- The Unix timestamp of when the phase should end
 	phaseEndTime: number?,
 
-	terminalData: {
-		[number]: {
-			id: number,
-			status: number,
-			progress: number,
-		},
-	},
+	terminalData: RoundTerminalData,
 
-	batteryData: {
-		{
-			id: number,
-			model: Instance?, -- Not replicated
-			holder: number?,
-		}
-	},
+	batteryData: RoundBatteryData,
 
 	playerData: {
 		[number --[[userId]]]: RoundPlayerData,
