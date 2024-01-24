@@ -1,3 +1,4 @@
 {
-    "luau-lsp.sourcemap.rojoProjectFile": "robothunt.project.json"
+    "luau-lsp.sourcemap.rojoProjectFile": "robothunt.project.json",
+    "stylua.targetReleaseVersion": "latest"
 }
