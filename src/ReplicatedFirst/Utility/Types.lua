@@ -95,6 +95,18 @@ export type RoundPlayerData = {
 	},
 }
 
+export type RoundBatteryData = {{
+	id: number,
+	model: Instance?, -- Not replicated
+	holder: number?,
+}}
+
+export type RoundTerminalData = {{
+	id: number,
+	status: number,
+	progress: number,
+}}
+
 export type PlayerTempData = {}
 
 export type TimeRange = {
