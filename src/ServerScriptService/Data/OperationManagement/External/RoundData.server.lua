@@ -11,13 +11,15 @@ local RoundDataManager = require(ServerStorage.GameLoop.RoundDataManager)
 --#endregion
 
 ClientServerCommunication.registerActionAsync("InitializeRoundData", function(player: Player)
-    RoundDataManager.initializedRoundDataAsync(player)
+    RoundDataManager.initializeRoundDataAsync(player)
 end)
 
-ClientServerCommunication.registerActionAsync("UpdateRoundType")
-
-ClientServerCommunication.registerActionAsync("UpdatePhaseType")
-
-ClientServerCommunication.registerActionAsync("UpdatePhaseEndTime")
-
-ClientServerCommunication.registerActionAsync("UpdatePlayerData")
+ClientServerCommunication.registerActionAsync("SetPhase")
+ClientServerCommunication.registerActionAsync("UpdateVictims")
+ClientServerCommunication.registerActionAsync("KillPlayer")
+ClientServerCommunication.registerActionAsync("RevivePlayer")
+ClientServerCommunication.registerActionAsync("UpdateHealth")
+ClientServerCommunication.registerActionAsync("UpdateLifeSupport")
+ClientServerCommunication.registerActionAsync("UpdateAmmo")
+ClientServerCommunication.registerActionAsync("updateBatteryHolder")
+ClientServerCommunication.registerActionAsync("SetUpRound")
