@@ -391,3 +391,5 @@ ClientServerCommunication.registerActionAsync("SetUpRound", function(data)
 	roundData.terminalData:set(data.terminalData)
 	roundData.batteryData:set(data.batteryData)
 end)
+
+ClientServerCommunication.replicateAsync("InitializeRoundData")
