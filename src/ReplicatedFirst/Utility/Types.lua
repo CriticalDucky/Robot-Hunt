@@ -60,7 +60,7 @@ export type RoundPlayerData = {
 	lastAttackerId: number?,
 	killedById: number?,
 	-- The list of userids that are attacking this player.
-	attackers: { [number]: boolean },
+	victims: { [number]: boolean },
 
 	-- The player's current team enum (Enums.TeamType)
 	team: number,
@@ -95,17 +95,17 @@ export type RoundPlayerData = {
 	},
 }
 
-export type RoundBatteryData = {{
+export type RoundBatteryData = {
 	id: number,
 	model: Instance?, -- Not replicated
 	holder: number?,
-}}
+}
 
-export type RoundTerminalData = {{
+export type RoundTerminalData = {
 	id: number,
 	status: number,
 	progress: number,
-}}
+}
 
 export type PlayerTempData = {}
 
