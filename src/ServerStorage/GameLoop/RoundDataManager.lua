@@ -25,9 +25,9 @@ type RoundData = {
 	-- The Unix timestamp of when the phase should end
 	phaseEndTime: number?,
 
-	terminalData: RoundTerminalData,
+	terminalData: { RoundTerminalData },
 
-	batteryData: RoundBatteryData,
+	batteryData: { RoundBatteryData },
 
 	playerData: {
 		[number --[[userId]]]: RoundPlayerData,
@@ -54,7 +54,7 @@ local function filterPlayerData(playerData: RoundPlayerData, player: Player): Ro
 
 		lastAttackerId = playerData.lastAttackerId,
 		killedById = playerData.killedById,
-		attackers = playerData.attackers,
+		victims = playerData.victims,
 
 		team = playerData.team,
 
@@ -93,12 +93,12 @@ end
 
 local RoundDataManager = {}
 
-local onDataUpdatedEvent = Instance.new("BindableEvent")
+local onDataUpdatedEvent = Instance.new "BindableEvent"
 
 RoundDataManager.data = roundData
 RoundDataManager.onDataUpdated = onDataUpdatedEvent.Event :: RBXScriptSignal<RoundData>
 
-function RoundDataManager.initializedRoundDataAsync(player: Player?)
+function RoundDataManager.initializeRoundDataAsync(player: Player?)
 	local players = if player then { player } else Players:GetPlayers()
 
 	for _, player in ipairs(players) do
@@ -106,54 +106,20 @@ function RoundDataManager.initializedRoundDataAsync(player: Player?)
 	end
 end
 
-function RoundDataManager.setPhaseToResultsAsync(endTime: number)
-	roundData.currentPhaseType = PhaseType.Results
-	roundData.currentRoundType = nil
+function RoundDataManager.setPhase(phaseType: number, endTime: number?)
+	roundData.currentPhaseType = phaseType
 	roundData.phaseEndTime = endTime
 
-	ClientServerCommunication.replicateAsync("SetPhase", {
-		phaseType = PhaseType.Results,
-		phaseEndTime = endTime,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
-end
-
-function RoundDataManager.setPhaseToIntermissionAsync(endTime)
-	roundData.currentPhaseType = PhaseType.Intermission
-	roundData.phaseEndTime = endTime
-
-	table.clear(roundData.playerData)
+	if phaseType == PhaseType.Intermission then
+		roundData.currentRoundType = nil
+	elseif phaseType == PhaseType.Loading then
+		table.clear(roundData.playerData)
+	end
 
 	ClientServerCommunication.replicateAsync("SetPhase", {
-		phaseType = PhaseType.Intermission,
+		phaseType = phaseType,
 		phaseEndTime = endTime,
 	})
-
-	onDataUpdatedEvent:Fire(roundData)
-end
-
-function RoundDataManager.setPhaseToLoadingAsync(endTime)
-	roundData.currentPhaseType = PhaseType.Loading
-	roundData.phaseEndTime = endTime
-
-	table.clear(roundData.playerData)
-
-	ClientServerCommunication.replicateAsync("SetPhase", {
-		phaseType = PhaseType.Loading,
-		phaseEndTime = endTime,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
-end
-
-function RoundDataManager.setPhaseToNotEnoughPlayersAsync()
-	roundData.currentPhaseType = PhaseType.NotEnoughPlayers
-	roundData.phaseEndTime = nil
-
-	ClientServerCommunication.replicateAsync "SetPhase" {
-		phaseType = PhaseType.NotEnoughPlayers,
-	}
 
 	onDataUpdatedEvent:Fire(roundData)
 end
@@ -166,7 +132,7 @@ function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlay
 
 		lastAttackerId = nil,
 		killedById = nil,
-		attackers = {},
+		victims = {},
 
 		team = team,
 
@@ -190,32 +156,36 @@ function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlay
 	}
 end
 
-function RoundDataManager.addAttacker(victim: Player, attacker: Player)
+function RoundDataManager.addVictim(attacker: Player, victim: Player)
+	local attackerData = roundData.playerData[attacker.UserId]
 	local victimData = roundData.playerData[victim.UserId]
 
+	assert(attackerData, "Attacker data does not exist")
 	assert(victimData, "Victim data does not exist")
 
 	victimData.lastAttackerId = attacker.UserId
-	victimData.attackers[attacker.UserId] = true
+	attackerData.victims[attacker.UserId] = true
 
-	ClientServerCommunication.replicateAsync("updateAttackers", {
-		victimId = victim.UserId,
-		attackers = victimData.attackers,
+	ClientServerCommunication.replicateAsync("UpdateVictims", {
+		attackerId = attacker.UserId,
+		victims = attackerData.victims,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
 end
 
-function RoundDataManager.removeAttacker(victim: Player, attacker: Player)
+function RoundDataManager.removeVictim(attacker: Player, victim: Player)
+	local attackerData = roundData.playerData[attacker.UserId]
 	local victimData = roundData.playerData[victim.UserId]
 
+	assert(attackerData, "Attacker data does not exist")
 	assert(victimData, "Victim data does not exist")
 
-	victimData.attackers[attacker.UserId] = nil
+	attackerData.victims[victim.UserId] = nil
 
-	ClientServerCommunication.replicateAsync("updateAttackers", {
-		victimId = victim.UserId,
-		attackers = victimData.attackers,
+	ClientServerCommunication.replicateAsync("UpdateVictims", {
+		attackerId = attacker.UserId,
+		victims = attackerData.victims,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
@@ -239,7 +209,7 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 		killerData.stats.kills += 1
 	end
 
-	ClientServerCommunication.replicateAsync("killPlayer", {
+	ClientServerCommunication.replicateAsync("KillPlayer", {
 		victimId = victim.UserId,
 		killedById = playerData.killedById,
 	})
@@ -257,42 +227,69 @@ function RoundDataManager.revivePlayer(player: Player)
 	playerData.armor = 0
 	playerData.lifeSupport = 100
 
-	ClientServerCommunication.replicateAsync("revivePlayer", {
+	ClientServerCommunication.replicateAsync("RevivePlayer", {
 		playerId = player.UserId,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
 end
 
-function RoundDataManager.setHealth(player: Player, health: number)
-	local playerData = roundData.playerData[player.UserId]
-
-	assert(health >= 0 and health <= 100, "Health must be between 0 and 100")
-
-	playerData.health = health
-
-	ClientServerCommunication.replicateAsync("updateHealth", {
-		playerId = player.UserId,
-		health = health,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
-end
-
-function RoundDataManager.incrementHealth(player: Player, amount: number)
+function RoundDataManager.setHealth(player: Player, armor: number?, health: number?)
 	local playerData = roundData.playerData[player.UserId]
 
 	assert(playerData, "Player data does not exist")
-	assert(playerData.health + amount >= 0 and playerData.health + amount <= 100, "Health must be between 0 and 100")
 
-	playerData.health += amount
+	if armor then
+		playerData.armor = armor
+	end
 
-	ClientServerCommunication.replicateAsync("updateHealth", {
+	if health then
+		playerData.health = health
+
+		if health <= 0 then
+			playerData.status = Enums.PlayerStatus.lifeSupport
+		end
+	end
+
+	ClientServerCommunication.replicateAsync("UpdateHealth", {
 		playerId = player.UserId,
 		health = playerData.health,
+		armor = playerData.armor,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
+end
+
+--[[
+	Increments the player's shield and health by the given amount.
+	If the amount is negative, the player will take shield damage first, and the rest of it then health damage.
+	If the amount is positive, the player will only gain health.
+]]
+function RoundDataManager.incrementAccountedHealth(player: Player, amount: number)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+
+	local health = playerData.health
+	local armor = playerData.armor
+
+	if amount < 0 then
+		-- Take shield damage first
+		armor += amount
+
+		if armor < 0 then
+			-- Take health damage
+			health += armor
+			armor = 0
+		end
+	else
+		-- Gain health
+		health += amount
+	end
+
+	health = math.clamp(health, 0, 100)
+
+	RoundDataManager.setHealth(player, armor, health)
 end
 
 function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
@@ -302,7 +299,11 @@ function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
 
 	playerData.lifeSupport = lifeSupport
 
-	ClientServerCommunication.replicateAsync("updateLifeSupport", {
+	if lifeSupport <= 0 then
+		return RoundDataManager.killPlayer(player) -- u had a good run
+	end
+
+	ClientServerCommunication.replicateAsync("UpdateLifeSupport", {
 		playerId = player.UserId,
 		lifeSupport = lifeSupport,
 	})
@@ -314,51 +315,10 @@ function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
 	local playerData = roundData.playerData[player.UserId]
 
 	assert(playerData, "Player data does not exist")
-	assert(
-		playerData.lifeSupport + amount >= 0 and playerData.lifeSupport + amount <= 100,
-		"Life support must be between 0 and 100"
-	)
 
-	playerData.lifeSupport += amount
+	local lifeSupport = math.clamp(playerData.lifeSupport + amount, 0, 100)
 
-	ClientServerCommunication.replicateAsync("updateLifeSupport", {
-		playerId = player.UserId,
-		lifeSupport = playerData.lifeSupport,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
-end
-
-function RoundDataManager.setArmor(player: Player, armor: number)
-	local playerData = roundData.playerData[player.UserId]
-
-	assert(playerData, "Player data does not exist")
-	assert(armor >= 0 and armor <= 100, "Armor must be between 0 and 100")
-
-	playerData.armor = armor
-
-	ClientServerCommunication.replicateAsync("updateArmor", {
-		playerId = player.UserId,
-		armor = armor,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
-end
-
-function RoundDataManager.incrementArmor(player: Player, amount: number)
-	local playerData = roundData.playerData[player.UserId]
-
-	assert(playerData, "Player data does not exist")
-	assert(playerData.armor + amount >= 0 and playerData.armor + amount <= 100, "Armor must be between 0 and 100")
-
-	playerData.armor += amount
-
-	ClientServerCommunication.replicateAsync("updateArmor", {
-		playerId = player.UserId,
-		armor = playerData.armor,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
+	RoundDataManager.setLifeSupport(player, lifeSupport)
 end
 
 function RoundDataManager.setAmmo(player: Player, ammo: number)
@@ -369,7 +329,7 @@ function RoundDataManager.setAmmo(player: Player, ammo: number)
 
 	playerData.ammo = ammo
 
-	ClientServerCommunication.replicateAsync("updateAmmo", {
+	ClientServerCommunication.replicateAsync("UpdateAmmo", {
 		playerId = player.UserId,
 		ammo = ammo,
 	})
@@ -382,16 +342,10 @@ function RoundDataManager.incrementAmmo(player: Player, amount: number)
 
 	assert(playerData, "Player data does not exist")
 	assert(playerData.ammo, "Player data ammo does not exist")
-	assert(playerData.ammo + amount >= 0 and playerData.ammo + amount <= 100, "Ammo must be between 0 and 100")
 
-	playerData.ammo += amount
+	amount = math.clamp(playerData.ammo + amount, 0, 100)
 
-	ClientServerCommunication.replicateAsync("updateAmmo", {
-		playerId = player.UserId,
-		ammo = playerData.ammo,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
+	RoundDataManager.setAmmo(player, amount)
 end
 
 function RoundDataManager.updateBatteryHolder(batteryId: number, holder: Player?)
@@ -412,16 +366,20 @@ end
 function RoundDataManager.setUpRound(
 	roundType: number,
 	playerDatas: { [number]: RoundPlayerData },
-	terminalData: { { id: number, status: number, progress: number } }
+	terminalData: { RoundTerminalData },
+	batteryData: { RoundBatteryData }
 )
 	roundData.currentRoundType = roundType
 	roundData.playerData = playerDatas
-	roundData.terminalData = terminalData
 
-	ClientServerCommunication.replicateAsync("setUpRound", {
+	roundData.terminalData = terminalData
+	roundData.batteryData = batteryData
+
+	ClientServerCommunication.replicateAsync("SetUpRound", {
 		roundType = roundType,
 		playerData = playerDatas,
 		terminalData = terminalData,
+		batteryData = batteryData,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
