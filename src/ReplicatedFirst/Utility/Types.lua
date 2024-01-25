@@ -97,7 +97,7 @@ export type RoundPlayerData = {
 
 export type RoundBatteryData = {
 	id: number,
-	model: Instance?, -- Not replicated
+	model: Model, -- Not replicated
 	holder: number?,
 }
 
