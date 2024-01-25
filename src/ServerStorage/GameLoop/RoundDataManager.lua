@@ -94,9 +94,11 @@ end
 local RoundDataManager = {}
 
 local onDataUpdatedEvent = Instance.new "BindableEvent"
+local onPlayerStatusUpdatedEvent = Instance.new "BindableEvent"
 
 RoundDataManager.data = roundData
 RoundDataManager.onDataUpdated = onDataUpdatedEvent.Event :: RBXScriptSignal<RoundData>
+RoundDataManager.onPlayerStatusUpdated = onPlayerStatusUpdatedEvent.Event :: RBXScriptSignal<RoundPlayerData>
 
 function RoundDataManager.initializeRoundDataAsync(player: Player?)
 	local players = if player then { player } else Players:GetPlayers()
@@ -215,6 +217,7 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
+	onPlayerStatusUpdatedEvent:Fire(playerData)
 end
 
 function RoundDataManager.revivePlayer(player: Player)
@@ -232,6 +235,7 @@ function RoundDataManager.revivePlayer(player: Player)
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
+	onPlayerStatusUpdatedEvent:Fire(playerData)
 end
 
 function RoundDataManager.setHealth(player: Player, armor: number?, health: number?)
@@ -239,16 +243,12 @@ function RoundDataManager.setHealth(player: Player, armor: number?, health: numb
 
 	assert(playerData, "Player data does not exist")
 
-	if armor then
-		playerData.armor = armor
-	end
+	if armor then playerData.armor = armor end
 
 	if health then
 		playerData.health = health
 
-		if health <= 0 then
-			playerData.status = Enums.PlayerStatus.lifeSupport
-		end
+		if health <= 0 then playerData.status = Enums.PlayerStatus.lifeSupport end
 	end
 
 	ClientServerCommunication.replicateAsync("UpdateHealth", {
@@ -258,6 +258,10 @@ function RoundDataManager.setHealth(player: Player, armor: number?, health: numb
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
+
+	if playerData.status == Enums.PlayerStatus.lifeSupport then
+		onPlayerStatusUpdatedEvent:Fire(playerData)
+	end
 end
 
 --[[
