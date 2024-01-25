@@ -11,8 +11,8 @@ local Computed = Fusion.Computed
 
 local player = Players.LocalPlayer
 
-workspace.DescendantAdded:Connect(function(descendant)
-	if descendant:IsA "ProximityPrompt" then
+local function onDescendantAdded(descendant)
+    if descendant:IsA "ProximityPrompt" then
 		if descendant.Name == "Button" then
 			Hydrate(descendant) {
 				Enabled = Computed(function(use)
@@ -43,4 +43,10 @@ workspace.DescendantAdded:Connect(function(descendant)
             }
         end
 	end
-end)
+end
+
+workspace.DescendantAdded:Connect(onDescendantAdded)
+
+for _, descendant in ipairs(workspace:GetDescendants()) do
+    onDescendantAdded(descendant)
+end
