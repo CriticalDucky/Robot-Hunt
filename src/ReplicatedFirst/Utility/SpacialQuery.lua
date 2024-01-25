@@ -27,4 +27,16 @@ function SpacialQuery.getPartsTouchingPoint(point)
     return parts
 end
 
+function SpacialQuery.getPartsInBetweenPoints(point1, point2)
+    local cframe = CFrame.lookAt((point1 + point2) / 2, point2)
+
+    setUpQueryPart(cframe, Vector3.new(COLLISION_PADDING, COLLISION_PADDING, (point1 - point2).Magnitude))
+
+    local parts = workspace:GetPartsInPart(queryPart)
+
+    putAwayQueryPart()
+
+    return parts
+end
+
 return SpacialQuery
