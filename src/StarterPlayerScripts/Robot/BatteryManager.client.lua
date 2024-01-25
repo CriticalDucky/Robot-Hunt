@@ -52,7 +52,17 @@ local function onCharacterAdded(player: Player, character)
 
 	for _, part in { body, neon } do
 		Hydrate(part) {
-			Transparency = Computed(function(use) end),
+			Transparency = Computed(function(use)
+                local batteryDatas = use(ClientState.external.roundData.batteryData)
+
+                for _, batterData in pairs(batteryDatas) do
+                    if batterData.holder == player.UserId then
+                        return 0
+                    end
+                end
+
+                return 1
+            end),
 			Massless = true,
 			CanCollide = false,
 			CanQuery = false,
