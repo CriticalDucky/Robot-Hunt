@@ -1,9 +1,65 @@
 local ProximityPromptService = game:GetService "ProximityPromptService"
 local ServerStorage = game:GetService "ServerStorage"
+local ReplicatedFirst = game:GetService "ReplicatedFirst"
+local ReplicatedStorage = game:GetService "ReplicatedStorage"
+local Players = game:GetService "Players"
 
 local GameLoop = ServerStorage.GameLoop
+local Data = ReplicatedStorage.Data
+local Utility = ReplicatedFirst.Utility
 
 local RoundDataManager = require(GameLoop.RoundDataManager)
+local ClientServerCommunication = require(Data.ClientServerCommunication)
+local SpacialQuery = require(Utility.SpacialQuery)
+local Table = require(Utility.Table)
+local Types = require(Utility.Types)
+local Enums = require(ReplicatedFirst.Enums)
+
+type RoundPlayerData = Types.RoundPlayerData
+
+local function putDownBattery(player: Player)
+	assert(player and player.Character)
+
+	local batterDatas = RoundDataManager.data.batteryData
+
+	for _, data in pairs(batterDatas) do
+		if data.holder == player.UserId then
+			local CFrameToPutBattery: CFrame?
+
+			do
+				local fakeBattery = player.Character:FindFirstChild "Battery" :: Model
+				local batteryBody = fakeBattery:FindFirstChild "Body" :: Part
+
+				local pivotCFrame = fakeBattery:GetPivot()
+				local headCFrame = (player.Character:FindFirstChild "Head" :: BasePart).CFrame
+
+				local partsIntersectingRay =
+					SpacialQuery.getPartsInBetweenPoints(headCFrame.Position, pivotCFrame.Position)
+				local partsIntersectingBattery = workspace:GetPartsInPart(batteryBody)
+
+				for _, part in Table.append(partsIntersectingBattery, partsIntersectingRay) do
+					if not part:IsDescendantOf(player.Character) then
+						local humanoidRootPart = player.Character:FindFirstChild "HumanoidRootPart" :: BasePart
+
+						CFrameToPutBattery = humanoidRootPart.CFrame * CFrame.new(0, -2, 0)
+
+						break
+					end
+				end
+
+				if not CFrameToPutBattery then CFrameToPutBattery = pivotCFrame end
+			end
+
+			local battery = data.model
+			battery.Parent = workspace
+			battery:PivotTo(CFrameToPutBattery)
+
+			RoundDataManager.updateBatteryHolder(data.id, nil)
+
+			break
+		end
+	end
+end
 
 ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 	if prompt.Name == "Battery" then
@@ -19,10 +75,54 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 			if data.model == battery then
 				if data.holder ~= nil then return end
 
+				data.model.Parent = nil
+
 				RoundDataManager.updateBatteryHolder(data.id, player)
 
 				break
 			end
 		end
 	end
+end)
+
+ClientServerCommunication.registerActionAsync("PutDownBattery", putDownBattery)
+
+RoundDataManager.onPlayerStatusUpdated:Connect(function(playerData)
+	if playerData.status == Enums.PlayerStatus.lifeSupport then
+		local player = Players:GetPlayerByUserId(playerData.id)
+
+		if not player then return end
+
+		putDownBattery(player)
+	end
+end)
+
+local function onPlayerManuallyQuits(player: Player)
+	local playerDatas = RoundDataManager.data.playerData
+
+	for _, playerData in pairs(playerDatas) do
+		if playerData.playerId == player.UserId then
+			local batteryDatas = RoundDataManager.data.batteryData
+
+			for _, batteryData in pairs(batteryDatas) do
+				if batteryData.holder == player.UserId then
+					putDownBattery(player) -- bye bye :(
+
+					break
+				end
+			end
+
+			break
+		end
+	end
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	onPlayerManuallyQuits(player)
+end)
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterRemoving:Connect(function(character)
+		onPlayerManuallyQuits(player)
+	end)
 end)
