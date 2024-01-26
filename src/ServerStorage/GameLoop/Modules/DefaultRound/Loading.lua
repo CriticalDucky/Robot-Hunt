@@ -3,6 +3,7 @@ local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local ServerStorage = game:GetService("ServerStorage")
 
 local GameLoop = ServerStorage.GameLoop
+local Maps = ServerStorage.Maps
 
 local Actions = require(GameLoop.Actions)
 local RoundDataManager = require(GameLoop.RoundDataManager)
@@ -40,12 +41,16 @@ function Loading.begin()
             timer:cancel()
         end)
 
+        local map = Maps:GetChildren()[math.random(1, #Maps:GetChildren())]:Clone()
+        map.Parent = workspace
+        map.Name = "Map"
+
         timer:andThen(function()
             print("Loading ended")
             resolve()
         end)
 
-        RoundDataManager.setPhaseToLoadingAsync(loadingLength)
+        RoundDataManager.setPhase(Enums.PhaseType.Loading, endTime)
     end)
 end
 
