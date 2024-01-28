@@ -14,11 +14,11 @@ local PhaseTwo = {}
 
 function PhaseTwo.begin()
     print("Phase Two started")
-    RoundDataManager.data.currentPhaseType = Enums.PhaseType.PhaseTwo
-    RoundDataManager.data.phaseStartTime = os.time()
-    RoundDataManager.replicateDataAsync()
+    
+    local intermissionLength = RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.PhaseTwo]
+    local endTime = os.time() + intermissionLength
 
-    local timer = Promise.delay(RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.PhaseTwo])
+    local timer = Actions.newPhaseTimer(endTime)
 
     return Promise.new(function(resolve, reject, onCancel)
         onCancel(function()
@@ -30,6 +30,8 @@ function PhaseTwo.begin()
             print("Phase Two ended")
             resolve()
         end)
+
+        RoundDataManager.setPhase(Enums.PhaseType.PhaseTwo, endTime)
     end)
 end
 

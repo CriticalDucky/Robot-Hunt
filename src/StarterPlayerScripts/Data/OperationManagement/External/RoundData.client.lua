@@ -18,8 +18,8 @@ local PhaseType = Enums.PhaseType
 
 --#endregion
 
-ClientServerCommunication.registerActionAsync("InitializeRoundData", function(roundData)
-	for key, value in roundData do
+ClientServerCommunication.registerActionAsync("InitializeRoundData", function(newRoundData)
+	for key, value in newRoundData do
 		roundData[key]:set(value)
 	end
 end)

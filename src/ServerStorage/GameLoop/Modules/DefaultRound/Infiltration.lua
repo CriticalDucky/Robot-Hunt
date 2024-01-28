@@ -1,6 +1,6 @@
-local ReplicatedStorage = game:GetService "ReplicatedStorage"
-local ReplicatedFirst = game:GetService "ReplicatedFirst"
-local ServerStorage = game:GetService "ServerStorage"
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local ServerStorage = game:GetService("ServerStorage")
 
 local GameLoop = ServerStorage.GameLoop
 
@@ -13,24 +13,26 @@ local Enums = require(ReplicatedFirst.Enums)
 local Infiltration = {}
 
 function Infiltration.begin()
-	print "Infiltration started"
-	RoundDataManager.data.currentPhaseType = Enums.PhaseType.Infiltration
-	RoundDataManager.data.phaseStartTime = os.time()
-	RoundDataManager.replicateDataAsync()
+    print("Infiltration started")
+    
+    local infiltrationLength = RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.Infiltration]
+    local endTime = os.time() + infiltrationLength
 
-	local timer = Promise.delay(RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.Infiltration])
+    local timer = Actions.newPhaseTimer(endTime)
 
-	return Promise.new(function(resolve, reject, onCancel)
-		onCancel(function()
-			print "Infiltration cancelled"
-			timer:cancel()
-		end)
+    return Promise.new(function(resolve, reject, onCancel)
+        onCancel(function()
+            print("Infiltration cancelled")
+            timer:cancel()
+        end)
 
-		timer:andThen(function()
-			print "Infiltration ended"
-			resolve()
-		end)
-	end)
+        timer:andThen(function()
+            print("Infiltration ended")
+            resolve()
+        end)
+
+        RoundDataManager.setPhase(Enums.PhaseType.Infiltration, endTime)
+    end)
 end
 
 return Infiltration

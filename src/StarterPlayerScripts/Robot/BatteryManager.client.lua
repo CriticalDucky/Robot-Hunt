@@ -3,8 +3,12 @@ local BATTERY_ANIMATION = "rbxassetid://16082327113"
 local Players = game:GetService "Players"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
+local ContextActionService = game:GetService "ContextActionService"
 
-local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
+local DataFolder = ReplicatedStorage:WaitForChild "Data"
+
+local ClientState = require(DataFolder:WaitForChild "ClientState")
+local ClientServerCommunication = require(DataFolder:WaitForChild "ClientServerCommunication")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
 local Observer = Fusion.Observer
@@ -16,7 +20,12 @@ local localPlayer = Players.LocalPlayer
 
 local isHoldingBattery = Computed(function(use)
 	local batteryData = use(ClientState.external.roundData.batteryData)
-	return batteryData and batteryData.holder == localPlayer.UserId or false
+
+	for _, data in pairs(batteryData) do
+		if data.holder == localPlayer.UserId then return true end
+	end
+	
+	return false
 end)
 
 local batteryAnimation = Instance.new "Animation"
@@ -48,21 +57,19 @@ local function onCharacterAdded(player: Player, character)
 	local body = batteryModel:WaitForChild "Body"
 	local neon = batteryModel:WaitForChild "Neon"
 
-	body:WaitForChild("ProximityPrompt"):Destroy()
+	body:WaitForChild("Battery"):Destroy()
 
 	for _, part in { body, neon } do
 		Hydrate(part) {
 			Transparency = Computed(function(use)
-                local batteryDatas = use(ClientState.external.roundData.batteryData)
+				local batteryDatas = use(ClientState.external.roundData.batteryData)
 
-                for _, batterData in pairs(batteryDatas) do
-                    if batterData.holder == player.UserId then
-                        return 0
-                    end
-                end
+				for _, batterData in pairs(batteryDatas) do
+					if batterData.holder == player.UserId then return 0 end
+				end
 
-                return 1
-            end),
+				return 1
+			end),
 			Massless = true,
 			CanCollide = false,
 			CanQuery = false,
@@ -70,9 +77,15 @@ local function onCharacterAdded(player: Player, character)
 	end
 end
 
-localPlayer.CharacterAdded:Connect(function(character) onCharacterAdded(localPlayer, character) end)
+local function onPlayerAdded(player: Player)
+	player.CharacterAdded:Connect(function(character) onCharacterAdded(player, character) end)
 
-if localPlayer.Character then onCharacterAdded(localPlayer, localPlayer.Character) end
+	if player.Character then onCharacterAdded(player, player.Character) end
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+for _, player in pairs(Players:GetPlayers()) do onPlayerAdded(player) end
 
 localPlayer.CharacterRemoving:Connect(function()
 	if not humanoid or not trackBattery then return end
@@ -89,7 +102,11 @@ localPlayer.CharacterRemoving:Connect(function()
 end)
 
 local function onBatteryStatusChange()
-	if not humanoid or not trackBattery or not humanoidRootPart then return end
+	if not humanoid or not trackBattery or not humanoidRootPart then
+		print("Humanoid or trackBattery or humanoidRootPart is nil", humanoid, trackBattery, humanoidRootPart)
+
+		return
+	end
 
 	assert(trackBattery and humanoidRootPart)
 
@@ -102,4 +119,22 @@ local function onBatteryStatusChange()
 	end
 end
 
+local function onPutDownRequest(_, state)
+	-- print("PutDownBattery", state)
+
+	if state == Enum.UserInputState.End then
+		ClientServerCommunication.replicateAsync "PutDownBattery"
+	end
+end
+
 Observer(isHoldingBattery):onChange(onBatteryStatusChange)
+
+ClientServerCommunication.registerActionAsync "PutDownBattery"
+
+ContextActionService:BindAction(
+	"PutDownBattery",
+	onPutDownRequest,
+	false,
+	Enum.UserInputType.MouseButton1,
+	Enum.UserInputType.Touch
+)

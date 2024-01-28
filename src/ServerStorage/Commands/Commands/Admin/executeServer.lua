@@ -5,7 +5,7 @@ local SCRIPT = [[
     do
         local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
-        local ExecuteGlobals = require(ReplicatedStorage.Shared.Commands.Utility.ExecuteGlobals)
+        local ExecuteGlobals = require(ReplicatedStorage.Commands.Utility.ExecuteGlobals)
 
         i = ExecuteGlobals.i
         m = ExecuteGlobals.m

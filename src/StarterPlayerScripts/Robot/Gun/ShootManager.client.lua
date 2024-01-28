@@ -221,4 +221,4 @@ local function onShootRequest(_, inputState)
 	ClientState.external.roundData.playerData:set(newPlayerData)
 end
 
-ContextActionService:BindAction("Shoot", onShootRequest, true, Enum.UserInputType.MouseButton1)
+-- ContextActionService:BindAction("Shoot", onShootRequest, true, Enum.UserInputType.MouseButton1)

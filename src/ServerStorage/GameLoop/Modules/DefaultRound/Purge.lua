@@ -10,27 +10,29 @@ local Promise = require(ReplicatedFirst.Vendor.Promise)
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local Enums = require(ReplicatedFirst.Enums)
 
-local PhaseOne = {}
+local Purge = {}
 
-function PhaseOne.begin()
-    print("Phase One started")
-    RoundDataManager.data.currentPhaseType = Enums.PhaseType.PhaseOne
-    RoundDataManager.data.phaseStartTime = os.time()
-    RoundDataManager.replicateDataAsync()
+function Purge.begin()
+    print("Purge started")
+    
+    local purgeLength = RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.Purge]
+    local endTime = os.time() + purgeLength
 
-    local timer = Promise.delay(RoundConfiguration.timeLengths[Enums.RoundType.defaultRound][Enums.PhaseType.PhaseOne])
+    local timer = Actions.newPhaseTimer(endTime)
 
     return Promise.new(function(resolve, reject, onCancel)
         onCancel(function()
-            print("Phase One cancelled")
+            print("Purge cancelled")
             timer:cancel()
         end)
 
         timer:andThen(function()
-            print("Phase One ended")
+            print("Purge ended")
             resolve()
         end)
+
+        RoundDataManager.setPhase(Enums.PhaseType.Purge, endTime)
     end)
 end
 
-return PhaseOne
+return Purge

@@ -21,6 +21,7 @@ local RoundConfiguration = {
 			[PhaseType.Infiltration] = 15,
 			[PhaseType.PhaseOne] = MINUTE*6,
 			[PhaseType.PhaseTwo] = MINUTE*6,
+			[PhaseType.Purge] = MINUTE*6,
 		},
 
 		lobby = {

@@ -18,12 +18,18 @@ local Enums = require(ReplicatedFirst.Enums)
 type RoundPlayerData = Types.RoundPlayerData
 
 local function putDownBattery(player: Player)
+	print("putting down battery")
+
 	assert(player and player.Character)
 
-	local batterDatas = RoundDataManager.data.batteryData
+	local batteryDatas = RoundDataManager.data.batteryData
 
-	for _, data in pairs(batterDatas) do
+	print(batteryDatas)
+
+	for _, data in pairs(batteryDatas) do
+		print(1)
 		if data.holder == player.UserId then
+			print(2)
 			local CFrameToPutBattery: CFrame?
 
 			do
@@ -50,9 +56,21 @@ local function putDownBattery(player: Player)
 				if not CFrameToPutBattery then CFrameToPutBattery = pivotCFrame end
 			end
 
+			print(3)
+
+			local map = workspace:FindFirstChild "Map" :: Model
+			local batteriesFolder = map and map:FindFirstChild "Batteries" :: Folder
+
 			local battery = data.model
-			battery.Parent = workspace
-			battery:PivotTo(CFrameToPutBattery)
+
+			if not batteriesFolder then
+				battery:Destroy()
+			else
+				battery.Parent = batteriesFolder
+				battery:PivotTo(CFrameToPutBattery)
+			end
+
+			print("this should print")
 
 			RoundDataManager.updateBatteryHolder(data.id, nil)
 
@@ -117,12 +135,8 @@ local function onPlayerManuallyQuits(player: Player)
 	end
 end
 
-Players.PlayerRemoving:Connect(function(player)
-	onPlayerManuallyQuits(player)
-end)
+Players.PlayerRemoving:Connect(function(player) onPlayerManuallyQuits(player) end)
 
 Players.PlayerAdded:Connect(function(player)
-	player.CharacterRemoving:Connect(function(character)
-		onPlayerManuallyQuits(player)
-	end)
+	player.CharacterRemoving:Connect(function(character) onPlayerManuallyQuits(player) end)
 end)

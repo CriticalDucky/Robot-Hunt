@@ -52,7 +52,7 @@ local function loop()
 
 			local resultsEndTime = os.time() + RoundConfiguration.timeLengths.lobby[PhaseType.Results]
 
-			RoundDataManager.setPhaseToResultsAsync(resultsEndTime)
+			-- RoundDataManager.setPhaseToResultsAsync(resultsEndTime)
 
 			for _, playerData in pairs(RoundDataManager.data.playerData) do
 				local player = Players:GetPlayerByUserId(playerData.playerId or 1)
@@ -61,7 +61,7 @@ local function loop()
 					player.Team = Teams.Lobby
 				end
 
-				-- player:LoadCharacter()
+				player:LoadCharacter()
 			end
 
 			repeat
@@ -72,12 +72,18 @@ local function loop()
 
 			isResults = false
 
+			local map = workspace:FindFirstChild("Map")
+
+			if map then
+				map:Destroy()
+			end
+
 			if enoughPlayers() then
 				loop()
 			else
 				print "Not enough players, waiting for more"
 
-				RoundDataManager.setPhaseToNotEnoughPlayersAsync()
+				-- RoundDataManager.setPhaseToNotEnoughPlayersAsync()
 			end
 		end)
 	elseif currentRoundPromise and not enoughPlayers() and not isResults then

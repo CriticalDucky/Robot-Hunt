@@ -359,7 +359,7 @@ function RoundDataManager.updateBatteryHolder(batteryId: number, holder: Player?
 
 	batteryData.holder = holder and holder.UserId or nil
 
-	ClientServerCommunication.replicateAsync("updateBatteryHolder", {
+	ClientServerCommunication.replicateAsync("UpdateBatteryHolder", {
 		batteryId = batteryId,
 		holderId = batteryData.holder,
 	})
