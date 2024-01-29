@@ -1,6 +1,7 @@
 local NORMAL_SPEED = 16
 local SPEED_BOOST = 3
 local CRAWL_SPEED = 7
+local JUMP_HEIGHT = 9
 
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
@@ -40,6 +41,11 @@ local function onCharacterAdded(character)
             local base_speed = if isCrawling then CRAWL_SPEED else NORMAL_SPEED
     
             return base_speed + if isSpeedBoosted then SPEED_BOOST else 0
+        end),
+        JumpHeight = Computed(function(use)
+            local isCrawling = use(isCrawling)
+    
+            return if isCrawling then 0 else JUMP_HEIGHT
         end),
         CameraOffset = cameraOffset
     }

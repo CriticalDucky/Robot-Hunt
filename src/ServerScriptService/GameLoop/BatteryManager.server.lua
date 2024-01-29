@@ -1,4 +1,5 @@
 local ProximityPromptService = game:GetService "ProximityPromptService"
+local PhysicsService = game:GetService "PhysicsService"
 local ServerStorage = game:GetService "ServerStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
@@ -17,19 +18,19 @@ local Enums = require(ReplicatedFirst.Enums)
 
 type RoundPlayerData = Types.RoundPlayerData
 
-local function putDownBattery(player: Player)
-	print("putting down battery")
+-- PhysicsService:RegisterCollisionGroup("Battery")
 
+local function putDownBattery(player: Player)
 	assert(player and player.Character)
 
 	local batteryDatas = RoundDataManager.data.batteryData
 
-	print(batteryDatas)
+	-- if PhysicsService:IsCollisionGroupRegistered("Character") then
+	-- 	PhysicsService:CollisionGroupSetCollidable("Battery", "Character", false)
+	-- end
 
 	for _, data in pairs(batteryDatas) do
-		print(1)
 		if data.holder == player.UserId then
-			print(2)
 			local CFrameToPutBattery: CFrame?
 
 			do
@@ -70,9 +71,9 @@ local function putDownBattery(player: Player)
 				battery:PivotTo(CFrameToPutBattery)
 			end
 
-			print("this should print")
-
 			RoundDataManager.updateBatteryHolder(data.id, nil)
+
+			task.wait(5)
 
 			break
 		end

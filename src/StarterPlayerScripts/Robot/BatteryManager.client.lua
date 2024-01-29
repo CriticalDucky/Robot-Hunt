@@ -24,9 +24,11 @@ local isHoldingBattery = Computed(function(use)
 	for _, data in pairs(batteryData) do
 		if data.holder == localPlayer.UserId then return true end
 	end
-	
+
 	return false
 end)
+
+local isCrawling = ClientState.actions.isCrawling
 
 local batteryAnimation = Instance.new "Animation"
 batteryAnimation.AnimationId = BATTERY_ANIMATION
@@ -128,6 +130,9 @@ local function onPutDownRequest(_, state)
 end
 
 Observer(isHoldingBattery):onChange(onBatteryStatusChange)
+Observer(isCrawling):onChange(function()
+	ClientServerCommunication.replicateAsync "PutDownBattery"
+end)
 
 ClientServerCommunication.registerActionAsync "PutDownBattery"
 

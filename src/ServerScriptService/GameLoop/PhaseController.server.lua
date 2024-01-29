@@ -18,7 +18,6 @@ local GameLoop = ServerStorage.GameLoop
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local Rounds = require(ServerStorage.GameLoop.Rounds)
 local Modules = require(ServerStorage.GameLoop.Modules)
-local PlayerDataManager = require(ServerStorage.Data.PlayerDataManager)
 local Types = require(ReplicatedFirst.Utility.Types)
 local Enums = require(ReplicatedFirst.Enums)
 local Actions = require(GameLoop.Actions)

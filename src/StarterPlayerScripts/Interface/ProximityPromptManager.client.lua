@@ -12,8 +12,27 @@ local Computed = Fusion.Computed
 local player = Players.LocalPlayer
 
 local function onDescendantAdded(descendant)
-    if descendant:IsA "ProximityPrompt" then
-		if descendant.Name == "Button" then
+	if descendant:IsA "ProximityPrompt" then
+		if descendant.Name == "Battery" then
+			Hydrate(descendant) {
+				Enabled = Computed(function(use)
+					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
+
+					if not playerData then
+						print ("No player data", use(ClientState.external.roundData.playerData), player.UserId)
+						return false
+					end
+
+					local isCrawling = use(ClientState.actions.isCrawling)
+					local isShooting = playerData.actions.isShooting
+					local isHacking = playerData.actions.isHacking
+
+                    print(not isCrawling and not isShooting and not isHacking, isCrawling, isShooting, isHacking)
+
+					return not isCrawling and not isShooting and not isHacking
+				end),
+			}
+		elseif descendant.Name == "Terminal" then
 			Hydrate(descendant) {
 				Enabled = Computed(function(use)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
@@ -27,26 +46,12 @@ local function onDescendantAdded(descendant)
 					return not isCrawling and not isShooting and not isHacking
 				end),
 			}
-		elseif descendant.Name == "Terminal" then
-            Hydrate(descendant) {
-                Enabled = Computed(function(use)
-                    local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
-
-                    if not playerData then return false end
-
-                    local isCrawling = use(ClientState.actions.isCrawling)
-                    local isShooting = playerData.actions.isShooting
-                    local isHacking = playerData.actions.isHacking
-
-                    return not isCrawling and not isShooting and not isHacking
-                end),
-            }
-        end
+		end
 	end
 end
 
 workspace.DescendantAdded:Connect(onDescendantAdded)
 
 for _, descendant in ipairs(workspace:GetDescendants()) do
-    onDescendantAdded(descendant)
+	onDescendantAdded(descendant)
 end
