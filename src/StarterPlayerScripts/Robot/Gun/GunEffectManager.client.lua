@@ -15,6 +15,7 @@ local peek = Fusion.peek
 local Value = Fusion.Value
 local Computed = Fusion.Computed
 local Spring = Fusion.Spring
+local Tween = Fusion.Tween
 
 type RoundPlayerData = Types.RoundPlayerData
 
@@ -25,8 +26,8 @@ local function calculateBeamWidth1(distance) return 0.2 + (distance / 100) end
 local function calculateStrength(distance) return RoundConfiguration.gunStrengthMultiplier ^ distance end
 
 local function onPlayerAdded(player)
-    local tipPositionUpdateConnection: RBXScriptConnection? = nil
-    
+	local tipPositionUpdateConnection: RBXScriptConnection? = nil
+
 	local roundPlayerData = Computed(function(use): RoundPlayerData?
 		local roundPlayerData = use(ClientState.external.roundData.playerData)
 
@@ -47,14 +48,16 @@ local function onPlayerAdded(player)
 		return roundPlayerData.gunHitPosition
 	end)
 
-	local isShooting = Computed(function(use): boolean
-		return use(roundPlayerData) and use(roundPlayerData).actions.isShooting
-	end)
+	local isShooting = Computed(
+		function(use): boolean return use(roundPlayerData) and use(roundPlayerData).actions.isShooting end
+	)
 
 	local function onCharacterAdded(character)
-        if tipPositionUpdateConnection then tipPositionUpdateConnection:Disconnect() end
+		if tipPositionUpdateConnection then tipPositionUpdateConnection:Disconnect() end
 
-		local referencesFolder = character:WaitForChild("Gun"):WaitForChild("References") :: Configuration
+		local gun = character:WaitForChild "Gun"
+
+		local referencesFolder = gun:WaitForChild "References" :: Configuration
 
 		local beamObjectValue: ObjectValue = referencesFolder:WaitForChild "Beam"
 		local hitPartObjectValue: ObjectValue = referencesFolder:WaitForChild "HitPart"
@@ -102,7 +105,9 @@ local function onPlayerAdded(player)
 			Enabled = true,
 			Width0 = Computed(function(use) return if use(isShooting) and use(gunHitPosition) then 0.2 else 0 end),
 			Width1 = Computed(
-				function(use) return if use(isShooting) and use(gunHitPosition) then calculateBeamWidth1(use(distance)) else 0 end
+				function(use)
+					return if use(isShooting) and use(gunHitPosition) then calculateBeamWidth1(use(distance)) else 0
+				end
 			),
 			Color = Computed(function(use) return ColorSequence.new(RoundConfiguration.hunterBeamColor) end),
 			Transparency = Computed(function(use)
@@ -124,9 +129,39 @@ local function onPlayerAdded(player)
 			end),
 		}
 
-        tipPositionUpdateConnection = RunService.RenderStepped:Connect(function()
-            tipPosition:set(tipAttachment.WorldPosition)
-        end)
+		local gunHighlightTransparency = Value(1 :: number)
+
+		local gunHighlightTransparencyTween =
+			Tween(gunHighlightTransparency, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut))
+
+		local function forEachGunDescendant(descendant: Instance)
+			if descendant:IsA "BasePart" then
+				local transparency = descendant:GetAttribute "CustomTransparency" or 0
+
+				Hydrate(descendant) {
+					Transparency = Computed(function(use)
+						local playerData = use(ClientState.external.roundData.playerData)
+						local currentPlayerData = playerData and playerData[player.UserId]
+
+						if not playerData then return 0 end
+
+						local isShooting = currentPlayerData.actions.isShooting
+
+						return if isShooting then transparency else 0
+					end),
+				}
+			end
+		end
+
+		for _, descendant in ipairs(gun:GetDescendants()) do
+			forEachGunDescendant(descendant)
+		end
+
+		gun.DescendantAdded:Connect(forEachGunDescendant)
+
+		tipPositionUpdateConnection = RunService.RenderStepped:Connect(
+			function() tipPosition:set(tipAttachment.WorldPosition) end
+		)
 	end
 
 	player.CharacterAdded:Connect(onCharacterAdded)

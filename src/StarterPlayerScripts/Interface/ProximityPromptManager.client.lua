@@ -18,16 +18,11 @@ local function onDescendantAdded(descendant)
 				Enabled = Computed(function(use)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
-					if not playerData then
-						print ("No player data", use(ClientState.external.roundData.playerData), player.UserId)
-						return false
-					end
+					if not playerData then return false end
 
 					local isCrawling = use(ClientState.actions.isCrawling)
 					local isShooting = playerData.actions.isShooting
 					local isHacking = playerData.actions.isHacking
-
-                    print(not isCrawling and not isShooting and not isHacking, isCrawling, isShooting, isHacking)
 
 					return not isCrawling and not isShooting and not isHacking
 				end),

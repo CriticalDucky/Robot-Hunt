@@ -11,6 +11,7 @@ local ClientState = require(replicatedStorageData:WaitForChild "ClientState")
 local ClientServerCommunication = require(replicatedStorageData:WaitForChild "ClientServerCommunication")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Enums = require(ReplicatedFirst:WaitForChild "Enums")
+local Table = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Table")
 
 local peek = Fusion.peek
 local roundData = ClientState.external.roundData
@@ -386,6 +387,9 @@ end
 ]]
 
 ClientServerCommunication.registerActionAsync("SetUpRound", function(data)
+	-- This is to make sure negative player ids dont get converted to strings
+	data.playerData = Table.editKeys(data.playerData, tonumber)
+
 	roundData.currentRoundType:set(data.roundType)
 	roundData.playerData:set(data.playerData)
 	roundData.terminalData:set(data.terminalData)

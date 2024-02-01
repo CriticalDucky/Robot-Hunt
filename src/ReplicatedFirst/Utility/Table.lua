@@ -394,6 +394,16 @@ function Table.editValues(t, callback) -- maps a table to a new table using the 
 	return mapped
 end
 
+function Table.editKeys(t, callback) -- maps a table to a new table using the callback, only passing the key
+	local mapped = {}
+
+	for k, v in pairs(t) do
+		mapped[callback(k)] = v
+	end
+
+	return mapped
+end
+
 function Table.deepFreeze(t)
 	local function deepFreeze(t1)
 		for _, v in pairs(t1) do
