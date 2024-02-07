@@ -18,16 +18,10 @@ local Enums = require(ReplicatedFirst.Enums)
 
 type RoundPlayerData = Types.RoundPlayerData
 
--- PhysicsService:RegisterCollisionGroup("Battery")
-
 local function putDownBattery(player: Player)
 	assert(player and player.Character)
 
 	local batteryDatas = RoundDataManager.data.batteryData
-
-	-- if PhysicsService:IsCollisionGroupRegistered("Character") then
-	-- 	PhysicsService:CollisionGroupSetCollidable("Battery", "Character", false)
-	-- end
 
 	for _, data in pairs(batteryDatas) do
 		if data.holder == player.UserId then

@@ -132,25 +132,26 @@ function DefaultRound.begin()
 				end
 			end
 
-			-- may the best team win >:)
+			-- may the best team win >;)
 		end)
 		:andThenCall(Modules.DefaultRound.Infiltration.begin)
 		:andThenCall(Modules.DefaultRound.PhaseOne.begin)
 		:andThen(function()
 			local function enoughTerminalsHacked()
-				local numTerminalsHacked = 0
+				return true
+				-- local numTerminalsHacked = 0
 
-				for _, terminalData in RoundDataManager.data.terminalData do
-					if terminalData.status == Enums.TerminalStatus.hacked then
-						numTerminalsHacked += 1
-					end
-				end
+				-- for _, terminalData in RoundDataManager.data.terminalData do
+				-- 	if terminalData.status == Enums.TerminalStatus.hacked then
+				-- 		numTerminalsHacked += 1
+				-- 	end
+				-- end
 
-				if numTerminalsHacked >= numRequiredTerminals then
-					return true
-				else
-					return false
-				end
+				-- if numTerminalsHacked >= numRequiredTerminals then
+				-- 	return true
+				-- else
+				-- 	return false
+				-- end
 			end
 
 			if enoughTerminalsHacked() then

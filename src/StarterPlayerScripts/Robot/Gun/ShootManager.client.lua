@@ -6,7 +6,10 @@ local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ContextActionService = game:GetService "ContextActionService"
 local RunService = game:GetService "RunService"
 
-local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
+local dataFolder = ReplicatedStorage:WaitForChild "Data"
+
+local ClientState = require(dataFolder:WaitForChild "ClientState")
+local ClientRoundDataUtility = require(dataFolder:WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Mouse = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Mouse")
 
@@ -39,6 +42,10 @@ local isHacking = Computed(function(use)
 	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
 	return playerData and playerData.actions.isHacking or false
+end)
+
+local isGunEnabled = Computed(function(use)
+	return use(ClientRoundDataUtility.isGunEnabled)[player.UserId]
 end)
 
 local thread: thread?
@@ -121,10 +128,10 @@ local function onCharacterAdded(character)
 	humanoid = character:WaitForChild "Humanoid"
 	humanoidRootPart = character:WaitForChild "HumanoidRootPart"
 
-	local referencesFolder: Configuration = character:WaitForChild("Gun"):WaitForChild("References") :: Configuration
+	local referencesFolder: Configuration = character:WaitForChild("Gun"):WaitForChild "References" :: Configuration
 
-	gunTipAttachmentObjectValue = referencesFolder:WaitForChild("AttachmentTip") :: ObjectValue
-	hitboxObjectValue = referencesFolder:WaitForChild("Hitbox") :: ObjectValue
+	gunTipAttachmentObjectValue = referencesFolder:WaitForChild "AttachmentTip" :: ObjectValue
+	hitboxObjectValue = referencesFolder:WaitForChild "Hitbox" :: ObjectValue
 
 	assert(humanoid and humanoid:IsA "Humanoid", "Object is not a humanoid")
 
@@ -170,9 +177,10 @@ end)
 
 local function onShootingStatusChange()
 	local isShooting = peek(isShooting)
+	local isGunEnabled = peek(isGunEnabled)
 	local isDead = not humanoid or not trackAim or not humanoidRootPart
 
-	if not isShooting then
+	if not isShooting or not isGunEnabled then
 		if thread then
 			task.cancel(thread)
 			thread = nil
@@ -189,9 +197,9 @@ local function onShootingStatusChange()
 		end
 
 		if not isDead and trackAim then trackAim:Stop() end
-	else -- isShooting == true
+	else -- isShooting == true and isGunEnabled == true
 		if isDead or not trackAim then return end
-		
+
 		assert(trackAim)
 
 		trackAim:Play()
@@ -200,12 +208,14 @@ local function onShootingStatusChange()
 	end
 end
 
+-- connect all relevant states to the onShootingStatusChange function
 Observer(isShooting):onChange(onShootingStatusChange)
+Observer(isGunEnabled):onChange(onShootingStatusChange)
 
 local function onShootRequest(_, inputState)
 	if not humanoid or not trackAim or not humanoidRootPart then return end
 
-	if peek(isHacking) or peek(isCrawling) then return end
+	if peek(isHacking) or peek(isCrawling) or not peek(isGunEnabled) then return end
 
 	local newPlayerData = peek(ClientState.external.roundData.playerData)
 	local playerData = newPlayerData[player.UserId]
@@ -221,4 +231,14 @@ local function onShootRequest(_, inputState)
 	ClientState.external.roundData.playerData:set(newPlayerData)
 end
 
--- ContextActionService:BindAction("Shoot", onShootRequest, true, Enum.UserInputType.MouseButton1)
+Observer(isGunEnabled):onChange(function()
+	local isGunEnabled = peek(isGunEnabled)
+
+	if isGunEnabled then
+		ContextActionService:BindAction("Shoot", onShootRequest, true, Enum.UserInputType.MouseButton1)
+	else
+		ContextActionService:UnbindAction("Shoot")
+	end
+end)
+
+

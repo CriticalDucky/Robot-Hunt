@@ -2,20 +2,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 local dataFolder = ReplicatedStorage:WaitForChild("Data")
+local configurationFolder = ReplicatedStorage:WaitForChild("Configuration")
 
 local ClientState = require(dataFolder:WaitForChild("ClientState"))
 local Enums = require(ReplicatedFirst:WaitForChild("Enums"))
+local RoundConfiguration = require(configurationFolder:WaitForChild("RoundConfiguration"))
 local PhaseType = Enums.PhaseType
 
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild("Fusion"))
 local Computed = Fusion.Computed
 
-local lobbyPhases = {
-    [PhaseType.Intermission] = true,
-    [PhaseType.Loading] = true,
-    [PhaseType.NotEnoughPlayers] = true,
-    [PhaseType.Results] = true,
-}
+local lobbyPhases = RoundConfiguration.lobbyPhases
 
 local ClientRoundDataUtility = {}
 
@@ -39,7 +36,7 @@ ClientRoundDataUtility.isGunEnabled = Computed(function(use)
     local currentRoundType = use(roundData.currentRoundType) -- gamemode
 
     for _, playerData in pairs(roundPlayerData) do
-        local player = playerData.player
+        local playerId = playerData.playerId
         
         local isAlive = not (playerData.status == Enums.PlayerStatus.dead)
 
@@ -50,7 +47,7 @@ ClientRoundDataUtility.isGunEnabled = Computed(function(use)
             local phase = use(roundData.currentPhaseType)
 
             if team == Enums.TeamType.hunters or phase == PhaseType.PhaseTwo then
-                resultTable[player.UserId] = true
+                resultTable[playerId] = true
             end
         else
             if currentRoundType ~= nil then

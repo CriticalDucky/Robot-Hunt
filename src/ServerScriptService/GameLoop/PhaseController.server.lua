@@ -51,7 +51,7 @@ local function loop()
 
 			local resultsEndTime = os.time() + RoundConfiguration.timeLengths.lobby[PhaseType.Results]
 
-			-- RoundDataManager.setPhaseToResultsAsync(resultsEndTime)
+			RoundDataManager.setPhase(PhaseType.Results, resultsEndTime)
 
 			for _, playerData in pairs(RoundDataManager.data.playerData) do
 				local player = Players:GetPlayerByUserId(playerData.playerId or 1)
@@ -82,7 +82,7 @@ local function loop()
 			else
 				print "Not enough players, waiting for more"
 
-				-- RoundDataManager.setPhaseToNotEnoughPlayersAsync()
+				RoundDataManager.setPhase(PhaseType.NotEnoughPlayers)
 			end
 		end)
 	elseif currentRoundPromise and not enoughPlayers() and not isResults then

@@ -176,14 +176,16 @@ function RoundDataManager.addVictim(attacker: Player, victim: Player)
 	onDataUpdatedEvent:Fire(roundData)
 end
 
-function RoundDataManager.removeVictim(attacker: Player, victim: Player)
+function RoundDataManager.removeVictim(attacker: Player, victim: Player?)
 	local attackerData = roundData.playerData[attacker.UserId]
-	local victimData = roundData.playerData[victim.UserId]
 
 	assert(attackerData, "Attacker data does not exist")
-	assert(victimData, "Victim data does not exist")
 
-	attackerData.victims[victim.UserId] = nil
+	if victim then
+		attackerData.victims[victim.UserId] = nil
+	else
+		table.clear(attackerData.victims)
+	end
 
 	ClientServerCommunication.replicateAsync("UpdateVictims", {
 		attackerId = attacker.UserId,
@@ -202,6 +204,8 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	playerData.health = 0
 	playerData.armor = 0
 	playerData.lifeSupport = 0
+	playerData.gunHitPosition = nil
+	playerData.victims = {}
 
 	if killer then
 		playerData.killedById = killer and killer.UserId or nil
@@ -350,6 +354,36 @@ function RoundDataManager.incrementAmmo(player: Player, amount: number)
 	amount = math.clamp(playerData.ammo + amount, 0, 100)
 
 	RoundDataManager.setAmmo(player, amount)
+end
+
+function RoundDataManager.updateShootingStatus(player: Player, value: boolean)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+
+	playerData.actions.isShooting = value
+
+	ClientServerCommunication.replicateAsync("UpdateShootingStatus", {
+		playerId = player.UserId,
+		value = value,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
+end
+
+function RoundDataManager.setGunHitPosition(player: Player, position: Vector3?)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+
+	playerData.gunHitPosition = position
+
+	ClientServerCommunication.replicateAsync("UpdateGunHitPosition", {
+		playerId = player.UserId,
+		position = position,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
 end
 
 function RoundDataManager.updateBatteryHolder(batteryId: number, holder: Player?)

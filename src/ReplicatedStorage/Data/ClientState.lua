@@ -16,7 +16,6 @@ type RoundTerminalData = Types.RoundTerminalData
 type Value<T> = Fusion.Value<T>
 
 local Value = Fusion.Value
-local peek = Fusion.peek
 
 --#endregion
 

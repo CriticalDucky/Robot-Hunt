@@ -363,6 +363,30 @@ ClientServerCommunication.registerActionAsync("UpdateBatteryHolder", function(da
 	end
 end)
 
+ClientServerCommunication.registerActionAsync("SetAction", function(data)
+	local action = data.action
+	local actionData = data.actionData
+
+	roundData.currentAction:set(action)
+	roundData.currentActionData:set(actionData)
+end)
+
+ClientServerCommunication.registerActionAsync("UpdateGunHitPosition", function(data)
+	local playerId = data.playerId
+	local hitPosition = data.position
+
+	local newPlayerData = peek(roundData.playerData)
+	local playerData = newPlayerData[playerId]
+
+	if not newPlayerData or not playerData then
+		return
+	end
+
+	playerData.gunHitPosition = hitPosition
+
+	roundData.playerData:set(newPlayerData)
+end)
+
 --[[
 	function RoundDataManager.setUpRound(
 	roundType: number,
