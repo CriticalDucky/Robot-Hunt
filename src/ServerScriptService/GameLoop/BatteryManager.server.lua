@@ -1,5 +1,4 @@
 local ProximityPromptService = game:GetService "ProximityPromptService"
-local PhysicsService = game:GetService "PhysicsService"
 local ServerStorage = game:GetService "ServerStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"

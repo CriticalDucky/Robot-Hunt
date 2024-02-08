@@ -41,16 +41,17 @@ local RoundConfiguration = {
 
 	gunStrengthMultiplier = 29/30,
 	gunPowerupMultiplier = 1.2,
+	gunBaseDamagePerSecond = 20,
 
 	gunEffectColors = {
-		[TeamType.Hunter] = {
+		[TeamType.hunters] = {
 			beamColor = Color3.fromRGB(254, 51, 51),
 			attackLightColor = Color3.fromRGB(255, 32, 32),
 			attackGlowColor = Color3.fromRGB(255, 48, 48),
 			attackElectricityColor = Color3.fromRGB(255, 142, 142),
 		},
 
-		[TeamType.Rebel] = {
+		[TeamType.rebels] = {
 			beamColor = Color3.fromRGB(59, 193, 255),
 			attackLightColor = Color3.fromRGB(106, 173, 255),
 			attackGlowColor = Color3.fromRGB(106, 173, 255),
@@ -68,6 +69,11 @@ local RoundConfiguration = {
 	batteryUpperPercentage = 0.5, -- At most 75% of the batteries will spawn.
 
 	minPlayers = 2,
+
+	controlPriorities = {
+		battery = 1000,
+		shootGun = 100,
+	}
 }
 
 return RoundConfiguration

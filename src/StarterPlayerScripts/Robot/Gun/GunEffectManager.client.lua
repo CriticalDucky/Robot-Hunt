@@ -212,7 +212,7 @@ local function onPlayerAdded(player)
 					Color = Computed(function(use)
 						local roundPlayerData = use(roundPlayerData)
 
-						if not roundPlayerData then return Color3.new(1, 1, 1) end
+						if not roundPlayerData then return ColorSequence.new(Color3.new(1, 1, 1)) end
 
 						return ColorSequence.new(RoundConfiguration.gunEffectColors[roundPlayerData.team].attackElectricityColor)
 					end),

@@ -9,6 +9,7 @@ local DataFolder = ReplicatedStorage:WaitForChild "Data"
 
 local ClientState = require(DataFolder:WaitForChild "ClientState")
 local ClientServerCommunication = require(DataFolder:WaitForChild "ClientServerCommunication")
+local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
 local Observer = Fusion.Observer
@@ -87,7 +88,9 @@ end
 
 Players.PlayerAdded:Connect(onPlayerAdded)
 
-for _, player in pairs(Players:GetPlayers()) do onPlayerAdded(player) end
+for _, player in pairs(Players:GetPlayers()) do
+	onPlayerAdded(player)
+end
 
 localPlayer.CharacterRemoving:Connect(function()
 	if not humanoid or not trackBattery then return end
@@ -124,22 +127,19 @@ end
 local function onPutDownRequest(_, state)
 	-- print("PutDownBattery", state)
 
-	if state == Enum.UserInputState.End then
-		ClientServerCommunication.replicateAsync "PutDownBattery"
-	end
+	if state == Enum.UserInputState.End then ClientServerCommunication.replicateAsync "PutDownBattery" end
 end
 
 Observer(isHoldingBattery):onChange(onBatteryStatusChange)
-Observer(isCrawling):onChange(function()
-	ClientServerCommunication.replicateAsync "PutDownBattery"
-end)
+Observer(isCrawling):onChange(function() ClientServerCommunication.replicateAsync "PutDownBattery" end)
 
 ClientServerCommunication.registerActionAsync "PutDownBattery"
 
-ContextActionService:BindAction(
+ContextActionService:BindActionAtPriority(
 	"PutDownBattery",
 	onPutDownRequest,
 	false,
+	RoundConfiguration.controlPriorities.battery,
 	Enum.UserInputType.MouseButton1,
 	Enum.UserInputType.Touch
 )

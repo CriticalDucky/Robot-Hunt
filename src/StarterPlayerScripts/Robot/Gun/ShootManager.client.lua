@@ -10,8 +10,10 @@ local dataFolder = ReplicatedStorage:WaitForChild "Data"
 
 local ClientState = require(dataFolder:WaitForChild "ClientState")
 local ClientRoundDataUtility = require(dataFolder:WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
+local ClientServerCommunication = require(dataFolder:WaitForChild "ClientServerCommunication")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Mouse = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Mouse")
+local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
 
 local Observer = Fusion.Observer
 local Hydrate = Fusion.Hydrate
@@ -44,9 +46,7 @@ local isHacking = Computed(function(use)
 	return playerData and playerData.actions.isHacking or false
 end)
 
-local isGunEnabled = Computed(function(use)
-	return use(ClientRoundDataUtility.isGunEnabled)[player.UserId]
-end)
+local isGunEnabled = Computed(function(use) return use(ClientRoundDataUtility.isGunEnabled)[player.UserId] end)
 
 local thread: thread?
 
@@ -83,20 +83,6 @@ local function shootThread()
 
 				humanoidRootPart.CFrame = CFrame.lookAt(humanoidRootPart.Position, lookVector)
 
-				if isAnythingIntersectingGun() then
-					local newPlayerData = peek(ClientState.external.roundData.playerData)
-
-					local playerData = newPlayerData[player.UserId]
-
-					if playerData then
-						playerData.gunHitPosition = nil
-
-						ClientState.external.roundData.playerData:set(newPlayerData)
-					end
-
-					continue
-				end
-
 				direction = (mouseWorldPosition - gunTipAttachment.WorldPosition).Unit
 
 				local params = RaycastParams.new()
@@ -109,6 +95,22 @@ local function shootThread()
 				hitPosition = if raycastResult then raycastResult.Position else mouseWorldPosition
 			end
 
+			ClientServerCommunication.replicateAsync("UpdateShootingStatus", { hitPosition = hitPosition })
+
+			if isAnythingIntersectingGun() then
+				local newPlayerData = peek(ClientState.external.roundData.playerData)
+
+				local playerData = newPlayerData[player.UserId]
+
+				if playerData then
+					playerData.gunHitPosition = nil
+
+					ClientState.external.roundData.playerData:set(newPlayerData)
+				end
+
+				continue
+			end
+
 			local newPlayerData = peek(ClientState.external.roundData.playerData)
 
 			local playerData = newPlayerData[player.UserId]
@@ -118,8 +120,6 @@ local function shootThread()
 
 				ClientState.external.roundData.playerData:set(newPlayerData)
 			end
-
-			-- TODO: Replicate to server
 		end
 	end
 end
@@ -225,7 +225,9 @@ local function onShootRequest(_, inputState)
 	if inputState == Enum.UserInputState.Begin then
 		playerData.actions.isShooting = true
 	elseif inputState == Enum.UserInputState.End then
-		playerData.actions.isShooting = true
+		playerData.actions.isShooting = false
+
+		ClientServerCommunication.replicateAsync "UpdateShootingStatus"
 	end
 
 	ClientState.external.roundData.playerData:set(newPlayerData)
@@ -235,10 +237,14 @@ Observer(isGunEnabled):onChange(function()
 	local isGunEnabled = peek(isGunEnabled)
 
 	if isGunEnabled then
-		ContextActionService:BindAction("Shoot", onShootRequest, true, Enum.UserInputType.MouseButton1)
+		ContextActionService:BindActionAtPriority(
+			"Shoot",
+			onShootRequest,
+			true,
+			Enum.UserInputType.MouseButton1,
+			RoundConfiguration.controlPriorities.shootGun
+		)
 	else
-		ContextActionService:UnbindAction("Shoot")
+		ContextActionService:UnbindAction "Shoot"
 	end
 end)
-
-

@@ -363,17 +363,29 @@ ClientServerCommunication.registerActionAsync("UpdateBatteryHolder", function(da
 	end
 end)
 
-ClientServerCommunication.registerActionAsync("SetAction", function(data)
-	local action = data.action
-	local actionData = data.actionData
+--[[
+	function RoundDataManager.updateShootingStatus(player: Player, value: boolean, gunHitPosition: Vector3?)
+	local playerData = roundData.playerData[player.UserId]
 
-	roundData.currentAction:set(action)
-	roundData.currentActionData:set(actionData)
-end)
+	assert(playerData, "Player data does not exist")
 
-ClientServerCommunication.registerActionAsync("UpdateGunHitPosition", function(data)
+	playerData.actions.isShooting = value
+	playerData.gunHitPosition = gunHitPosition -- nil if not shooting
+
+	ClientServerCommunication.replicateAsync("UpdateShootingStatus", {
+		playerId = player.UserId,
+		value = value,
+		gunHitPosition = gunHitPosition,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
+end
+]]
+
+ClientServerCommunication.registerActionAsync("UpdateShootingStatus", function(data)
 	local playerId = data.playerId
-	local hitPosition = data.position
+	local value = data.value
+	local gunHitPosition = data.gunHitPosition
 
 	local newPlayerData = peek(roundData.playerData)
 	local playerData = newPlayerData[playerId]
@@ -382,7 +394,8 @@ ClientServerCommunication.registerActionAsync("UpdateGunHitPosition", function(d
 		return
 	end
 
-	playerData.gunHitPosition = hitPosition
+	playerData.actions.isShooting = value
+	playerData.gunHitPosition = gunHitPosition
 
 	roundData.playerData:set(newPlayerData)
 end)

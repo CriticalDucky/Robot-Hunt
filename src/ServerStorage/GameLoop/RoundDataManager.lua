@@ -95,10 +95,12 @@ local RoundDataManager = {}
 
 local onDataUpdatedEvent = Instance.new "BindableEvent"
 local onPlayerStatusUpdatedEvent = Instance.new "BindableEvent"
+local onHealthDataUpdatedEvent = Instance.new "BindableEvent"
 
 RoundDataManager.data = roundData
 RoundDataManager.onDataUpdated = onDataUpdatedEvent.Event :: RBXScriptSignal<RoundData>
 RoundDataManager.onPlayerStatusUpdated = onPlayerStatusUpdatedEvent.Event :: RBXScriptSignal<RoundPlayerData>
+RoundDataManager.onHealthDataUpdated = onHealthDataUpdatedEvent.Event :: RBXScriptSignal<RoundPlayerData>
 
 function RoundDataManager.initializeRoundDataAsync(player: Player?)
 	local players = if player then { player } else Players:GetPlayers()
@@ -206,6 +208,10 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	playerData.lifeSupport = 0
 	playerData.gunHitPosition = nil
 	playerData.victims = {}
+
+	for _, otherPlayerData in pairs(roundData.playerData) do
+		otherPlayerData.victims[victim.UserId] = nil
+	end
 
 	if killer then
 		playerData.killedById = killer and killer.UserId or nil
@@ -356,31 +362,18 @@ function RoundDataManager.incrementAmmo(player: Player, amount: number)
 	RoundDataManager.setAmmo(player, amount)
 end
 
-function RoundDataManager.updateShootingStatus(player: Player, value: boolean)
+function RoundDataManager.updateShootingStatus(player: Player, value: boolean, gunHitPosition: Vector3?)
 	local playerData = roundData.playerData[player.UserId]
 
 	assert(playerData, "Player data does not exist")
 
 	playerData.actions.isShooting = value
+	playerData.gunHitPosition = gunHitPosition -- nil if not shooting
 
 	ClientServerCommunication.replicateAsync("UpdateShootingStatus", {
 		playerId = player.UserId,
 		value = value,
-	})
-
-	onDataUpdatedEvent:Fire(roundData)
-end
-
-function RoundDataManager.setGunHitPosition(player: Player, position: Vector3?)
-	local playerData = roundData.playerData[player.UserId]
-
-	assert(playerData, "Player data does not exist")
-
-	playerData.gunHitPosition = position
-
-	ClientServerCommunication.replicateAsync("UpdateGunHitPosition", {
-		playerId = player.UserId,
-		position = position,
+		gunHitPosition = gunHitPosition,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)

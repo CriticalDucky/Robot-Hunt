@@ -1,28 +1,18 @@
-local PhysicsService = game:GetService "PhysicsService"
 local ServerStorage = game:GetService "ServerStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
+local RunService = game:GetService "RunService"
 
 local GameLoop = ServerStorage.GameLoop
 local Data = ReplicatedStorage.Data
-local Utility = ReplicatedFirst.Utility
 
 local RoundDataManager = require(GameLoop.RoundDataManager)
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local ClientServerCommunication = require(Data.ClientServerCommunication)
-local SpacialQuery = require(Utility.SpacialQuery)
-local Table = require(Utility.Table)
-local Types = require(Utility.Types)
 local Enums = require(ReplicatedFirst.Enums)
 
 local roundData = RoundDataManager.data
-
-local function stopShooting(player: Player)
-    RoundDataManager.setGunHitPosition(player, nil)
-    RoundDataManager.removeVictim(player)
-    RoundDataManager.stop
-end
 
 --[[
     This function checks if the player can be shooting. This does not do phyisical checks,
@@ -59,7 +49,10 @@ local function canBeShooting(player: Player): boolean
 	return true
 end
 
-local function getHitPositionAndVictim(player: Player, hitPosition: Vector3): { hitPosition: Vector3?, victim: Player? }
+local function getHitPositionAndVictim(
+	player: Player,
+	hitPosition: Vector3
+): { hitPosition: Vector3?, victim: Player?, distance: number? }
 	local character = player.Character -- the character must exist, if it errors then we dont care
 
 	local referencesFolder = character.Gun.References :: Configuration
@@ -67,10 +60,10 @@ local function getHitPositionAndVictim(player: Player, hitPosition: Vector3): { 
 	local hitbox = referencesFolder.Hitbox.Value :: BasePart
 
 	local function isAnythingIntersectingGun(): boolean
-		local overlapParams = PhysicsService:CreatePartCollisionParams()
+		local overlapParams = OverlapParams.new()
 		overlapParams.FilterDescendantsInstances = { player.Character }
 
-		local intersectingParts = PhysicsService:GetPartsInPart(hitbox, overlapParams)
+		local intersectingParts = workspace:GetPartsInPart(hitbox, overlapParams)
 
 		for _, part in ipairs(intersectingParts) do
 			if part:IsDescendantOf(player.Character) then continue end
@@ -82,6 +75,7 @@ local function getHitPositionAndVictim(player: Player, hitPosition: Vector3): { 
 	end
 
 	local direction = (hitPosition - gunTipAttachment.WorldPosition).Unit
+	local distance = (hitPosition - gunTipAttachment.WorldPosition).Magnitude
 	local newHitPosition
 	local hitInstance
 
@@ -103,9 +97,9 @@ local function getHitPositionAndVictim(player: Player, hitPosition: Vector3): { 
 
 		if hitPlayer then return { hitPosition = newHitPosition, victim = hitPlayer } end
 
-		return { hitPosition = newHitPosition, victim = nil }
+		return { hitPosition = newHitPosition, victim = nil, distance = distance }
 	else
-		return { hitPosition = newHitPosition, victim = nil }
+		return { hitPosition = newHitPosition, victim = nil, distance = distance }
 	end
 end
 
@@ -119,10 +113,49 @@ ClientServerCommunication.registerActionAsync(
 
 			if shootData.hitPosition and shootData.victim then
 				RoundDataManager.addVictim(player, shootData.victim)
-				RoundDataManager.setGunHitPosition(player, shootData.hitPosition)
+				RoundDataManager.updateShootingStatus(player, true, shootData.hitPosition)
 			end
 		else -- if the player is not shooting
-            stopShooting(player)
+			RoundDataManager.removeVictim(player)
+			RoundDataManager.updateShootingStatus(player, false)
 		end
 	end
 )
+
+RoundDataManager.onDataUpdated:Connect(function(roundData)
+	for _, playerData in pairs(roundData.playerData) do
+		if playerData.actions.isShooting then
+			if not canBeShooting(playerData.player) then
+				RoundDataManager.updateShootingStatus(playerData.player, false)
+			end
+		end
+	end
+end)
+
+RunService.Heartbeat:Connect(function(dt)
+    for _, playerData in pairs(roundData.playerData) do
+        if playerData.actions.isShooting and playerData.gunHitPosition then
+            local shootData = getHitPositionAndVictim(playerData.player, playerData.gunHitPosition)
+
+            if shootData.hitPosition and shootData.victim and shootData.distance then
+                local damage
+
+                do
+                    local multiplier = RoundConfiguration.gunStrengthMultiplier
+                    local baseDamage = RoundConfiguration.gunBaseDamagePerSecond
+                    local powerupMultiplier = RoundConfiguration.gunPowerupMultiplier
+
+                    damage = baseDamage * multiplier ^ (shootData.distance)
+
+                    if false then -- if the player has a powerup (TODO: implement powerups)
+                        damage *= powerupMultiplier
+                    end
+
+                    damage *= dt
+                end
+
+                RoundDataManager.incrementAccountedHealth(shootData.victim, -damage)
+            end
+        end
+    end
+end)

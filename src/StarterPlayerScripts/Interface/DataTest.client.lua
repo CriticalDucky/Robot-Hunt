@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local RunService = game:GetService "RunService"
+local Players = game:GetService "Players"
 
 local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
 
@@ -25,91 +26,41 @@ local PhaseType = Enums.PhaseType
 
 local roundData = ClientState.external.roundData
 
-local timeState = Value(os.time())
+local health = Computed(function(use)
+    local playerDatas = use(roundData.playerData)
+    local playerData = playerDatas[Players.LocalPlayer.UserId]
 
-task.spawn(function()
-    while true do
-        timeState:set(os.time())
-        RunService.RenderStepped:Wait()
-    end
-end)
-
-local currentRoundType = Computed(function(use)
-    local data = use(roundData)
-
-    if not data then
-        return nil
-    end
-
-    return data.currentRoundType
-end)
-
-local currentPhaseType = Computed(function(use)
-    local data = use(roundData)
-
-    if not data then
-        return nil
-    end
-
-    return data.currentPhaseType
-end)
-
-local phaseStartTime = Computed(function(use)
-    local data = use(roundData)
-
-    if not data then
-        return nil
-    end
-
-    return data.phaseStartTime
-end)
-
-local phaseLength = Computed(function(use)
-    local currentRoundType = use(currentRoundType)
-    local currentPhaseType = use(currentPhaseType)
-
-    if not currentPhaseType then
-        return 0
-    end
-
-    if currentRoundType then
-        return RoundConfiguration.timeLengths[currentRoundType][currentPhaseType]
+    if playerData then
+        return playerData.health
     else
-        return RoundConfiguration.timeLengths.lobby[currentPhaseType] or 0
-    end
-end)
-
-local phaseTimeRemaining = Computed(function(use)
-    local phaseStartTime = use(phaseStartTime)
-
-    if not phaseStartTime then
         return 0
     end
-
-    local phaseLength = use(phaseLength)
-
-    return phaseStartTime + phaseLength - use(timeState)
-end)
-
-local textComputed = Computed(function(use)
-    local currentPhaseType = use(currentPhaseType)
-    local phaseTimeRemaining = use(phaseTimeRemaining)
-
-    if not currentPhaseType or not phaseTimeRemaining then
-        return "Loading..."
-    end
-
-    return ("%s: %s"):format(currentPhaseType, phaseTimeRemaining)
 end)
 
 New "ScreenGui" {
     Parent = playerGui;
 
     [Children] = {
-        New "TextLabel" {
-            Name = "PhaseAndTimeRemaining";
-            Text = textComputed;
-            Size = UDim2.new(1, 20, 0, 0);
-        }
+        New "Frame" { -- Health bar
+            Name = "HealthBar";
+            BackgroundTransparency = 0;
+            BackgroundColor3 = Color3.fromRGB(0, 0, 0);
+            Size = UDim2.new(0.2, 0, 0.05, 0);
+            Position = UDim2.new(0.5, 0, 0.9, 0);
+            AnchorPoint = Vector2.new(0.5, 0.5);
+            [Children] = {
+                New "Frame" {
+                    Name = "Fill";
+                    BackgroundColor3 = Color3.fromRGB(255, 0, 0);
+                    AnchorPoint = Vector2.new(0, 0.5);
+                    Position = UDim2.new(0, 0, 0.5, 0);
+                    BorderSizePixel = 0;
+                    Size = Computed(function(use)
+                        local health = use(health)
+                        return UDim2.new(health / 100, 0, 1, 0)
+                    end);
+                };
+            };
+        };
     }
 }
