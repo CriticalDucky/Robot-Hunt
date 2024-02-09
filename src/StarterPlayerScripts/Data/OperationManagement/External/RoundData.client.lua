@@ -384,8 +384,8 @@ end
 
 ClientServerCommunication.registerActionAsync("UpdateShootingStatus", function(data)
 	local playerId = data.playerId
+
 	local value = data.value
-	local gunHitPosition = data.gunHitPosition
 
 	local newPlayerData = peek(roundData.playerData)
 	local playerData = newPlayerData[playerId]
@@ -395,7 +395,10 @@ ClientServerCommunication.registerActionAsync("UpdateShootingStatus", function(d
 	end
 
 	playerData.actions.isShooting = value
-	playerData.gunHitPosition = gunHitPosition
+
+	if playerId ~= game.Players.LocalPlayer.UserId then
+		playerData.gunHitPosition = data.gunHitPosition
+	end
 
 	roundData.playerData:set(newPlayerData)
 end)

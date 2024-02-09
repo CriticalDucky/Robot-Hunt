@@ -63,9 +63,11 @@ local function shootThread()
 			local intersectingParts = workspace:GetPartsInPart(hitbox, overlapParams)
 
 			for _, part in ipairs(intersectingParts) do
-				if part:IsDescendantOf(player.Character) then continue end
+				if not part:IsDescendantOf(player.Character) then
+					print("Intersecting part:", part:GetFullName())
 
-				return true
+					return true 
+				end
 			end
 
 			return false
@@ -116,6 +118,8 @@ local function shootThread()
 			local playerData = newPlayerData[player.UserId]
 
 			if playerData then
+				print("Hit position:", hitPosition)
+
 				playerData.gunHitPosition = hitPosition
 
 				ClientState.external.roundData.playerData:set(newPlayerData)
@@ -241,8 +245,8 @@ Observer(isGunEnabled):onChange(function()
 			"Shoot",
 			onShootRequest,
 			true,
-			Enum.UserInputType.MouseButton1,
-			RoundConfiguration.controlPriorities.shootGun
+			RoundConfiguration.controlPriorities.shootGun,
+			Enum.UserInputType.MouseButton1
 		)
 	else
 		ContextActionService:UnbindAction "Shoot"

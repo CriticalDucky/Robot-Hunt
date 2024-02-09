@@ -38,8 +38,8 @@ local function onPlayerAdded(player)
 
 		if not roundPlayerData then return end
 
-		for _, data in ipairs(roundPlayerData) do
-			if data.playerId == player.UserId then return data end
+		for id, data in pairs(roundPlayerData) do
+			if id == player.UserId then return data end
 		end
 
 		return nil
@@ -61,9 +61,13 @@ local function onPlayerAdded(player)
 		return false
 	end)
 
-	local isShooting = Computed(
-		function(use): boolean return use(roundPlayerData) and use(roundPlayerData).actions.isShooting end
-	)
+	local isShooting = Computed(function(use): boolean
+		print(use(roundPlayerData) and use(roundPlayerData).actions.isShooting)
+
+		return use(roundPlayerData) and use(roundPlayerData).actions.isShooting
+
+		--
+	end)
 
 	local function onCharacterAdded(character)
 		local gun = character:WaitForChild "Gun"
@@ -214,7 +218,9 @@ local function onPlayerAdded(player)
 
 						if not roundPlayerData then return ColorSequence.new(Color3.new(1, 1, 1)) end
 
-						return ColorSequence.new(RoundConfiguration.gunEffectColors[roundPlayerData.team].attackElectricityColor)
+						return ColorSequence.new(
+							RoundConfiguration.gunEffectColors[roundPlayerData.team].attackElectricityColor
+						)
 					end),
 				}
 			end
@@ -235,9 +241,7 @@ local function onPlayerAdded(player)
 			function() tipPosition:set(tipAttachment.WorldPosition) end
 		)
 
-		gunVisibilityUpdateConnection = Observer(
-			Computed(function(use) return use(ClientStateUtility.isGunEnabled)[player.UserId] end)
-		):onChange(function()
+		local function onGunEnabledChanged()
 			local isGunEnabled = peek(ClientStateUtility.isGunEnabled)[player.UserId]
 
 			if isGunEnabled then
@@ -251,7 +255,13 @@ local function onPlayerAdded(player)
 				isGunVisible:set(false)
 				gunHighlightTransparency:set(1)
 			end
-		end)
+		end
+
+		gunVisibilityUpdateConnection = Observer(
+			Computed(function(use) return use(ClientStateUtility.isGunEnabled)[player.UserId] end)
+		):onChange(onGunEnabledChanged)
+
+		onGunEnabledChanged()
 	end
 
 	local function onCharacterRemoving()

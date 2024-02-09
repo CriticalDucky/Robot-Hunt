@@ -135,11 +135,19 @@ Observer(isCrawling):onChange(function() ClientServerCommunication.replicateAsyn
 
 ClientServerCommunication.registerActionAsync "PutDownBattery"
 
-ContextActionService:BindActionAtPriority(
-	"PutDownBattery",
-	onPutDownRequest,
-	false,
-	RoundConfiguration.controlPriorities.battery,
-	Enum.UserInputType.MouseButton1,
-	Enum.UserInputType.Touch
-)
+Observer(isHoldingBattery):onChange(function()
+	local isHoldingBattery = peek(isHoldingBattery)
+
+	if isHoldingBattery then
+		ContextActionService:BindActionAtPriority(
+			"PutDownBattery",
+			onPutDownRequest,
+			false,
+			RoundConfiguration.controlPriorities.battery,
+			Enum.UserInputType.MouseButton1,
+			Enum.UserInputType.Touch
+		)
+	else
+		ContextActionService:UnbindAction "PutDownBattery"
+	end
+end)
