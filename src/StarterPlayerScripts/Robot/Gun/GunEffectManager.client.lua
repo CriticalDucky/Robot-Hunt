@@ -165,7 +165,7 @@ local function onPlayerAdded(player)
 		)
 
 		local function forEachGunDescendant(descendant: Instance)
-			if descendant:IsA "BasePart" then
+			if descendant:IsA "BasePart" and descendant.Name ~= "Hit" then
 				local transparency = descendant:GetAttribute "CustomTransparency" or 0
 
 				Hydrate(descendant) {
