@@ -45,7 +45,7 @@ local RoundConfiguration = {
 
 	gunEffectColors = {
 		[TeamType.hunters] = {
-			beamColor = Color3.fromRGB(254, 51, 51),
+			beamColor = Color3.fromRGB(255, 0, 0),
 			attackLightColor = Color3.fromRGB(255, 32, 32),
 			attackGlowColor = Color3.fromRGB(255, 48, 48),
 			attackElectricityColor = Color3.fromRGB(255, 142, 142),

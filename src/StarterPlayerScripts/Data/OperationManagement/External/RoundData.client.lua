@@ -341,34 +341,45 @@ ClientServerCommunication.registerActionAsync("UpdateAmmo", function(data)
 end)
 
 --[[
-	function RoundDataManager.updateBatteryHolder(batteryId: number, holder: Player?)
+	function RoundDataManager.updateBatteryStatus(batteryId: number, holder: Player?, deleteBattery: boolean?)
 	local batteryData = roundData.batteryData[batteryId]
 
 	assert(batteryData, "Battery data does not exist")
 
 	batteryData.holder = holder and holder.UserId or nil
 
-	ClientServerCommunication.replicateAsync("updateBatteryHolder", {
+	if deleteBattery then
+		roundData.batteryData[batteryId] = nil
+	end
+
+	ClientServerCommunication.replicateAsync("updateBatteryStatus", {
 		batteryId = batteryId,
 		holderId = batteryData.holder,
+		deleteBattery = not holder,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
 end
 ]]
 
-ClientServerCommunication.registerActionAsync("UpdateBatteryHolder", function(data)
+ClientServerCommunication.registerActionAsync("UpdateBatteryStatus", function(data)
 	local batteryId = data.batteryId
 	local holderId = data.holderId
+	local deleteBattery = data.deleteBattery
 
 	local newBatteryData = peek(roundData.batteryData)
-	
-	for _, batteryData in pairs(newBatteryData) do
-		if batteryData.id == batteryId then
-			batteryData.holder = holderId
-			roundData.batteryData:set(newBatteryData)
-		end
+	local batteryData = newBatteryData[batteryId]
+
+	if not newBatteryData or not batteryData then
+		return
 	end
+
+	batteryData.holder = holderId
+	if deleteBattery then
+		newBatteryData[batteryId] = nil
+	end
+
+	roundData.batteryData:set(newBatteryData)
 end)
 
 --[[
@@ -436,6 +447,8 @@ end
 ClientServerCommunication.registerActionAsync("SetUpRound", function(data)
 	-- This is to make sure negative player ids dont get converted to strings
 	data.playerData = Table.editKeys(data.playerData, tonumber)
+	data.batteryData = Table.editKeys(data.batteryData, tonumber)
+	data.terminalData = Table.editKeys(data.terminalData, tonumber)
 
 	roundData.currentRoundType:set(data.roundType)
 	roundData.playerData:set(data.playerData)

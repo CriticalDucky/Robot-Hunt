@@ -70,7 +70,7 @@ local function shootThread()
 		end
 
 		if humanoidRootPart and gunTipAttachment and hitbox then
-			local direction, hitPosition
+			local direction, hitPosition, victim
 
 			do
 				local mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, 256)
@@ -104,6 +104,8 @@ local function shootThread()
 				local raycastResult = workspace:Raycast(gunTipAttachment.WorldPosition, direction * 256, params)
 
 				hitPosition = if raycastResult then raycastResult.Position else mouseWorldPosition
+
+				victim = if raycastResult and raycastResult.Instance then Players:GetPlayerFromCharacter(raycastResult.Instance.Parent) else nil
 			end
 
 			ClientServerCommunication.replicateAsync("UpdateShootingStatus", { hitPosition = hitPosition })
@@ -128,6 +130,12 @@ local function shootThread()
 
 			if playerData then
 				playerData.gunHitPosition = hitPosition
+
+				if victim then
+					playerData.victims[victim.UserId] = true
+				else
+					playerData.victims = {}
+				end
 
 				ClientState.external.roundData.playerData:set(newPlayerData)
 			end
@@ -203,6 +211,7 @@ local function onShootingStatusChange()
 
 		if playerData then
 			playerData.gunHitPosition = nil
+			playerData.victims = {}
 
 			ClientState.external.roundData.playerData:set(newPlayerData)
 		end

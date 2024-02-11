@@ -230,6 +230,7 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	onPlayerStatusUpdatedEvent:Fire(playerData)
 end
 
+-- Can only be called when the player is in life support
 function RoundDataManager.revivePlayer(player: Player)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -269,9 +270,7 @@ function RoundDataManager.setHealth(player: Player, armor: number?, health: numb
 
 	onDataUpdatedEvent:Fire(roundData)
 
-	if playerData.status == Enums.PlayerStatus.lifeSupport then
-		onPlayerStatusUpdatedEvent:Fire(playerData)
-	end
+	if playerData.status == Enums.PlayerStatus.lifeSupport then onPlayerStatusUpdatedEvent:Fire(playerData) end
 end
 
 --[[
@@ -379,16 +378,19 @@ function RoundDataManager.updateShootingStatus(player: Player, value: boolean, g
 	onDataUpdatedEvent:Fire(roundData)
 end
 
-function RoundDataManager.updateBatteryHolder(batteryId: number, holder: Player?)
+function RoundDataManager.updateBatteryStatus(batteryId: number, holder: Player?, deleteBattery: boolean?)
 	local batteryData = roundData.batteryData[batteryId]
 
 	assert(batteryData, "Battery data does not exist")
 
 	batteryData.holder = holder and holder.UserId or nil
 
-	ClientServerCommunication.replicateAsync("UpdateBatteryHolder", {
+	if deleteBattery then roundData.batteryData[batteryId] = nil end
+
+	ClientServerCommunication.replicateAsync("UpdateBatteryStatus", {
 		batteryId = batteryId,
 		holderId = batteryData.holder,
+		deleteBattery = deleteBattery,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)

@@ -9,6 +9,7 @@ local Data = ReplicatedStorage.Data
 local Utility = ReplicatedFirst.Utility
 
 local RoundDataManager = require(GameLoop.RoundDataManager)
+local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local ClientServerCommunication = require(Data.ClientServerCommunication)
 local SpacialQuery = require(Utility.SpacialQuery)
 local Table = require(Utility.Table)
@@ -17,7 +18,7 @@ local Enums = require(ReplicatedFirst.Enums)
 
 type RoundPlayerData = Types.RoundPlayerData
 
-local function putDownBattery(player: Player)
+local function putDownBattery(player: Player, deleteBattery: boolean?)
 	assert(player and player.Character)
 
 	local batteryDatas = RoundDataManager.data.batteryData
@@ -27,72 +28,101 @@ local function putDownBattery(player: Player)
 			local CFrameToPutBattery: CFrame?
 
 			do
-				local fakeBattery = player.Character:FindFirstChild "Battery" :: Model
-				local batteryBody = fakeBattery:FindFirstChild "Body" :: Part
+				if not deleteBattery then
+					local fakeBattery = player.Character:FindFirstChild "Battery" :: Model
+					local batteryBody = fakeBattery:FindFirstChild "Body" :: Part
 
-				local pivotCFrame = fakeBattery:GetPivot()
-				local headCFrame = (player.Character:FindFirstChild "Head" :: BasePart).CFrame
+					local pivotCFrame = fakeBattery:GetPivot()
+					local headCFrame = (player.Character:FindFirstChild "Head" :: BasePart).CFrame
 
-				local partsIntersectingRay =
-					SpacialQuery.getPartsInBetweenPoints(headCFrame.Position, pivotCFrame.Position)
-				local partsIntersectingBattery = workspace:GetPartsInPart(batteryBody)
+					local partsIntersectingRay =
+						SpacialQuery.getPartsInBetweenPoints(headCFrame.Position, pivotCFrame.Position)
+					local partsIntersectingBattery = workspace:GetPartsInPart(batteryBody)
 
-				for _, part in Table.append(partsIntersectingBattery, partsIntersectingRay) do
-					if not part:IsDescendantOf(player.Character) then
-						local humanoidRootPart = player.Character:FindFirstChild "HumanoidRootPart" :: BasePart
+					for _, part in Table.append(partsIntersectingBattery, partsIntersectingRay) do
+						if not part:IsDescendantOf(player.Character) then
+							local humanoidRootPart = player.Character:FindFirstChild "HumanoidRootPart" :: BasePart
 
-						CFrameToPutBattery = humanoidRootPart.CFrame * CFrame.new(0, -2, 0)
+							CFrameToPutBattery = humanoidRootPart.CFrame * CFrame.new(0, -2, 0)
 
-						break
+							break
+						end
 					end
+
+					if not CFrameToPutBattery then CFrameToPutBattery = pivotCFrame end
 				end
-
-				if not CFrameToPutBattery then CFrameToPutBattery = pivotCFrame end
 			end
-
-			print(3)
 
 			local map = workspace:FindFirstChild "Map" :: Model
 			local batteriesFolder = map and map:FindFirstChild "Batteries" :: Folder
 
 			local battery = data.model
 
-			if not batteriesFolder then
+			if not batteriesFolder or not CFrameToPutBattery then
 				battery:Destroy()
 			else
 				battery.Parent = batteriesFolder
 				battery:PivotTo(CFrameToPutBattery)
 			end
 
-			RoundDataManager.updateBatteryHolder(data.id, nil)
-
-			task.wait(5)
-
+			RoundDataManager.updateBatteryStatus(data.id, nil)
+			
 			break
 		end
 	end
 end
 
 ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
+	if RoundConfiguration.lobbyPhases[RoundDataManager.data.currentPhaseType] then return end
+
 	if prompt.Name == "Battery" then
-		for _, batterData in pairs(RoundDataManager.data.batteryData) do
-			if batterData.holder == player.UserId then return end
+		for _, batteryData in pairs(RoundDataManager.data.batteryData) do
+			if batteryData.holder == player.UserId then return end
 		end
 
 		local battery: Model = prompt.Parent.Parent
 
-		local batterDatas = RoundDataManager.data.batteryData
+		local batteryDatas = RoundDataManager.data.batteryData
 
-		for _, data in pairs(batterDatas) do
+		for _, data in pairs(batteryDatas) do
 			if data.model == battery then
 				if data.holder ~= nil then return end
 
 				data.model.Parent = nil
 
-				RoundDataManager.updateBatteryHolder(data.id, player)
+				RoundDataManager.updateBatteryStatus(data.id, player)
 
 				break
 			end
+		end
+	elseif prompt.Name == "HealRobot" then
+		local toBeHealed = Players:GetPlayerFromCharacter(prompt.Parent.Parent)
+
+		if not toBeHealed then return end
+
+		local toBeHealedData = RoundDataManager.data.playerData[toBeHealed.UserId]
+		local playerData = RoundDataManager.data.playerData[player.UserId]
+
+		if not toBeHealedData or not playerData then return end
+
+		if toBeHealedData.team ~= playerData.team then return end
+
+		if toBeHealedData.status == Enums.PlayerStatus.dead then return end
+
+		local isHoldingBattery = false
+
+		for _, batteryData in pairs(RoundDataManager.data.batteryData) do
+			if batteryData.holder == player.UserId then isHoldingBattery = true end
+		end
+
+		if not isHoldingBattery then return end
+
+		putDownBattery(player, true)
+
+		if toBeHealedData.status == Enums.PlayerStatus.lifeSupport then
+			RoundDataManager.revivePlayer(player)
+		elseif toBeHealedData.status == Enums.PlayerStatus.alive then
+			RoundDataManager.setHealth(toBeHealed, nil, 100)
 		end
 	end
 end)
