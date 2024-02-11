@@ -165,6 +165,11 @@ RunService.Heartbeat:Connect(function(dt)
             local shootData = getHitPositionAndVictim(player, playerData.gunHitPosition)
 
             if shootData.hitPosition and shootData.victim and shootData.distance then
+				local victimPlayerData = roundData.playerData[shootData.victim.UserId]
+
+				if not victimPlayerData then continue end
+				if victimPlayerData.status ~= Enums.PlayerStatus.alive then continue end
+
                 local damage
 
                 do

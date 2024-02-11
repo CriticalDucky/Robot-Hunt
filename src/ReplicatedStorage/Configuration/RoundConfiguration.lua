@@ -23,6 +23,7 @@ local RoundConfiguration = {
 			[PhaseType.PhaseOne] = MINUTE*6*DEBUG_MULTIPLIER,
 			[PhaseType.PhaseTwo] = MINUTE*6*DEBUG_MULTIPLIER,
 			[PhaseType.Purge] = MINUTE*6*DEBUG_MULTIPLIER,
+			[PhaseType.GameOver] = 5,
 		},
 
 		lobby = {
@@ -37,6 +38,14 @@ local RoundConfiguration = {
 		[PhaseType.Results] = true,
 		[PhaseType.Loading] = true,
 		[PhaseType.NotEnoughPlayers] = true,
+	},
+
+	roundPhases = {
+		[PhaseType.Infiltration] = true,
+		[PhaseType.PhaseOne] = true,
+		[PhaseType.PhaseTwo] = true,
+		[PhaseType.Purge] = true,
+		[PhaseType.GameOver] = true,
 	},
 
 	gunStrengthMultiplier = 29/30,

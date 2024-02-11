@@ -16,6 +16,6 @@ return {
     PhaseTwo = 6,   
 
     -- After Round
-
-    Results = 7,
+    GameOver = 7,
+    Results = 8,
 }

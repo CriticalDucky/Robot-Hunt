@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ServerStorage = game:GetService "ServerStorage"
-local PhysicsService = game:GetService "PhysicsService"
 
 local GameLoop = ServerStorage.GameLoop
 local Maps = ServerStorage.Maps
@@ -33,16 +32,6 @@ function Loading.begin()
 		map.Name = "Map"
 
 		assert(map:FindFirstChild "Batteries", "Map must have a Batteries folder")
-
-		local batteries = map.Batteries:GetChildren()
-
-		-- for _, battery: Model in pairs(batteries) do
-		--     for _, descendant in pairs(battery:GetDescendants()) do
-		--         if descendant:IsA("BasePart") and PhysicsService:IsCollisionGroupRegistered("Battery") then
-		--             descendant.CollisionGroup = "Battery"
-		--         end
-		--     end
-		-- end
 
 		timer:andThen(function()
 			print "Loading ended"
