@@ -63,11 +63,7 @@ local function shootThread()
 			local intersectingParts = workspace:GetPartsInPart(hitbox, overlapParams)
 
 			for _, part in ipairs(intersectingParts) do
-				if not part:IsDescendantOf(player.Character) then
-					print("Intersecting part:", part:GetFullName())
-
-					return true 
-				end
+				if not part:IsDescendantOf(player.Character) then return true end
 			end
 
 			return false
@@ -87,8 +83,21 @@ local function shootThread()
 
 				direction = (mouseWorldPosition - gunTipAttachment.WorldPosition).Unit
 
+				local guns = {}
+				do
+					for _, player in ipairs(Players:GetPlayers()) do
+						local character = player.Character
+
+						if character then
+							local gun = character:FindFirstChild "Gun"
+
+							if gun then table.insert(guns, gun) end
+						end
+					end
+				end
+
 				local params = RaycastParams.new()
-				params.FilterDescendantsInstances = { player.Character }
+				params.FilterDescendantsInstances = { player.Character, unpack(guns) }
 				params.FilterType = Enum.RaycastFilterType.Exclude
 				params.IgnoreWater = true
 
@@ -118,8 +127,6 @@ local function shootThread()
 			local playerData = newPlayerData[player.UserId]
 
 			if playerData then
-				print("Hit position:", hitPosition)
-
 				playerData.gunHitPosition = hitPosition
 
 				ClientState.external.roundData.playerData:set(newPlayerData)
@@ -201,6 +208,8 @@ local function onShootingStatusChange()
 		end
 
 		if not isDead and trackAim then trackAim:Stop() end
+
+		ClientServerCommunication.replicateAsync "UpdateShootingStatus"
 	else -- isShooting == true and isGunEnabled == true
 		if isDead or not trackAim then return end
 
@@ -230,8 +239,6 @@ local function onShootRequest(_, inputState)
 		playerData.actions.isShooting = true
 	elseif inputState == Enum.UserInputState.End then
 		playerData.actions.isShooting = false
-
-		ClientServerCommunication.replicateAsync "UpdateShootingStatus"
 	end
 
 	ClientState.external.roundData.playerData:set(newPlayerData)

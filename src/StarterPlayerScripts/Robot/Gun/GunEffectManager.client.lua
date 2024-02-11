@@ -11,6 +11,7 @@ local ClientStateUtility =
 	require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
+local Enums = require(ReplicatedFirst:WaitForChild "Enums")
 
 local Observer = Fusion.Observer
 local Hydrate = Fusion.Hydrate
@@ -55,18 +56,16 @@ local function onPlayerAdded(player)
 
 	local isBeingAttacked = Computed(function(use): boolean
 		for _, data in pairs(use(ClientState.external.roundData.playerData)) do
-			if data.victims[player.UserId] then return true end
+			if data.victims[player.UserId] then
+				return true
+			end
 		end
 
 		return false
 	end)
 
 	local isShooting = Computed(function(use): boolean
-		print(use(roundPlayerData) and use(roundPlayerData).actions.isShooting)
-
 		return use(roundPlayerData) and use(roundPlayerData).actions.isShooting
-
-		--
 	end)
 
 	local function onCharacterAdded(character)
@@ -184,16 +183,27 @@ local function onPlayerAdded(player)
 			end
 		end
 
+		local oppositeTeam = Computed(function(use): number?
+			local roundPlayerData = use(roundPlayerData)
+
+			if not roundPlayerData then return end
+
+			return if roundPlayerData.team == Enums.TeamType.hunters
+				then Enums.TeamType.rebels
+				else Enums.TeamType.hunters
+		end)
+
 		local function forEachUpperTorsoDescendant(descendant: Instance)
 			if descendant.Name == "AttackLight" then
 				Hydrate(descendant) {
 					Enabled = Computed(function(use) return use(isBeingAttacked) end),
 					Color = Computed(function(use)
 						local roundPlayerData = use(roundPlayerData)
+						local oppositeTeam = use(oppositeTeam)
 
-						if not roundPlayerData then return Color3.new(1, 1, 1) end
+						if not roundPlayerData or not oppositeTeam then return Color3.new(1, 1, 1) end
 
-						return RoundConfiguration.gunEffectColors[roundPlayerData.team].attackLightColor
+						return RoundConfiguration.gunEffectColors[oppositeTeam].attackLightColor
 					end),
 				}
 			elseif descendant.Name == "AttackGlow" then
@@ -204,10 +214,11 @@ local function onPlayerAdded(player)
 				Hydrate(descendant:WaitForChild "ImageLabel") {
 					ImageColor3 = Computed(function(use)
 						local roundPlayerData = use(roundPlayerData)
+						local oppositeTeam = use(oppositeTeam)
 
-						if not roundPlayerData then return Color3.new(1, 1, 1) end
+						if not roundPlayerData or not oppositeTeam then return Color3.new(1, 1, 1) end
 
-						return RoundConfiguration.gunEffectColors[roundPlayerData.team].attackGlowColor
+						return RoundConfiguration.gunEffectColors[oppositeTeam].attackGlowColor
 					end),
 				}
 			elseif descendant.Name == "AttackElectricity" then
@@ -215,11 +226,14 @@ local function onPlayerAdded(player)
 					Enabled = Computed(function(use) return use(isBeingAttacked) end),
 					Color = Computed(function(use)
 						local roundPlayerData = use(roundPlayerData)
+						local oppositeTeam = use(oppositeTeam)
 
-						if not roundPlayerData then return ColorSequence.new(Color3.new(1, 1, 1)) end
+						if not roundPlayerData or not oppositeTeam then
+							return ColorSequence.new(Color3.new(1, 1, 1))
+						end
 
 						return ColorSequence.new(
-							RoundConfiguration.gunEffectColors[roundPlayerData.team].attackElectricityColor
+							RoundConfiguration.gunEffectColors[oppositeTeam].attackElectricityColor
 						)
 					end),
 				}

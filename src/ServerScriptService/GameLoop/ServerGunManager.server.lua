@@ -24,8 +24,7 @@ local function canBeShooting(player: Player): boolean
 	local playerData = roundData.playerData[player.UserId]
 
 	if not playerData then return false end
-
-	if playerData.state ~= Enums.PlayerStatus.alive then return false end
+	if playerData.status ~= Enums.PlayerStatus.alive then return false end
 	if playerData.ammo <= 0 then return false end
 	if playerData.actions.isHacking then return false end
 
@@ -82,20 +81,38 @@ local function getHitPositionAndVictim(
 	do
 		if isAnythingIntersectingGun() then return { hitPosition = nil, victim = nil } end
 
+        local guns = {}
+        do
+            for _, player in ipairs(Players:GetPlayers()) do
+                local char = player.Character
+
+                if char then
+                    local gun = char:FindFirstChild "Gun"
+
+                    if gun then table.insert(guns, gun) end
+                end
+            end
+        end
+
+        local params = RaycastParams.new()
+        params.FilterDescendantsInstances = { character, unpack(guns) }
+        params.FilterType = Enum.RaycastFilterType.Exclude
+
 		local raycastResult = workspace:Raycast(
 			gunTipAttachment.WorldPosition,
 			direction * 256,
-			{ FilterDescendantsInstances = { player.Character } }
+			params
 		)
 
 		newHitPosition = raycastResult and raycastResult.Position or gunTipAttachment.WorldPosition + direction * 256
 		hitInstance = raycastResult and raycastResult.Instance
 	end
 
+
 	if hitInstance then
 		local hitPlayer = Players:GetPlayerFromCharacter(hitInstance.Parent)
 
-		if hitPlayer then return { hitPosition = newHitPosition, victim = hitPlayer } end
+		if hitPlayer then return { hitPosition = newHitPosition, victim = hitPlayer, distance = distance } end
 
 		return { hitPosition = newHitPosition, victim = nil, distance = distance }
 	else
@@ -108,14 +125,16 @@ ClientServerCommunication.registerActionAsync(
 	function(player: Player, data: { hitPosition: Vector3 }?)
 		if data then -- if the player is shooting
 			if not canBeShooting(player) then return end
-
 			local shootData = getHitPositionAndVictim(player, data.hitPosition)
 
-			if shootData.hitPosition and shootData.victim then
+            RoundDataManager.updateShootingStatus(player, true, shootData.hitPosition)
+
+			if shootData.victim then
 				RoundDataManager.addVictim(player, shootData.victim)
-				RoundDataManager.updateShootingStatus(player, true, shootData.hitPosition)
-			end
-		else -- if the player is not shooting
+            else
+                RoundDataManager.removeVictim(player)
+            end
+		elseif roundData.playerData[player.UserId].actions.isShooting then
 			RoundDataManager.removeVictim(player)
 			RoundDataManager.updateShootingStatus(player, false)
 		end
@@ -123,19 +142,27 @@ ClientServerCommunication.registerActionAsync(
 )
 
 RoundDataManager.onDataUpdated:Connect(function(roundData)
-	for _, playerData in pairs(roundData.playerData) do
+	for userId, playerData in pairs(roundData.playerData) do
+        local player = Players:GetPlayerByUserId(userId)
+
+        if not player then continue end
+
 		if playerData.actions.isShooting then
-			if not canBeShooting(playerData.player) then
-				RoundDataManager.updateShootingStatus(playerData.player, false)
+			if not canBeShooting(player) then
+				RoundDataManager.updateShootingStatus(player, false)
 			end
 		end
 	end
 end)
 
 RunService.Heartbeat:Connect(function(dt)
-    for _, playerData in pairs(roundData.playerData) do
+    for userId, playerData in pairs(roundData.playerData) do
+        local player = Players:GetPlayerByUserId(userId)
+
+        if not player then continue end
+
         if playerData.actions.isShooting and playerData.gunHitPosition then
-            local shootData = getHitPositionAndVictim(playerData.player, playerData.gunHitPosition)
+            local shootData = getHitPositionAndVictim(player, playerData.gunHitPosition)
 
             if shootData.hitPosition and shootData.victim and shootData.distance then
                 local damage

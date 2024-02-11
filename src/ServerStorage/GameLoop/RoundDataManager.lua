@@ -168,7 +168,7 @@ function RoundDataManager.addVictim(attacker: Player, victim: Player)
 	assert(victimData, "Victim data does not exist")
 
 	victimData.lastAttackerId = attacker.UserId
-	attackerData.victims[attacker.UserId] = true
+	attackerData.victims[victim.UserId] = true
 
 	ClientServerCommunication.replicateAsync("UpdateVictims", {
 		attackerId = attacker.UserId,

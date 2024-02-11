@@ -5,6 +5,7 @@ local Players = game:GetService "Players"
 local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
 
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
+local Enums = require(ReplicatedFirst:WaitForChild("Enums"))
 
 local Hydrate = Fusion.Hydrate
 local Computed = Fusion.Computed
@@ -23,8 +24,9 @@ local function onDescendantAdded(descendant)
 					local isCrawling = use(ClientState.actions.isCrawling)
 					local isShooting = playerData.actions.isShooting
 					local isHacking = playerData.actions.isHacking
+					local isAlive = playerData.status == Enums.PlayerStatus.alive
 
-					return not isCrawling and not isShooting and not isHacking
+					return not isCrawling and not isShooting and not isHacking and isAlive
 				end),
 			}
 		elseif descendant.Name == "Terminal" then

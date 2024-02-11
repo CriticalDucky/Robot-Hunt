@@ -100,8 +100,8 @@ end)
 ClientServerCommunication.registerActionAsync("PutDownBattery", putDownBattery)
 
 RoundDataManager.onPlayerStatusUpdated:Connect(function(playerData)
-	if playerData.status == Enums.PlayerStatus.lifeSupport then
-		local player = Players:GetPlayerByUserId(playerData.id)
+	if playerData.status == Enums.PlayerStatus.lifeSupport or playerData.status == Enums.PlayerStatus.dead then
+		local player = Players:GetPlayerByUserId(playerData.playerId)
 
 		if not player then return end
 

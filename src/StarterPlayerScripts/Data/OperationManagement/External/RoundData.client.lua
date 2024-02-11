@@ -36,6 +36,14 @@ ClientServerCommunication.registerActionAsync("SetPhase", function(data)
 		roundData.playerData:set {}
 	elseif phaseType == PhaseType.Loading then
 		roundData.currentRoundType:set(nil)
+	elseif phaseType == PhaseType.Results then
+		local playerDatas = peek(roundData.playerData)
+
+		for _, playerData in pairs(playerDatas) do
+			playerData.victims = {}
+		end
+
+		roundData.playerData:set(playerDatas)
 	end
 end)
 
@@ -78,7 +86,7 @@ end
 
 ClientServerCommunication.registerActionAsync("UpdateVictims", function(data)
 	local attackerId = data.attackerId
-	local victims = data.victims
+	local victims = Table.editKeys(data.victims, tonumber)
 
 	local newPlayerData = peek(roundData.playerData)
 	local attackerData = newPlayerData[attackerId]
@@ -394,10 +402,9 @@ ClientServerCommunication.registerActionAsync("UpdateShootingStatus", function(d
 		return
 	end
 
-	playerData.actions.isShooting = value
-
 	if playerId ~= game.Players.LocalPlayer.UserId then
 		playerData.gunHitPosition = data.gunHitPosition
+		playerData.actions.isShooting = value
 	end
 
 	roundData.playerData:set(newPlayerData)

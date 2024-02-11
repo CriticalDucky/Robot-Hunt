@@ -18,7 +18,7 @@ local ClientRoundDataUtility = {}
 
 ClientRoundDataUtility.isRoundActive = Computed(function(use)
     local roundData = ClientState.external.roundData
-    local currentPhase = use(roundData.currentPhase)
+    local currentPhase = use(roundData.currentPhaseType)
     local currentRoundType = use(roundData.currentRoundType)
 
     return not lobbyPhases[currentPhase] and currentRoundType ~= nil
