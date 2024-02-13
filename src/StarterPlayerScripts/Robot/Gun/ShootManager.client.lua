@@ -105,7 +105,9 @@ local function shootThread()
 
 				hitPosition = if raycastResult then raycastResult.Position else mouseWorldPosition
 
-				victim = if raycastResult and raycastResult.Instance then Players:GetPlayerFromCharacter(raycastResult.Instance.Parent) else nil
+				victim = if raycastResult and raycastResult.Instance
+					then Players:GetPlayerFromCharacter(raycastResult.Instance.Parent)
+					else nil
 			end
 
 			ClientServerCommunication.replicateAsync("UpdateShootingStatus", { hitPosition = hitPosition })
@@ -131,7 +133,7 @@ local function shootThread()
 			if playerData then
 				playerData.gunHitPosition = hitPosition
 
-				if victim then
+				if victim and newPlayerData[victim.UserId] and newPlayerData[victim.UserId].team ~= playerData.team then
 					playerData.victims[victim.UserId] = true
 				else
 					playerData.victims = {}
