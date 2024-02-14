@@ -24,7 +24,7 @@ local function onDescendantAdded(descendant)
 
 					local currentPhase = use(ClientState.external.roundData.currentPhaseType)
 
-					if RoundConfiguration.lobbyPhases[currentPhase] then return false end
+					if not RoundConfiguration.roundPhases[currentPhase] then return false end
 
 					local isCrawling = use(ClientState.actions.isCrawling)
 					local isShooting = playerData.actions.isShooting
@@ -41,9 +41,12 @@ local function onDescendantAdded(descendant)
 
 					if not playerData then return false end
 
+					if playerData.team == Enums.TeamType.hunters then return false end
+
 					local currentPhase = use(ClientState.external.roundData.currentPhaseType)
 
-					if RoundConfiguration.lobbyPhases[currentPhase] then return false end
+					if not RoundConfiguration.roundPhases[currentPhase] then return false end
+					if currentPhase == Enums.PhaseType.PhaseTwo then return false end
 
 					local isCrawling = use(ClientState.actions.isCrawling)
 					local isShooting = playerData.actions.isShooting
@@ -75,7 +78,7 @@ local function onDescendantAdded(descendant)
 
 					local currentPhase = use(ClientState.external.roundData.currentPhaseType)
 
-					if RoundConfiguration.lobbyPhases[currentPhase] then return false end
+					if not RoundConfiguration.roundPhases[currentPhase] then return false end
 
 					if playerData.team ~= proximityPlayerData.team then return false end
 					if proximityPlayerData.status == Enums.PlayerStatus.dead then return false end

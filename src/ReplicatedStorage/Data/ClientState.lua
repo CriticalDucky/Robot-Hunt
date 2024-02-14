@@ -37,6 +37,7 @@ local ClientState = {
 			currentRoundType = Value(nil :: number?),
 			currentPhaseType = Value(nil :: number?),
 			phaseEndTime = Value(nil :: number?),
+			isGameOver = Value(false :: boolean),
 
 			batteryData = Value({nil :: RoundBatteryData?}),
 			terminalData = Value({nil :: RoundTerminalData?}),

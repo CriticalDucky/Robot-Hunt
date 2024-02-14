@@ -194,7 +194,7 @@ function DefaultRound.begin()
 					connection:Disconnect()
 				end
 
-				resolve()
+				resolve(Modules.DefaultRound.GameOver.begin())
 			end
 		end)
 
@@ -213,7 +213,7 @@ function DefaultRound.begin()
 				connection:Disconnect()
 			end
 
-			resolve()
+			resolve(Modules.DefaultRound.GameOver.begin())
 		end)
 	end)
 end

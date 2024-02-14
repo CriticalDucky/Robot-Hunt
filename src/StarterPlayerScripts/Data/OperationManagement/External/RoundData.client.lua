@@ -27,10 +27,15 @@ end)
 
 ClientServerCommunication.registerActionAsync("SetPhase", function(data)
 	local phaseType = data.phaseType
-	local phaseEndTime = data.phaseEndTime
+	local endTime = data.phaseEndTime
 
-	roundData.currentPhaseType:set(phaseType)
-	roundData.phaseEndTime:set(phaseEndTime)
+	if phaseType == PhaseType.GameOver then
+		roundData.isGameOver:set(true)
+	else
+		roundData.currentPhaseType:set(phaseType)
+	end
+
+	roundData.phaseEndTime:set(endTime)
 
 	if phaseType == PhaseType.Intermission then
 		roundData.playerData:set {}

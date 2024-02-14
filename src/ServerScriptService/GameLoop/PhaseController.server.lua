@@ -31,70 +31,43 @@ type Promise = Types.Promise
 --#endregion
 
 local currentRoundPromise: Promise? = nil
-local isResults: boolean = false
 
 local function enoughPlayers() return #Actions.getEligiblePlayers() >= RoundConfiguration.minPlayers end
 
-local function loop()
-	if not currentRoundPromise and enoughPlayers() and not isResults then
-		currentRoundPromise = Modules.Intermission
-			.begin()
-			:andThen(function() return Rounds[RoundType.defaultRound].begin() end)
+while true do
+	if not enoughPlayers() then
+		if RoundDataManager.data.currentPhaseType ~= PhaseType.NotEnoughPlayers then
+			print("Not enough players to start a round")
+			RoundDataManager.setPhase(PhaseType.NotEnoughPlayers)
+		end
 
-		assert(currentRoundPromise)
+		task.wait()
 
-		currentRoundPromise:finally(function()
-			print "Results started"
-
-			isResults = true
-			currentRoundPromise = nil
-
-			local resultsEndTime = os.time() + RoundConfiguration.timeLengths.lobby[PhaseType.Results]
-
-			RoundDataManager.setPhase(PhaseType.Results, resultsEndTime)
-
-			for _, playerData in pairs(RoundDataManager.data.playerData) do
-				local player = Players:GetPlayerByUserId(playerData.playerId or 1)
-
-				if player then
-					player.Team = Teams.Lobby
-				end
-
-				player:LoadCharacter()
-			end
-
-			repeat
-				RunService.Heartbeat:Wait()
-			until os.time() >= resultsEndTime
-
-			print "Results ended"
-
-			isResults = false
-
-			local map = workspace:FindFirstChild("Map")
-
-			if map then
-				map:Destroy()
-			end
-
-			if enoughPlayers() then
-				loop()
-			else
-				print "Not enough players, waiting for more"
-
-				RoundDataManager.setPhase(PhaseType.NotEnoughPlayers)
-			end
-		end)
-	elseif currentRoundPromise and not enoughPlayers() and not isResults then
-		currentRoundPromise:cancel()
-		currentRoundPromise = nil
-	elseif currentRoundPromise and enoughPlayers() then
-		-- Do nothing; we're already in a round
-	elseif isResults then
-		-- Do nothing; we're in results and nothing can change that
-	else
-		-- Do nothing; we're waiting for more players
+		continue
 	end
-end
 
-RunService.Heartbeat:Connect(loop)
+	Modules.Intermission.begin():await() -- Wait for intermission to finish
+
+	if not enoughPlayers() then continue end
+
+	currentRoundPromise = Rounds[RoundType.defaultRound].begin()
+
+	assert(currentRoundPromise)
+
+	currentRoundPromise:await()
+	currentRoundPromise = nil
+
+	for _, playerData in pairs(RoundDataManager.data.playerData) do
+		local player = Players:GetPlayerByUserId(playerData.playerId or 1)
+
+		if player then player.Team = Teams.Lobby end
+
+		player:LoadCharacter()
+	end
+
+	Modules.Results.begin():await() -- Wait for results to finish
+
+	local map = workspace:FindFirstChild "Map"
+
+	if map then map:Destroy() end
+end

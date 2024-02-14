@@ -73,7 +73,7 @@ local function putDownBattery(player: Player, deleteBattery: boolean?)
 end
 
 ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
-	if RoundConfiguration.lobbyPhases[RoundDataManager.data.currentPhaseType] then return end
+	if not RoundConfiguration.roundPhases[RoundDataManager.data.currentPhaseType] then return end
 
 	if prompt.Name == "Battery" then
 		for _, batteryData in pairs(RoundDataManager.data.batteryData) do

@@ -45,7 +45,6 @@ local RoundConfiguration = {
 		[PhaseType.PhaseOne] = true,
 		[PhaseType.PhaseTwo] = true,
 		[PhaseType.Purge] = true,
-		[PhaseType.GameOver] = true,
 	},
 
 	gunStrengthMultiplier = 29/30,

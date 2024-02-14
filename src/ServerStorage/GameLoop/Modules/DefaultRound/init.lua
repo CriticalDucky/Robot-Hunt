@@ -10,4 +10,6 @@ DefaultRound.PhaseTwo = require(script.PhaseTwo)
 
 DefaultRound.Purge = require(script.Purge)
 
+DefaultRound.GameOver = require(script.GameOver)
+
 return DefaultRound

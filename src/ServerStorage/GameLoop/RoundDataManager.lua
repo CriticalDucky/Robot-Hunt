@@ -22,6 +22,10 @@ type RoundData = {
 	-- The current phase type enum (Enums.PhaseType)
 	currentPhaseType: number,
 
+	-- Whether the game is over. Decided by the specific game mode.
+	-- The game might be over while players are still in the map.
+	isGameOver: boolean,
+
 	-- The Unix timestamp of when the phase should end
 	phaseEndTime: number?,
 
@@ -37,6 +41,7 @@ type RoundData = {
 local roundData: RoundData = {
 	currentRoundType = nil,
 	currentPhaseType = Enums.PhaseType.NotEnoughPlayers,
+	isGameOver = false,
 	phaseEndTime = nil,
 
 	terminalData = {},
@@ -111,11 +116,17 @@ function RoundDataManager.initializeRoundDataAsync(player: Player?)
 end
 
 function RoundDataManager.setPhase(phaseType: number, endTime: number?)
-	roundData.currentPhaseType = phaseType
+	if phaseType == PhaseType.GameOver then
+		roundData.isGameOver = true
+	else
+		roundData.currentPhaseType = phaseType
+	end
+	
 	roundData.phaseEndTime = endTime
 
 	if phaseType == PhaseType.Intermission then
 		roundData.currentRoundType = nil
+		roundData.isGameOver = false
 	elseif phaseType == PhaseType.Loading then
 		table.clear(roundData.playerData)
 	end

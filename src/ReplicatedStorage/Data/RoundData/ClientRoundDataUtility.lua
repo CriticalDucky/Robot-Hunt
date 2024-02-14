@@ -12,16 +12,17 @@ local PhaseType = Enums.PhaseType
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild("Fusion"))
 local Computed = Fusion.Computed
 
-local lobbyPhases = RoundConfiguration.lobbyPhases
+local roundPhases = RoundConfiguration.roundPhases
 
 local ClientRoundDataUtility = {}
 
+-- Whether or not players are currently loaded into the map
 ClientRoundDataUtility.isRoundActive = Computed(function(use)
     local roundData = ClientState.external.roundData
     local currentPhase = use(roundData.currentPhaseType)
     local currentRoundType = use(roundData.currentRoundType)
 
-    return not lobbyPhases[currentPhase] and currentRoundType ~= nil
+    return roundPhases[currentPhase] and currentRoundType ~= nil
 end)
 
 ClientRoundDataUtility.isGunEnabled = Computed(function(use)
