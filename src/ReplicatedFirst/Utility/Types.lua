@@ -103,8 +103,9 @@ export type RoundBatteryData = {
 
 export type RoundTerminalData = {
 	id: number,
-	status: number,
+	model: Model | Folder, -- Not replicated
 	progress: number,
+	hackers: { [number]: boolean },
 }
 
 export type PlayerTempData = {}
