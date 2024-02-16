@@ -407,6 +407,42 @@ function RoundDataManager.updateBatteryStatus(batteryId: number, holder: Player?
 	onDataUpdatedEvent:Fire(roundData)
 end
 
+function RoundDataManager.setTerminalHackers(terminalId: number, hackers: { [number]: boolean })
+	local terminalData = roundData.terminalData[terminalId]
+
+	assert(terminalData, "Terminal data does not exist")
+
+	terminalData.hackers = hackers
+
+	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
+		terminalId = terminalId,
+		hackers = hackers,
+	})
+end
+
+function RoundDataManager.setTerminalProgress(terminalId: number, progress: number)
+	local terminalData = roundData.terminalData[terminalId]
+
+	assert(terminalData, "Terminal data does not exist")
+
+	terminalData.progress = progress
+
+	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
+		terminalId = terminalId,
+		progress = progress,
+	})
+end
+
+function RoundDataManager.incrementTerminalProgress(terminalId: number, amount: number)
+	local terminalData = roundData.terminalData[terminalId]
+
+	assert(terminalData, "Terminal data does not exist")
+
+	local progress = math.clamp(terminalData.progress + amount, 0, 100)
+
+	RoundDataManager.setTerminalProgress(terminalId, progress)
+end
+
 function RoundDataManager.setUpRound(
 	roundType: number,
 	playerDatas: { [number]: RoundPlayerData },
