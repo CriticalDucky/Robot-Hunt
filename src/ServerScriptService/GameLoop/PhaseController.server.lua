@@ -9,7 +9,6 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ServerStorage = game:GetService "ServerStorage"
-local RunService = game:GetService "RunService"
 local Players = game:GetService "Players"
 local Teams = game:GetService "Teams"
 
