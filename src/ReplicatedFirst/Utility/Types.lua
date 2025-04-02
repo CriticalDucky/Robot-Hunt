@@ -104,7 +104,7 @@ export type RoundBatteryData = {
 export type RoundTerminalData = {
 	id: number,
 	model: Model | Folder, -- Not replicated
-	progress: number,
+	progress: number, -- 0-100
 	hackers: { [number]: boolean },
 }
 
