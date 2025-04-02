@@ -41,7 +41,7 @@ function DefaultRound.begin()
 
 				for teamType, players: { Player } in pairs(sorted) do
 					for _, player in players do
-						local data = RoundDataManager.newPlayerData(player, teamType)
+						local data = RoundDataManager.createNewPlayerData(player, teamType)
 
 						playerDatas[player.UserId] = data
 					end
