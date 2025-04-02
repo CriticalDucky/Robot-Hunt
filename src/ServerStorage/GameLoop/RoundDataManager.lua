@@ -1,9 +1,11 @@
 --!strict
 
+-- Services
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
 
+-- Modules
 local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
 -- local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 
@@ -11,10 +13,12 @@ local Enums = require(ReplicatedFirst.Enums)
 local Types = require(ReplicatedFirst.Utility.Types)
 local PhaseType = Enums.PhaseType
 
+-- Types
 type RoundPlayerData = Types.RoundPlayerData
 type RoundTerminalData = Types.RoundTerminalData
 type RoundBatteryData = Types.RoundBatteryData
 
+-- Round data structure
 type RoundData = {
 	-- The current round type enum (Enums.RoundType)
 	currentRoundType: number?,
@@ -38,6 +42,7 @@ type RoundData = {
 	},
 }
 
+-- The main round data object
 local roundData: RoundData = {
 	currentRoundType = nil,
 	currentPhaseType = Enums.PhaseType.NotEnoughPlayers,
@@ -51,36 +56,35 @@ local roundData: RoundData = {
 	playerData = {},
 }
 
-local function filterPlayerData(playerData: RoundPlayerData, player: Player): RoundPlayerData
-	return {
-		playerId = playerData.playerId,
-
-		status = playerData.status,
-
-		lastAttackerId = playerData.lastAttackerId,
-		killedById = playerData.killedById,
-		victims = playerData.victims,
-
-		team = playerData.team,
-
-		health = playerData.health,
-		armor = playerData.armor,
-		lifeSupport = playerData.lifeSupport,
-
-		ammo = playerData.ammo,
-
-		gunHitPosition = if playerData.playerId ~= player.UserId then playerData.gunHitPosition else nil,
-
-		actions = playerData.actions,
-
-		stats = playerData.stats,
-	}
-end
-
 --[[
     Retrieves the round data and returns a filtered version of it for the client.
+
+    @param player Player - The player requesting the filtered data.
+    @return table - The filtered round data for the client.
 ]]
-function filterData(player: Player)
+function getFilteredData(player: Player)
+	-- Filters sensitive player data for the client.
+	-- @param playerData RoundPlayerData - The player's data to filter.
+	-- @param player Player - The player requesting the data.
+	-- @return RoundPlayerData - The filtered player data.
+	local function filter(playerData: RoundPlayerData, player: Player): RoundPlayerData
+		return {
+			playerId = playerData.playerId,
+			status = playerData.status,
+			lastAttackerId = playerData.lastAttackerId,
+			killedById = playerData.killedById,
+			victims = playerData.victims,
+			team = playerData.team,
+			health = playerData.health,
+			armor = playerData.armor,
+			lifeSupport = playerData.lifeSupport,
+			ammo = playerData.ammo,
+			gunHitPosition = if playerData.playerId ~= player.UserId then playerData.gunHitPosition else nil,
+			actions = playerData.actions,
+			stats = playerData.stats,
+		}
+	end
+
 	local filteredData = {}
 
 	filteredData.currentRoundType = roundData.currentRoundType
@@ -90,14 +94,16 @@ function filterData(player: Player)
 	filteredData.playerData = {}
 
 	for _, playerData in ipairs(roundData.playerData) do
-		table.insert(filteredData.playerData, filterPlayerData(playerData, player))
+		table.insert(filteredData.playerData, filter(playerData, player))
 	end
 
 	return filteredData
 end
 
+-- The main RoundDataManager module
 local RoundDataManager = {}
 
+-- Events for data updates
 local onDataUpdatedEvent = Instance.new "BindableEvent"
 local onPlayerStatusUpdatedEvent = Instance.new "BindableEvent"
 local onHealthDataUpdatedEvent = Instance.new "BindableEvent"
@@ -107,14 +113,25 @@ RoundDataManager.onDataUpdated = onDataUpdatedEvent.Event :: RBXScriptSignal<Rou
 RoundDataManager.onPlayerStatusUpdated = onPlayerStatusUpdatedEvent.Event :: RBXScriptSignal<RoundPlayerData>
 RoundDataManager.onHealthDataUpdated = onHealthDataUpdatedEvent.Event :: RBXScriptSignal<RoundPlayerData>
 
+--[[
+    Initializes round data for a specific player or all players.
+
+    @param player Player? - The player to initialize data for. If nil, initializes for all players.
+]]
 function RoundDataManager.initializeRoundDataAsync(player: Player?)
 	local players = if player then { player } else Players:GetPlayers()
 
 	for _, player in ipairs(players) do
-		ClientServerCommunication.replicateAsync("InitializeRoundData", filterData(player), player)
+		ClientServerCommunication.replicateAsync("InitializeRoundData", getFilteredData(player), player)
 	end
 end
 
+--[[
+    Sets the current phase of the round.
+
+    @param phaseType number - The phase type (Enums.PhaseType).
+    @param endTime number? - The Unix timestamp of when the phase ends.
+]]
 function RoundDataManager.setPhase(phaseType: number, endTime: number?)
 	if phaseType == PhaseType.GameOver then
 		roundData.isGameOver = true
@@ -139,7 +156,14 @@ function RoundDataManager.setPhase(phaseType: number, endTime: number?)
 	onDataUpdatedEvent:Fire(roundData)
 end
 
-function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlayerData
+--[[
+    Creates a new player data object.
+
+    @param player Player - The player to create data for.
+    @param team number - The team the player belongs to.
+    @return RoundPlayerData - The newly created player data.
+]]
+function RoundDataManager.createNewPlayerData(player: Player, team: number): RoundPlayerData
 	return {
 		playerId = player.UserId,
 
@@ -171,6 +195,12 @@ function RoundDataManager.newPlayerData(player: Player, team: number): RoundPlay
 	}
 end
 
+--[[
+    Adds a victim to an attacker's victim list.
+
+    @param attacker Player - The player who attacked.
+    @param victim Player - The player who was attacked.
+]]
 function RoundDataManager.addVictim(attacker: Player, victim: Player)
 	local attackerData = roundData.playerData[attacker.UserId]
 	local victimData = roundData.playerData[victim.UserId]
@@ -189,6 +219,12 @@ function RoundDataManager.addVictim(attacker: Player, victim: Player)
 	onDataUpdatedEvent:Fire(roundData)
 end
 
+--[[
+    Removes a victim from an attacker's victim list.
+
+    @param attacker Player - The player who attacked.
+    @param victim Player? - The player to remove from the victim list. If nil, clears all victims.
+]]
 function RoundDataManager.removeVictim(attacker: Player, victim: Player?)
 	local attackerData = roundData.playerData[attacker.UserId]
 
@@ -208,6 +244,12 @@ function RoundDataManager.removeVictim(attacker: Player, victim: Player?)
 	onDataUpdatedEvent:Fire(roundData)
 end
 
+--[[
+    Kills a player and updates their status.
+
+    @param victim Player - The player who was killed.
+    @param killer Player? - The player who killed the victim.
+]]
 function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	local playerData = roundData.playerData[victim.UserId]
 
@@ -241,7 +283,11 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	onPlayerStatusUpdatedEvent:Fire(playerData)
 end
 
--- Can only be called when the player is in life support
+--[[
+    Revives a player who is in life support.
+
+    @param player Player - The player to revive.
+]]
 function RoundDataManager.revivePlayer(player: Player)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -260,6 +306,13 @@ function RoundDataManager.revivePlayer(player: Player)
 	onPlayerStatusUpdatedEvent:Fire(playerData)
 end
 
+--[[
+    Sets the health and armor of a player.
+
+    @param player Player - The player whose health is being set.
+    @param armor number? - The new armor value.
+    @param health number? - The new health value.
+]]
 function RoundDataManager.setHealth(player: Player, armor: number?, health: number?)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -288,6 +341,9 @@ end
 	Increments the player's shield and health by the given amount.
 	If the amount is negative, the player will take shield damage first, and the rest of it then health damage.
 	If the amount is positive, the player will only gain health.
+
+    @param player Player - The player whose health is being incremented.
+    @param amount number - The amount to increment health by.
 ]]
 function RoundDataManager.incrementAccountedHealth(player: Player, amount: number)
 	local playerData = roundData.playerData[player.UserId]
@@ -316,6 +372,12 @@ function RoundDataManager.incrementAccountedHealth(player: Player, amount: numbe
 	RoundDataManager.setHealth(player, armor, health)
 end
 
+--[[
+    Sets the life support value for a player.
+
+    @param player Player - The player whose life support is being set.
+    @param lifeSupport number - The new life support value.
+]]
 function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -335,6 +397,12 @@ function RoundDataManager.setLifeSupport(player: Player, lifeSupport: number)
 	onDataUpdatedEvent:Fire(roundData)
 end
 
+--[[
+    Increments the life support value for a player.
+
+    @param player Player - The player whose life support is being incremented.
+    @param amount number - The amount to increment life support by.
+]]
 function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -345,6 +413,12 @@ function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
 	RoundDataManager.setLifeSupport(player, lifeSupport)
 end
 
+--[[
+    Sets the ammo value for a player.
+
+    @param player Player - The player whose ammo is being set.
+    @param ammo number - The new ammo value.
+]]
 function RoundDataManager.setAmmo(player: Player, ammo: number)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -361,6 +435,12 @@ function RoundDataManager.setAmmo(player: Player, ammo: number)
 	onDataUpdatedEvent:Fire(roundData)
 end
 
+--[[
+    Increments the ammo value for a player.
+
+    @param player Player - The player whose ammo is being incremented.
+    @param amount number - The amount to increment ammo by.
+]]
 function RoundDataManager.incrementAmmo(player: Player, amount: number)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -372,6 +452,13 @@ function RoundDataManager.incrementAmmo(player: Player, amount: number)
 	RoundDataManager.setAmmo(player, amount)
 end
 
+--[[
+    Updates the shooting status of a player.
+
+    @param player Player - The player whose shooting status is being updated.
+    @param value boolean - Whether the player is shooting.
+    @param gunHitPosition Vector3? - The position where the gun hit, if applicable.
+]]
 function RoundDataManager.updateShootingStatus(player: Player, value: boolean, gunHitPosition: Vector3?)
 	local playerData = roundData.playerData[player.UserId]
 
@@ -389,6 +476,13 @@ function RoundDataManager.updateShootingStatus(player: Player, value: boolean, g
 	onDataUpdatedEvent:Fire(roundData)
 end
 
+--[[
+    Updates the status of a battery.
+
+    @param batteryId number - The ID of the battery.
+    @param holder Player? - The player holding the battery, if any.
+    @param deleteBattery boolean? - Whether to delete the battery.
+]]
 function RoundDataManager.updateBatteryStatus(batteryId: number, holder: Player?, deleteBattery: boolean?)
 	local batteryData = roundData.batteryData[batteryId]
 
@@ -417,6 +511,32 @@ function RoundDataManager.setTerminalHackers(terminalId: number, hackers: { [num
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
 		terminalId = terminalId,
 		hackers = hackers,
+	})
+end
+
+function RoundDataManager.addHacker(terminalId: number, hacker: Player)
+	local terminalData = roundData.terminalData[terminalId]
+
+	assert(terminalData, "Terminal data does not exist")
+
+	terminalData.hackers[hacker.UserId] = true
+
+	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
+		terminalId = terminalId,
+		hackers = terminalData.hackers,
+	})
+end
+
+function RoundDataManager.removeHacker(terminalId: number, hacker: Player)
+	local terminalData = roundData.terminalData[terminalId]
+
+	assert(terminalData, "Terminal data does not exist")
+
+	terminalData.hackers[hacker.UserId] = nil
+
+	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
+		terminalId = terminalId,
+		hackers = terminalData.hackers,
 	})
 end
 
