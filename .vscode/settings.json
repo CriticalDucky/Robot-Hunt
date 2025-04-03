@@ -1,4 +1,9 @@
 {
     "luau-lsp.sourcemap.rojoProjectFile": "robothunt.project.json",
-    "stylua.targetReleaseVersion": "latest"
+    "stylua.targetReleaseVersion": "latest",
+    "[lua]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua"
+    },
+
+    
 }
