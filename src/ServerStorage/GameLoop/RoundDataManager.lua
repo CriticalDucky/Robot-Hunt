@@ -138,7 +138,7 @@ function RoundDataManager.setPhase(phaseType: number, endTime: number?)
 	else
 		roundData.currentPhaseType = phaseType
 	end
-	
+
 	roundData.phaseEndTime = endTime
 
 	if phaseType == PhaseType.Intermission then
@@ -501,7 +501,7 @@ function RoundDataManager.updateBatteryStatus(batteryId: number, holder: Player?
 	onDataUpdatedEvent:Fire(roundData)
 end
 
-function RoundDataManager.setTerminalHackers(terminalId: number, hackers: { [number]: boolean })
+function RoundDataManager.setTerminalHackers(terminalId: number, hackers: { Player })
 	local terminalData = roundData.terminalData[terminalId]
 
 	assert(terminalData, "Terminal data does not exist")
@@ -509,7 +509,7 @@ function RoundDataManager.setTerminalHackers(terminalId: number, hackers: { [num
 	terminalData.hackers = hackers
 
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
-		terminalId = terminalId,
+		id = terminalId,
 		hackers = hackers,
 	})
 end
@@ -519,10 +519,10 @@ function RoundDataManager.addHacker(terminalId: number, hacker: Player)
 
 	assert(terminalData, "Terminal data does not exist")
 
-	terminalData.hackers[hacker.UserId] = true
+	table.insert(terminalData.hackers, hacker)
 
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
-		terminalId = terminalId,
+		id = terminalId,
 		hackers = terminalData.hackers,
 	})
 end
@@ -532,10 +532,10 @@ function RoundDataManager.removeHacker(terminalId: number, hacker: Player)
 
 	assert(terminalData, "Terminal data does not exist")
 
-	terminalData.hackers[hacker.UserId] = nil
+	table.remove(terminalData.hackers, table.find(terminalData.hackers, hacker))
 
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
-		terminalId = terminalId,
+		id = terminalId,
 		hackers = terminalData.hackers,
 	})
 end
@@ -548,7 +548,7 @@ function RoundDataManager.setTerminalProgress(terminalId: number, progress: numb
 	terminalData.progress = progress
 
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
-		terminalId = terminalId,
+		id = terminalId,
 		progress = progress,
 	})
 end
@@ -561,6 +561,27 @@ function RoundDataManager.incrementTerminalProgress(terminalId: number, amount: 
 	local progress = math.clamp(terminalData.progress + amount, 0, 100)
 
 	RoundDataManager.setTerminalProgress(terminalId, progress)
+end
+
+--[[
+	Sets the terminal states for a specific terminal. Takes in a single dictionary	.
+
+	@param terminalId number - The ID of the terminal.
+	@param states { [string]: any } - The states to set for the terminal.
+]]
+function RoundDataManager.setTerminalStates(terminalId: number, states: { [string]: any })
+	local terminalData = roundData.terminalData[terminalId]
+
+	assert(terminalData, "Terminal data does not exist")
+
+	for key, value in pairs(states) do
+		terminalData[key] = value
+	end
+
+	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
+		id = terminalId,
+		states = states,
+	})
 end
 
 function RoundDataManager.setUpRound(
