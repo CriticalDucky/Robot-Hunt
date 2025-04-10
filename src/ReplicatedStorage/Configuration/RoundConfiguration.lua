@@ -73,19 +73,11 @@ local RoundConfiguration = {
 	minTerminals = 2,
 	extraTerminals = 1,
 	terminalProgressPerSecondPerPlayer = 1/48,
-
-	terminalColors = {
-		DefaultTerminalMisc = {
-			[Enums.TerminalStatus.normal] = Color3.fromRGB(91, 115, 214),
-			[Enums.TerminalStatus.errored] = Color3.fromRGB(255, 96, 96),
-			[Enums.TerminalStatus.hacked] = Color3.fromRGB(93, 214, 91),
-		},
-		DefaultTerminalScreen = {
-			[Enums.TerminalStatus.normal] = Color3.fromRGB(76, 95, 179),
-			[Enums.TerminalStatus.errored] = Color3.fromRGB(214, 77, 77),
-			[Enums.TerminalStatus.hacked] = Color3.fromRGB(100, 175, 83),
-		},
-	},
+	minTerminalCooldown = 8,
+	maxTerminalCooldown = 12,
+	puzzleTimeout = 5,
+	puzzleBonusPerPlayer = 6,
+	puzzlePenaltyPerPlayer = 3,
 
 	batteryLowerPercentage = 0.1, -- At least 50% of the batteries will spawn.
 	batteryUpperPercentage = 0.5, -- At most 75% of the batteries will spawn.
