@@ -138,29 +138,3 @@ RoundDataManager.onPlayerStatusUpdated:Connect(function(playerData)
 		putDownBattery(player)
 	end
 end)
-
-local function onPlayerManuallyQuits(player: Player)
-	local playerDatas = RoundDataManager.data.playerData
-
-	for _, playerData in pairs(playerDatas) do
-		if playerData.playerId == player.UserId then
-			local batteryDatas = RoundDataManager.data.batteryData
-
-			for _, batteryData in pairs(batteryDatas) do
-				if batteryData.holder == player.UserId then
-					putDownBattery(player) -- bye bye :(
-
-					break
-				end
-			end
-
-			break
-		end
-	end
-end
-
-Players.PlayerRemoving:Connect(function(player) onPlayerManuallyQuits(player) end)
-
-Players.PlayerAdded:Connect(function(player)
-	player.CharacterRemoving:Connect(function(character) onPlayerManuallyQuits(player) end)
-end)
