@@ -13,6 +13,7 @@ local RoundDataManager = require(GameLoop.RoundDataManager)
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local Types = require(ReplicatedFirst.Utility.Types)
 local Promise = require(ReplicatedFirst.Vendor.Promise)
+local Table = require(ReplicatedFirst.Utility.Table)
 
 type RoundBatteryData = Types.RoundBatteryData
 type RoundTerminalData = Types.RoundTerminalData
@@ -104,7 +105,15 @@ function DefaultRound.begin()
 
 					data.id = i
 					data.model = model
-					data.status = Enums.TerminalStatus.notHacked
+
+					data.hackers = {}
+
+					data.isPuzzleMode = false
+					data.puzzleQueue = {}
+
+					data.progress = 0
+					data.cooldown = 0
+					data.isErrored = false
 
 					table.insert(terminalData, data)
 				end
