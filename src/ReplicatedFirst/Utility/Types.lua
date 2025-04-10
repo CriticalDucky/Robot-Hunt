@@ -104,8 +104,15 @@ export type RoundBatteryData = {
 export type RoundTerminalData = {
 	id: number,
 	model: Model | Folder, -- Not replicated
+
+	hackers: { Player },
+
+	isPuzzleMode: boolean,
+	puzzleQueue: { Player }, -- The players that are in the puzzle queue; not replicated
+
 	progress: number, -- 0-100
-	hackers: { [number]: boolean },
+	cooldown: number,
+	isErrored: boolean,
 }
 
 export type PlayerTempData = {}
