@@ -34,8 +34,7 @@ local Settings = {}
 ]]
 function Settings.setSettingMusicVolume(volume: number, player: Player?)
 	if isServer and not player then
-		warn "A player must be provided when calling from the server."
-		return
+		error "A player must be provided when calling from the server."
 	elseif not isServer and player then
 		warn "No player needs to be given when calling from the client, so this parameter will be ignored."
 	end
@@ -60,8 +59,7 @@ end
 ]]
 function Settings.setSettingSFXVolume(volume: number, player: Player?)
 	if isServer and not player then
-		warn "A player must be provided when calling from the server."
-		return
+		error "A player must be provided when calling from the server."
 	elseif not isServer and player then
 		warn "No player needs to be given when calling from the client, so this parameter will be ignored."
 	end
