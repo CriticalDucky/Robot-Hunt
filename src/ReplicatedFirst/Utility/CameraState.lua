@@ -3,12 +3,13 @@ local ReplicatedFirst = game:GetService("ReplicatedFirst")
 local replicatedFirstVendor = ReplicatedFirst:WaitForChild("Vendor")
 
 local Fusion = require(replicatedFirstVendor:WaitForChild("Fusion"))
-local Value = Fusion.Value
 local OnEvent = Fusion.OnEvent
 local Hydrate = Fusion.Hydrate
 local peek = Fusion.peek
 
-local cameraState = Value({})
+local scope = Fusion.scoped(Fusion)
+
+local cameraState = scope:Value({})
 
 local watchingProps = {
     "CFrame",

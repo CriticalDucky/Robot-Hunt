@@ -15,7 +15,7 @@ type RoundBatteryData = Types.RoundBatteryData
 type RoundTerminalData = Types.RoundTerminalData
 type Value<T> = Fusion.Value<T>
 
-local Value = Fusion.Value
+local scope = Fusion.scoped(Fusion)
 
 --#endregion
 
@@ -28,35 +28,35 @@ local Value = Fusion.Value
 ]]
 local ClientState = {
 	currency = {
-		money = Value(nil :: number?),
+		money = scope:Value(nil :: number?),
 	},
 
 	external = {
-		publicPlayerData = Value(),
+		publicPlayerData = scope:Value(),
 		roundData = {
-			currentRoundType = Value(nil :: number?),
-			currentPhaseType = Value(nil :: number?),
-			phaseEndTime = Value(nil :: number?),
-			isGameOver = Value(false :: boolean),
+			currentRoundType = scope:Value(nil :: number?),
+			currentPhaseType = scope:Value(nil :: number?),
+			phaseEndTime = scope:Value(nil :: number?),
+			isGameOver = scope:Value(false :: boolean),
 
-			batteryData = Value({nil :: RoundBatteryData?}),
-			terminalData = Value({nil :: RoundTerminalData?}),
+			batteryData = scope:Value({nil :: RoundBatteryData?}),
+			terminalData = scope:Value({nil :: RoundTerminalData?}),
 
-			playerData = Value({nil :: RoundPlayerData?}),
+			playerData = scope:Value({nil :: RoundPlayerData?}),
 		},
 	},
 
 	inventory = {
-		accessories = Value(),
+		accessories = scope:Value(),
 	},
 
 	settings = {
-		musicVolume = Value(1 :: number),
-		sfxVolume = Value(1 :: number),
+		musicVolume = scope:Value(1 :: number),
+		sfxVolume = scope:Value(1 :: number),
 	},
 
 	actions = {
-		isCrawling = Value(false :: boolean),
+		isCrawling = scope:Value(false :: boolean),
 	}
 }
 

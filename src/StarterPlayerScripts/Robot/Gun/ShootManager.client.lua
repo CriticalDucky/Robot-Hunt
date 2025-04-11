@@ -15,12 +15,8 @@ local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusi
 local Mouse = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Mouse")
 local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
 
-local Observer = Fusion.Observer
-local Hydrate = Fusion.Hydrate
-local Out = Fusion.Out
 local peek = Fusion.peek
-local Value = Fusion.Value
-local Computed = Fusion.Computed
+local scope = Fusion.scoped(Fusion)
 
 local aimAnimation = Instance.new "Animation"
 aimAnimation.AnimationId = AIM_ANIMATION
@@ -34,19 +30,19 @@ local hitboxObjectValue: ObjectValue?
 
 local isCrawling = ClientState.actions.isCrawling
 
-local isShooting = Computed(function(use)
+local isShooting = scope:Computed(function(use)
 	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
 	return playerData and playerData.actions.isShooting or false
 end)
 
-local isHacking = Computed(function(use)
+local isHacking = scope:Computed(function(use)
 	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
 	return playerData and playerData.actions.isHacking or false
 end)
 
-local isGunEnabled = Computed(function(use) return use(ClientRoundDataUtility.isGunEnabled)[player.UserId] end)
+local isGunEnabled = scope:Computed(function(use) return use(ClientRoundDataUtility.isGunEnabled)[player.UserId] end)
 
 local thread: thread?
 
@@ -233,8 +229,8 @@ local function onShootingStatusChange()
 end
 
 -- connect all relevant states to the onShootingStatusChange function
-Observer(isShooting):onChange(onShootingStatusChange)
-Observer(isGunEnabled):onChange(onShootingStatusChange)
+scope:Observer(isShooting):onChange(onShootingStatusChange)
+scope:Observer(isGunEnabled):onChange(onShootingStatusChange)
 
 local function onShootRequest(_, inputState)
 	if not humanoid or not trackAim or not humanoidRootPart then return end
@@ -255,7 +251,7 @@ local function onShootRequest(_, inputState)
 	ClientState.external.roundData.playerData:set(newPlayerData)
 end
 
-Observer(isGunEnabled):onChange(function()
+scope:Observer(isGunEnabled):onChange(function()
 	local isGunEnabled = peek(isGunEnabled)
 
 	if isGunEnabled then

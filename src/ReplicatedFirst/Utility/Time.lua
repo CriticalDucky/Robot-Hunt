@@ -6,12 +6,13 @@ local utilityFolder = ReplicatedFirst:WaitForChild "Utility"
 
 local Types = require(utilityFolder:WaitForChild "Types")
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
-local Value = Fusion.Value
 
 type TimeInfo = Types.TimeInfo
 type TimeRange = Types.TimeRange
 
-local timeValue = Value.new(workspace:GetServerTimeNow())
+local scope = Fusion.scoped(Fusion)
+
+local timeValue = scope:Value(workspace:GetServerTimeNow())
 
 local function date(format: string, time: number?): number
 	local timeString = os.date(format, time or workspace:GetServerTimeNow())

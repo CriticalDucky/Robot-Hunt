@@ -10,14 +10,15 @@ local RoundConfiguration = require(configurationFolder:WaitForChild("RoundConfig
 local PhaseType = Enums.PhaseType
 
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild("Fusion"))
-local Computed = Fusion.Computed
+
+local scope = Fusion.scoped(Fusion)
 
 local roundPhases = RoundConfiguration.roundPhases
 
 local ClientRoundDataUtility = {}
 
 -- Whether or not players are currently loaded into the map
-ClientRoundDataUtility.isRoundActive = Computed(function(use)
+ClientRoundDataUtility.isRoundActive = scope:Computed(function(use)
     local roundData = ClientState.external.roundData
     local currentPhase = use(roundData.currentPhaseType)
     local currentRoundType = use(roundData.currentRoundType)
@@ -25,7 +26,7 @@ ClientRoundDataUtility.isRoundActive = Computed(function(use)
     return roundPhases[currentPhase] and currentRoundType ~= nil
 end)
 
-ClientRoundDataUtility.isGunEnabled = Computed(function(use)
+ClientRoundDataUtility.isGunEnabled = scope:Computed(function(use)
     local resultTable: {[number]: boolean} = {}
 
     local isGameRunning = use(ClientRoundDataUtility.isRoundActive)

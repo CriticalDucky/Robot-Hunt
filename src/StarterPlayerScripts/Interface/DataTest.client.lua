@@ -12,12 +12,9 @@ local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild(
 local Enums = require(ReplicatedFirst:WaitForChild("Enums"))
 
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
-local New = Fusion.New
 local Children = Fusion.Children
-local Value = Fusion.Value
-local Computed = Fusion.Computed
-local Observer = Fusion.Observer
-local peek = Fusion.peek
+
+local scope = Fusion.scoped(Fusion)
 
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild "PlayerGui"
 
@@ -26,7 +23,7 @@ local PhaseType = Enums.PhaseType
 
 local roundData = ClientState.external.roundData
 
-local health = Computed(function(use)
+local health = scope:Computed(function(use)
     local playerDatas = use(roundData.playerData)
     local playerData = playerDatas[Players.LocalPlayer.UserId]
 
@@ -37,11 +34,11 @@ local health = Computed(function(use)
     end
 end)
 
-New "ScreenGui" {
+scope:New "ScreenGui" {
     Parent = playerGui;
 
     [Children] = {
-        New "Frame" { -- Health bar
+        scope:New "Frame" { -- Health bar
             Name = "HealthBar";
             BackgroundTransparency = 0;
             BackgroundColor3 = Color3.fromRGB(0, 0, 0);
@@ -49,13 +46,13 @@ New "ScreenGui" {
             Position = UDim2.new(0.5, 0, 0.9, 0);
             AnchorPoint = Vector2.new(0.5, 0.5);
             [Children] = {
-                New "Frame" {
+                scope:New "Frame" {
                     Name = "Fill";
                     BackgroundColor3 = Color3.fromRGB(255, 0, 0);
                     AnchorPoint = Vector2.new(0, 0.5);
                     Position = UDim2.new(0, 0, 0.5, 0);
                     BorderSizePixel = 0;
-                    Size = Computed(function(use)
+                    Size = scope:Computed(function(use)
                         local health = use(health)
                         return UDim2.new(health / 100, 0, 1, 0)
                     end);

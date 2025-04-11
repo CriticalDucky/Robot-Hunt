@@ -13,18 +13,11 @@ local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusi
 local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
 local Enums = require(ReplicatedFirst:WaitForChild "Enums")
 
-local Observer = Fusion.Observer
-local Hydrate = Fusion.Hydrate
-local Out = Fusion.Out
+local scope = Fusion.scoped(Fusion)
+
 local peek = Fusion.peek
-local Value = Fusion.Value
-local Computed = Fusion.Computed
-local Spring = Fusion.Spring
-local Tween = Fusion.Tween
 
 type RoundPlayerData = Types.RoundPlayerData
-
-local localPlayer = Players.LocalPlayer
 
 local function calculateBeamWidth1(distance) return 0.2 + (distance / 100) end
 
@@ -34,7 +27,7 @@ local function onPlayerAdded(player)
 	local tipPositionUpdateConnection: RBXScriptConnection? = nil
 	local gunVisibilityUpdateConnection = nil
 
-	local roundPlayerData = Computed(function(use): RoundPlayerData?
+	local roundPlayerData = scope:Computed(function(use): RoundPlayerData?
 		local roundPlayerData = use(ClientState.external.roundData.playerData)
 
 		if not roundPlayerData then return end
@@ -46,7 +39,7 @@ local function onPlayerAdded(player)
 		return nil
 	end)
 
-	local gunHitPosition = Computed(function(use)
+	local gunHitPosition = scope:Computed(function(use)
 		local roundPlayerData = use(roundPlayerData)
 
 		if not roundPlayerData then return end
@@ -54,7 +47,7 @@ local function onPlayerAdded(player)
 		return roundPlayerData.gunHitPosition
 	end)
 
-	local isBeingAttacked = Computed(function(use): boolean
+	local isBeingAttacked = scope:Computed(function(use): boolean
 		for _, data in pairs(use(ClientState.external.roundData.playerData)) do
 			if data.victims[player.UserId] then
 				return true
@@ -64,7 +57,7 @@ local function onPlayerAdded(player)
 		return false
 	end)
 
-	local isShooting = Computed(function(use): boolean
+	local isShooting = scope:Computed(function(use): boolean
 		return use(roundPlayerData) and use(roundPlayerData).actions.isShooting
 	end)
 
@@ -77,7 +70,7 @@ local function onPlayerAdded(player)
 		local beamObjectValue: ObjectValue = referencesFolder:WaitForChild "Beam"
 		local hitPartObjectValue: ObjectValue = referencesFolder:WaitForChild "HitPart"
 		local tipAttachmentObjectValue: ObjectValue = referencesFolder:WaitForChild "AttachmentTip"
-		local tipPosition = Value(nil :: Vector3?)
+		local tipPosition = scope:Value(nil :: Vector3?)
 
 		local function waitForValue(objectValue: ObjectValue): Instance?
 			local value = objectValue.Value
@@ -93,7 +86,7 @@ local function onPlayerAdded(player)
 		local hitPart = waitForValue(hitPartObjectValue) :: Part
 		local tipAttachment = waitForValue(tipAttachmentObjectValue) :: Attachment
 
-		local distance = Computed(function(use): number
+		local distance = scope:Computed(function(use): number
 			if not use(isShooting) then return 0 end
 
 			local gunHitPosition = use(gunHitPosition)
@@ -106,8 +99,8 @@ local function onPlayerAdded(player)
 			return distance
 		end)
 
-		Hydrate(hitPart) {
-			Position = Computed(function(use)
+		scope:Hydrate(hitPart) {
+			Position = scope:Computed(function(use)
 				local gunHitPosition = use(gunHitPosition)
 
 				if not gunHitPosition then return Vector3.new(0, 0, 0) end
@@ -116,15 +109,15 @@ local function onPlayerAdded(player)
 			end),
 		}
 
-		Hydrate(beam) {
+		scope:Hydrate(beam) {
 			Enabled = true,
-			Width0 = Computed(function(use) return if use(isShooting) and use(gunHitPosition) then 0.2 else 0 end),
-			Width1 = Computed(
+			Width0 = scope:Computed(function(use) return if use(isShooting) and use(gunHitPosition) then 0.2 else 0 end),
+			Width1 = scope:Computed(
 				function(use)
 					return if use(isShooting) and use(gunHitPosition) then calculateBeamWidth1(use(distance)) else 0
 				end
 			),
-			Color = Computed(function(use)
+			Color = scope:Computed(function(use)
 				local color
 
 				local roundPlayerData = use(roundPlayerData)
@@ -137,7 +130,7 @@ local function onPlayerAdded(player)
 
 				return ColorSequence.new(color)
 			end),
-			Transparency = Computed(function(use)
+			Transparency = scope:Computed(function(use)
 				local distance = use(distance)
 
 				local keypoints = {}
@@ -156,9 +149,9 @@ local function onPlayerAdded(player)
 			end),
 		}
 
-		local gunHighlightTransparency = Value(1 :: number)
-		local isGunVisible = Value(peek(ClientStateUtility.isGunEnabled)[player.UserId] or false :: boolean)
-		local gunHighlightTransparencyTween = Tween(
+		local gunHighlightTransparency = scope:Value(1 :: number)
+		local isGunVisible = scope:Value(peek(ClientStateUtility.isGunEnabled)[player.UserId] or false :: boolean)
+		local gunHighlightTransparencyTween = scope:Tween(
 			gunHighlightTransparency,
 			TweenInfo.new(GUN_VISIBILITY_TWEEN_TIME, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
 		)
@@ -167,12 +160,12 @@ local function onPlayerAdded(player)
 			if descendant:IsA "BasePart" and descendant.Name ~= "Hit" then
 				local transparency = descendant:GetAttribute "CustomTransparency" or 0
 
-				Hydrate(descendant) {
-					Transparency = Computed(function(use) return if use(isGunVisible) then transparency else 1 end),
+				scope:Hydrate(descendant) {
+					Transparency = scope:Computed(function(use) return if use(isGunVisible) then transparency else 1 end),
 				}
 			elseif descendant:IsA "Highlight" then
-				Hydrate(descendant) {
-					FillTransparency = Computed(
+				scope:Hydrate(descendant) {
+					FillTransparency = scope:Computed(
 						function(use)
 							return if use(ClientStateUtility.isGunEnabled)
 								then peek(gunHighlightTransparencyTween)
@@ -183,7 +176,7 @@ local function onPlayerAdded(player)
 			end
 		end
 
-		local oppositeTeam = Computed(function(use): number?
+		local oppositeTeam = scope:Computed(function(use): number?
 			local roundPlayerData = use(roundPlayerData)
 
 			if not roundPlayerData then return end
@@ -195,9 +188,9 @@ local function onPlayerAdded(player)
 
 		local function forEachUpperTorsoDescendant(descendant: Instance)
 			if descendant.Name == "AttackLight" then
-				Hydrate(descendant) {
-					Enabled = Computed(function(use) return use(isBeingAttacked) end),
-					Color = Computed(function(use)
+				scope:Hydrate(descendant) {
+					Enabled = scope:Computed(function(use) return use(isBeingAttacked) end),
+					Color = scope:Computed(function(use)
 						local roundPlayerData = use(roundPlayerData)
 						local oppositeTeam = use(oppositeTeam)
 
@@ -207,12 +200,12 @@ local function onPlayerAdded(player)
 					end),
 				}
 			elseif descendant.Name == "AttackGlow" then
-				Hydrate(descendant) {
-					Enabled = Computed(function(use) return use(isBeingAttacked) end),
+				scope:Hydrate(descendant) {
+					Enabled = scope:Computed(function(use) return use(isBeingAttacked) end),
 				}
 
-				Hydrate(descendant:WaitForChild "ImageLabel") {
-					ImageColor3 = Computed(function(use)
+				scope:Hydrate(descendant:WaitForChild "ImageLabel") {
+					ImageColor3 = scope:Computed(function(use)
 						local roundPlayerData = use(roundPlayerData)
 						local oppositeTeam = use(oppositeTeam)
 
@@ -222,9 +215,9 @@ local function onPlayerAdded(player)
 					end),
 				}
 			elseif descendant.Name == "AttackElectricity" then
-				Hydrate(descendant) {
-					Enabled = Computed(function(use) return use(isBeingAttacked) end),
-					Color = Computed(function(use)
+				scope:Hydrate(descendant) {
+					Enabled = scope:Computed(function(use) return use(isBeingAttacked) end),
+					Color = scope:Computed(function(use)
 						local roundPlayerData = use(roundPlayerData)
 						local oppositeTeam = use(oppositeTeam)
 
@@ -271,8 +264,8 @@ local function onPlayerAdded(player)
 			end
 		end
 
-		gunVisibilityUpdateConnection = Observer(
-			Computed(function(use) return use(ClientStateUtility.isGunEnabled)[player.UserId] end)
+		gunVisibilityUpdateConnection = scope:Observer(
+			scope:Computed(function(use) return use(ClientStateUtility.isGunEnabled)[player.UserId] end)
 		):onChange(onGunEnabledChanged)
 
 		onGunEnabledChanged()

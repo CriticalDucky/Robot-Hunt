@@ -9,12 +9,9 @@ local ContextActionService = game:GetService "ContextActionService"
 local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
-local Observer = Fusion.Observer
-local Hydrate = Fusion.Hydrate
 local Out = Fusion.Out
 local peek = Fusion.peek
-local Value = Fusion.Value
-local Computed = Fusion.Computed
+local scope = Fusion.scoped(Fusion)
 
 local isCrawling = ClientState.actions.isCrawling
 
@@ -29,13 +26,13 @@ local trackCrawl: AnimationTrack?
 local trackIdle: AnimationTrack?
 local humanoid: Humanoid?
 local humanoidRootPart: BasePart?
-local humanoidMoveDirection = Value()
+local humanoidMoveDirection = scope:Value()
 
-local isMoving = Computed(function(Use)
+local isMoving = scope:Computed(function(Use)
     return Use(humanoidMoveDirection) and Use(humanoidMoveDirection).Magnitude > 0
 end)
 
-local state = Computed(function(Use)
+local state = scope:Computed(function(Use)
     local isMoving = Use(isMoving)
     local isCrawling = Use(isCrawling)
 
@@ -68,7 +65,7 @@ local function onCharacterAdded(character)
     trackCrawl.Priority = Enum.AnimationPriority.Action
     trackIdle.Priority = Enum.AnimationPriority.Action
 
-    Hydrate(humanoid) {
+    scope:Hydrate(humanoid) {
         [Out "MoveDirection"] = humanoidMoveDirection
     }
 end
@@ -128,7 +125,7 @@ local function onCrawlingStatusChange()
     end
 end
 
-Observer(state):onChange(onCrawlingStatusChange)
+scope:Observer(state):onChange(onCrawlingStatusChange)
 
 local function onCrawlRequest(_, inputState)
     if not humanoid or not trackCrawl or not trackIdle then

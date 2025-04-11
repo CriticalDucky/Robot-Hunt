@@ -8,16 +8,15 @@ local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Enums = require(ReplicatedFirst:WaitForChild "Enums")
 
-local Hydrate = Fusion.Hydrate
-local Computed = Fusion.Computed
+local scope = Fusion.scoped(Fusion)
 
 local player = Players.LocalPlayer
 
 local function onDescendantAdded(descendant)
 	if descendant:IsA "ProximityPrompt" then
 		if descendant.Name == "Battery" then
-			Hydrate(descendant) {
-				Enabled = Computed(function(use)
+			scope:Hydrate(descendant) {
+				Enabled = scope:Computed(function(use)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
 					if not playerData then return false end
@@ -35,8 +34,8 @@ local function onDescendantAdded(descendant)
 				end),
 			}
 		elseif descendant.Name == "Terminal" then
-			Hydrate(descendant) {
-				Enabled = Computed(function(use)
+			scope:Hydrate(descendant) {
+				Enabled = scope:Computed(function(use)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
 					if not playerData then return false end
@@ -69,8 +68,8 @@ local function onDescendantAdded(descendant)
 				return
 			end
 
-			Hydrate(descendant) {
-				Enabled = Computed(function(use)
+			scope:Hydrate(descendant) {
+				Enabled = scope:Computed(function(use)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 					local proximityPlayerData = use(ClientState.external.roundData.playerData)[proximityPlayer.UserId]
 

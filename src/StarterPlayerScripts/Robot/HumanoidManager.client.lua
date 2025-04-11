@@ -10,19 +10,17 @@ local Players = game:GetService "Players"
 local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
 
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
-local Hydrate = Fusion.Hydrate
-local Computed = Fusion.Computed
-local Spring = Fusion.Spring
+local scope = Fusion.scoped(Fusion)
 
 local isCrawling = ClientState.actions.isCrawling
 
 local player = Players.LocalPlayer
 
-local speedBoost = Computed(function()
+local speedBoost = scope:Computed(function()
     return false -- TODO: update this with the client state
 end)
 
-local cameraOffset = Spring(Computed(function(Use)
+local cameraOffset = scope:Spring(scope:Computed(function(Use)
     if Use(isCrawling) then
         return Vector3.new(0, -3, 0)
     else
@@ -33,8 +31,8 @@ end), 25, 1)
 local function onCharacterAdded(character)
     local humanoid = character:WaitForChild("Humanoid")
 
-    Hydrate(humanoid) {
-        WalkSpeed = Computed(function(use)
+    scope:Hydrate(humanoid) {
+        WalkSpeed = scope:Computed(function(use)
             local isCrawling = use(isCrawling)
             local isSpeedBoosted = use(speedBoost)
     
@@ -42,7 +40,7 @@ local function onCharacterAdded(character)
     
             return base_speed + if isSpeedBoosted then SPEED_BOOST else 0
         end),
-        JumpHeight = Computed(function(use)
+        JumpHeight = scope:Computed(function(use)
             local isCrawling = use(isCrawling)
     
             return if isCrawling then 0 else JUMP_HEIGHT

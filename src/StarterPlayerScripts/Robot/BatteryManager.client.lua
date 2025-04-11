@@ -12,14 +12,12 @@ local ClientServerCommunication = require(DataFolder:WaitForChild "ClientServerC
 local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
-local Observer = Fusion.Observer
-local Hydrate = Fusion.Hydrate
 local peek = Fusion.peek
-local Computed = Fusion.Computed
+local scope = Fusion.scoped(Fusion)
 
 local localPlayer = Players.LocalPlayer
 
-local isHoldingBattery = Computed(function(use)
+local isHoldingBattery = scope:Computed(function(use)
 	local batteryData = use(ClientState.external.roundData.batteryData)
 
 	for _, data in pairs(batteryData) do
@@ -63,8 +61,8 @@ local function onCharacterAdded(player: Player, character)
 	body:WaitForChild("Battery"):Destroy()
 
 	for _, part in { body, neon } do
-		Hydrate(part) {
-			Transparency = Computed(function(use)
+		scope:Hydrate(part) {
+			Transparency = scope:Computed(function(use)
 				local batteryDatas = use(ClientState.external.roundData.batteryData)
 
 				for _, batterData in pairs(batteryDatas) do
@@ -130,12 +128,12 @@ local function onPutDownRequest(_, state)
 	if state == Enum.UserInputState.End then ClientServerCommunication.replicateAsync "PutDownBattery" end
 end
 
-Observer(isHoldingBattery):onChange(onBatteryStatusChange)
-Observer(isCrawling):onChange(function() ClientServerCommunication.replicateAsync "PutDownBattery" end)
+scope:Observer(isHoldingBattery):onChange(onBatteryStatusChange)
+scope:Observer(isCrawling):onChange(function() ClientServerCommunication.replicateAsync "PutDownBattery" end)
 
 ClientServerCommunication.registerActionAsync "PutDownBattery"
 
-Observer(isHoldingBattery):onChange(function()
+scope:Observer(isHoldingBattery):onChange(function()
 	local isHoldingBattery = peek(isHoldingBattery)
 
 	if isHoldingBattery then

@@ -6,14 +6,13 @@ local ReplicatedFirst = game:GetService "ReplicatedFirst"
 
 local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
+local scope = Fusion.scoped(Fusion)
 
-local Observer = Fusion.Observer
 local peek = Fusion.peek
-local Computed = Fusion.Computed
 
 local player = Players.LocalPlayer
 
-local isHacking = Computed(function(use)
+local isHacking = scope:Computed(function(use)
 	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
 	return playerData and playerData.actions.isHacking or false
@@ -84,4 +83,4 @@ local function onHackingStatusChange()
     end
 end
 
-Observer(isHacking):onChange(onHackingStatusChange)
+scope:Observer(isHacking):onChange(onHackingStatusChange)
