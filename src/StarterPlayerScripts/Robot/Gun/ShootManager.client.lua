@@ -33,7 +33,7 @@ local isCrawling = ClientState.actions.isCrawling
 local isShooting = scope:Computed(function(use)
 	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 
-	return playerData and playerData.actions.isShooting or false
+	return playerData and playerData.actions.isShooting or false	
 end)
 
 local isHacking = scope:Computed(function(use)
@@ -203,6 +203,8 @@ local function onShootingStatusChange()
 			thread = nil
 		end
 
+		print("Stopping shooting")
+
 		local newPlayerData = peek(ClientState.external.roundData.playerData)
 
 		local playerData = newPlayerData[player.UserId]
@@ -211,7 +213,9 @@ local function onShootingStatusChange()
 			playerData.gunHitPosition = nil
 			playerData.victims = {}
 
-			ClientState.external.roundData.playerData:set(newPlayerData)
+			task.defer(function()
+				ClientState.external.roundData.playerData:set(newPlayerData)
+			end)
 		end
 
 		if not isDead and trackAim then trackAim:Stop() end
