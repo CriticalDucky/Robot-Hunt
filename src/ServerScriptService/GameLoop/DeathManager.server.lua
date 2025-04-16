@@ -17,7 +17,7 @@ RoundDataManager.onPlayerStatusUpdated:Connect(function(playerData)
 		local character = player.Character
 
 		if character then
-			character.HumanoidRootPart.Anchored = true
+			character.HumanoidRootPart.Anchored = true -- temporary; will change later :D
 		end
 	end
 end)
@@ -25,7 +25,7 @@ end)
 local function onPlayerManuallyQuits(player: Player)
 	local playerData = RoundDataManager.data.playerData[player.UserId]
 
-	if playerData and playerData.status ~= Enums.PlayerStatus.dead then
+	if playerData and playerData.status ~= Enums.PlayerStatus.dead and RoundDataManager.data.isGameOver == false then
 		RoundDataManager.killPlayer(player)
 	end
 end
@@ -33,5 +33,9 @@ end
 Players.PlayerRemoving:Connect(function(player) onPlayerManuallyQuits(player) end)
 
 Players.PlayerAdded:Connect(function(player)
-	player.CharacterRemoving:Connect(function(character) onPlayerManuallyQuits(player) end)
+	player.CharacterRemoving:Connect(function(character)
+		if RoundDataManager.data.currentPhaseType ~= Enums.PhaseType.Loading and not RoundDataManager.data.isGameOver then
+			onPlayerManuallyQuits(player)
+		end
+	end)
 end)
