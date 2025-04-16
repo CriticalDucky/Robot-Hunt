@@ -180,8 +180,9 @@ function DefaultRound.begin()
 					end)
 				end
 			end)
+			:catch(function(err) print("Error in default round: " .. err) end)
 
-		local playerStatusChangedConnection = RoundDataManager.onPlayerStatusUpdated:Connect(function()
+		local playerStatusChangedConnection = RoundDataManager.onPlayerStatusUpdated:Connect(function()	
 			local numActiveHunters = 0
 			local numActiveRebels = 0
 
@@ -197,8 +198,9 @@ function DefaultRound.begin()
 			end
 
 			if numActiveHunters == 0 or numActiveRebels == 0 then
+				print("Canceling round because one team is dead: " .. numActiveHunters .. " " .. numActiveRebels)
 				promise:cancel()
-				
+
 				for _, connection in pairs(connections) do
 					connection:Disconnect()
 				end
@@ -210,6 +212,8 @@ function DefaultRound.begin()
 		table.insert(connections, playerStatusChangedConnection)
 
 		onCancel(function()
+			print "Cancelling round"
+
 			promise:cancel()
 
 			for _, connection in pairs(connections) do
