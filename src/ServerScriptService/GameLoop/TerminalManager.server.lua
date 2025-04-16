@@ -30,9 +30,7 @@ function onClientPuzzleResult(player, terminalId, success)
 
 	-- remove from puzzle queue
 	local index = table.find(terminalData.puzzleQueue, player)
-	if index then
-		table.remove(terminalData.puzzleQueue, index)
-	end
+	if index then table.remove(terminalData.puzzleQueue, index) end
 
 	if success then
 		RoundDataManager.incrementTerminalProgress(terminalId, RoundConfiguration.puzzleBonusPerPlayer)
@@ -108,6 +106,22 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 	if playerData.actions.isHacking then return end
 	if playerData.actions.isShooting then return end
 
+	local seat = prompt.Parent.Parent:FindFirstChild "Seat" :: BasePart
+	local character = player.Character
+
+	if not seat or not character then return end
+
+	local characterPivot = character:GetPivot()
+	local seatPivot = seat:GetPivot()
+
+	-- Set the character's x and z position to the seat's x and z position
+	local destinationCFrame = CFrame.new(seatPivot.Position.X, characterPivot.Position.Y, seatPivot.Position.Z)
+
+	-- Set the character's rotation to the seat's rotation
+	destinationCFrame *= CFrame.Angles(0, seatPivot.Rotation.Y, 0)
+
+	character:PivotTo(destinationCFrame)
+
 	RoundDataManager.addHacker(terminalData.id, player.UserId)
 end)
 
@@ -116,11 +130,36 @@ RunService.Heartbeat:Connect(function(dt)
 		if terminalData.progress >= 100 then continue end
 
 		local numHackers = #terminalData.hackers
-		if terminalData.isPuzzleMode or numHackers == 0 then continue end
 
-		if terminalData.progress == 0 then
-			terminalData.cooldown = getRandomCooldownTime()
+		if numHackers == 0 then continue end
+
+		do
+			local zone = terminalData.model:FindFirstChild "Zone"
+
+			local parts = workspace:GetPartBoundsInBox(zone.CFrame, zone.Size)
+
+			for hacker in table.unpack(terminalData.hackers) do
+				local player = Players:GetPlayerByUserId(hacker)
+
+				if not player then RoundDataManager.removeHacker(terminalData.id, hacker) end
+
+				local character = player.Character
+
+				if not character then
+					RoundDataManager.removeHacker(terminalData.id, hacker)
+				else
+					for _, part in ipairs(parts) do
+						if part:IsDescendantOf(character) then
+							RoundDataManager.removeHacker(terminalData.id, hacker)
+						end
+					end
+				end
+			end
 		end
+
+		if terminalData.isPuzzleMode then continue end
+
+		if terminalData.progress == 0 then terminalData.cooldown = getRandomCooldownTime() end
 
 		RoundDataManager.incrementTerminalProgress(
 			terminalData.id,
