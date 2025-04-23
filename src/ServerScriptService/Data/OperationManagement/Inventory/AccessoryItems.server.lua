@@ -2,7 +2,7 @@
 
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
-local ClientServerCommunication = require(ReplicatedStorage.Shared.Data.ClientServerCommunication)
+local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
 
 --#endregion
 
