@@ -4,14 +4,20 @@
 
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
+local Players = game:GetService "Players"
 
 local replicatedStorageData = ReplicatedStorage:WaitForChild "Data"
+local roundDataFolder = replicatedStorageData:WaitForChild "RoundData"
 
 local ClientState = require(replicatedStorageData:WaitForChild "ClientState")
 local ClientServerCommunication = require(replicatedStorageData:WaitForChild "ClientServerCommunication")
+local ClientRoundDataUtility = require(roundDataFolder:WaitForChild("ClientRoundDataUtility"))
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Enums = require(ReplicatedFirst:WaitForChild "Enums")
 local Table = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Table")
+local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
+
+type RoundTerminalData = Types.RoundTerminalData
 
 local peek = Fusion.peek
 local roundData = ClientState.external.roundData
@@ -426,6 +432,56 @@ ClientServerCommunication.registerActionAsync("UpdateShootingStatus", function(d
 	roundData.playerData:set(newPlayerData)
 end)
 
+ClientServerCommunication.registerActionAsync("UpdateTerminalData", function(data: RoundTerminalData & {_states: {[string]: any}? })
+	local terminalId = data.id
+
+	local newTerminalData = peek(roundData.terminalData)
+	local terminal
+	do
+		for _, t in pairs(newTerminalData) do
+			if t.id == terminalId then
+				terminal = t
+				break
+			end
+		end
+	end
+
+	if not newTerminalData or not terminal then
+		return
+	end
+
+	if data._states then
+		for key, value in pairs(data._states) do
+			terminal[key] = value
+		end
+
+		data._states = nil
+	end
+
+	for key, value in pairs(data) do
+		terminal[key] = value
+	end
+
+	roundData.terminalData:set(newTerminalData)
+
+	-- Now, we need to set isHacking for all players based on if they appear in terminal.hackers
+
+	local newPlayerData = peek(roundData.playerData)
+	for _, playerData in pairs(newPlayerData) do
+		if table.find(terminal.hackers, Players:GetPlayerByUserId(playerData.playerId)) then
+			playerData.actions.isHacking = true
+		else
+			playerData.actions.isHacking = false
+		end
+	end
+
+	roundData.playerData:set(newPlayerData)
+end)
+
+ClientServerCommunication.registerActionAsync("PromptTerminalPuzzle", function(data)
+	-- beh
+end)
+
 --[[
 	function RoundDataManager.setUpRound(
 	roundType: number,
@@ -459,6 +515,8 @@ ClientServerCommunication.registerActionAsync("SetUpRound", function(data)
 	roundData.playerData:set(data.playerData)
 	roundData.terminalData:set(data.terminalData)
 	roundData.batteryData:set(data.batteryData)
+
+	ClientRoundDataUtility.setUpRound:Fire()
 end)
 
 ClientServerCommunication.replicateAsync("InitializeRoundData")
