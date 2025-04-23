@@ -74,7 +74,9 @@ function DefaultRound.begin()
 				local terminalModels = terminalsFolder:GetChildren()
 
 				local numDesiredBatteries = math.ceil(#batteryModels * batteryPercentage)
-				local numDesiredTerminals = math.max(totalTerminals, #terminalModels)
+				local numDesiredTerminals = math.min(totalTerminals, #terminalModels)
+
+				numRequiredTerminals = math.min(numRequiredTerminals, #terminalModels)
 
 				-- now we delete some of the models to get the desired amount (make sure its random)
 
@@ -105,6 +107,8 @@ function DefaultRound.begin()
 
 					data.id = i
 					data.model = model
+
+					model:WaitForChild("Id").Value = i
 
 					data.hackers = {}
 
@@ -146,43 +150,43 @@ function DefaultRound.begin()
 
 				-- may the best team win >;)
 			end)
-			:andThenCall(Modules.DefaultRound.Infiltration.begin)
-			:andThenCall(Modules.DefaultRound.PhaseOne.begin)
 			:andThen(function()
-				local function enoughTerminalsHacked()
-					return true
-					-- local numTerminalsHacked = 0
+				-- Resolves once enough terminals are hacked
+				local terminalsHackedPromise = Promise.fromEvent(RoundDataManager.onTerminalDataUpdated, function()
+					local numTerminalsHacked = 0
 
-					-- for _, terminalData in RoundDataManager.data.terminalData do
-					-- 	if terminalData.status == Enums.TerminalStatus.hacked then
-					-- 		numTerminalsHacked += 1
-					-- 	end
-					-- end
-
-					-- if numTerminalsHacked >= numRequiredTerminals then
-					-- 	return true
-					-- else
-					-- 	return false
-					-- end
-				end
-
-				if enoughTerminalsHacked() then
-					return Modules.DefaultRound.PhaseTwo.begin()
-				else -- uh oh
-					return Modules.DefaultRound.Purge.begin():andThen(function()
-						if enoughTerminalsHacked() then
-							return Modules.DefaultRound.PhaseTwo.begin()
-						else
-							-- Tie
-
-							return
+					for _, terminalData in pairs(RoundDataManager.data.terminalData) do
+						if terminalData.progress >= 100 then
+							numTerminalsHacked += 1
 						end
-					end)
+					end
+
+					if numTerminalsHacked >= numRequiredTerminals then
+						return true
+					else
+						return false
+					end
+				end)
+
+				return Promise.race {
+					terminalsHackedPromise,
+					Modules.DefaultRound.Infiltration
+						.begin()
+						:andThenCall(Modules.DefaultRound.PhaseOne.begin)
+						:andThenCall(Modules.DefaultRound.Purge.begin)
+						:andThenReturn(false)
+				}
+			end)
+			:andThen(function(terminalsComplete: boolean)
+				if terminalsComplete then
+					return Modules.DefaultRound.PhaseTwo.begin()
+				else
+					return -- Tie
 				end
 			end)
 			:catch(function(err) print("Error in default round: " .. err) end)
 
-		local playerStatusChangedConnection = RoundDataManager.onPlayerStatusUpdated:Connect(function()	
+		local playerStatusChangedConnection = RoundDataManager.onPlayerStatusUpdated:Connect(function()
 			local numActiveHunters = 0
 			local numActiveRebels = 0
 
