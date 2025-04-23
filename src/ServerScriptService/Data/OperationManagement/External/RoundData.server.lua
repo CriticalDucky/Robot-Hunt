@@ -15,6 +15,7 @@ ClientServerCommunication.registerActionAsync("InitializeRoundData", function(pl
 end)
 
 ClientServerCommunication.registerActionAsync("SetPhase")
+ClientServerCommunication.registerActionAsync("MapLoadingFinished")
 ClientServerCommunication.registerActionAsync("UpdateVictims")
 ClientServerCommunication.registerActionAsync("KillPlayer")
 ClientServerCommunication.registerActionAsync("RevivePlayer")
@@ -23,5 +24,4 @@ ClientServerCommunication.registerActionAsync("UpdateLifeSupport")
 ClientServerCommunication.registerActionAsync("UpdateAmmo")
 ClientServerCommunication.registerActionAsync("UpdateBatteryStatus")
 ClientServerCommunication.registerActionAsync("UpdateTerminalData")
-ClientServerCommunication.registerActionAsync("PromptTerminalPuzzle")
 ClientServerCommunication.registerActionAsync("SetUpRound")
