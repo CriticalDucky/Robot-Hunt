@@ -79,8 +79,8 @@ local function onDescendantAdded(descendant)
 							if data.id == terminalId then
 								terminalData = data
 								break
-							else -- print:
-								print("Terminal data not found?????")
+							else
+								
 							end
 						end
 					end
@@ -101,7 +101,6 @@ local function onDescendantAdded(descendant)
 			local proximityPlayer = Players:GetPlayerFromCharacter(descendant.Parent.Parent)
 
 			if not proximityPlayer then
-				print "No player found"
 				return
 			end
 

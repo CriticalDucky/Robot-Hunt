@@ -203,8 +203,6 @@ local function onShootingStatusChange()
 			thread = nil
 		end
 
-		print("Stopping shooting")
-
 		local newPlayerData = peek(ClientState.external.roundData.playerData)
 
 		local playerData = newPlayerData[player.UserId]

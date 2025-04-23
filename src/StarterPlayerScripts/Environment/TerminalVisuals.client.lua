@@ -70,8 +70,6 @@ function hydrateInstances()
                             local isComplete = terminalData.progress >= 100
                             local isErrored = terminalData.isErrored
 
-                            warn(isErrored)
-
                             if isComplete then
                                 return completeColorValue.Value
                             elseif isErrored then
