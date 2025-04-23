@@ -34,6 +34,26 @@ local function onDescendantAdded(descendant)
 				end),
 			}
 		elseif descendant.Name == "Terminal" then
+			local rootTerminalModel = descendant:FindFirstAncestor "Terminal" :: Folder
+			local terminalIdValue = rootTerminalModel:WaitForChild("Id") :: IntValue
+			local terminalId = terminalIdValue.Value
+			
+			if terminalId == 0 then
+				local timeElapsed = 0
+
+				repeat
+					timeElapsed += task.wait()
+					print("waiting bbbbb")
+				until terminalIdValue.Value ~= 0 or timeElapsed >= 60 -- this only happens in an edge case where the map is deleted before stuff laods
+
+				terminalId = terminalIdValue.Value
+
+				if terminalId == 0 then
+					warn("Terminal ID is still 0 after waiting")
+					return
+				end
+			end
+
 			scope:Hydrate(descendant) {
 				Enabled = scope:Computed(function(use)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
@@ -44,13 +64,35 @@ local function onDescendantAdded(descendant)
 
 					local currentPhase = use(ClientState.external.roundData.currentPhaseType)
 
-					if not RoundConfiguration.roundPhases[currentPhase] then return false end
-					if currentPhase == Enums.PhaseType.PhaseTwo then return false end
+					if not RoundConfiguration.terminalPhases[currentPhase] then return false end
 
 					local isCrawling = use(ClientState.actions.isCrawling)
 					local isShooting = playerData.actions.isShooting
 					local isHacking = playerData.actions.isHacking
 					local isAlive = playerData.status == Enums.PlayerStatus.alive
+
+					local terminalData 
+					do
+						local terminalDatas = use(ClientState.external.roundData.terminalData)
+
+						for _, data in pairs(terminalDatas) do
+							if data.id == terminalId then
+								terminalData = data
+								break
+							else -- print:
+								print("Terminal data not found?????")
+							end
+						end
+					end
+					if not terminalData then
+						warn("Terminal data not found: " .. terminalId)
+						return false
+					end
+					if terminalData.progress >= 100 then
+						warn("????")
+
+						return false
+					end
 
 					return not isCrawling and not isShooting and not isHacking and isAlive
 				end),
