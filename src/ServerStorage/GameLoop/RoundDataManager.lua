@@ -104,14 +104,18 @@ end
 local RoundDataManager = {}
 
 -- Events for data updates
-local onDataUpdatedEvent = Instance.new "BindableEvent"
+local onDataUpdatedEvent = Instance.new "BindableEvent" -- should rarely be used; only for reflective uses and not reciprocal
 local onPlayerStatusUpdatedEvent = Instance.new "BindableEvent"
 local onHealthDataUpdatedEvent = Instance.new "BindableEvent"
+local onPhaseChangedEvent = Instance.new "BindableEvent"
+local onTerminalDataUpdatedEvent = Instance.new "BindableEvent"
 
 RoundDataManager.data = roundData
 RoundDataManager.onDataUpdated = onDataUpdatedEvent.Event :: RBXScriptSignal<RoundData>
+RoundDataManager.onPhaseChanged = onPhaseChangedEvent.Event :: RBXScriptSignal<RoundData>
 RoundDataManager.onPlayerStatusUpdated = onPlayerStatusUpdatedEvent.Event :: RBXScriptSignal<RoundPlayerData>
 RoundDataManager.onHealthDataUpdated = onHealthDataUpdatedEvent.Event :: RBXScriptSignal<RoundPlayerData>
+RoundDataManager.onTerminalDataUpdated = onTerminalDataUpdatedEvent.Event :: RBXScriptSignal<RoundTerminalData>
 
 --[[
     Initializes round data for a specific player or all players.
@@ -154,6 +158,7 @@ function RoundDataManager.setPhase(phaseType: number, endTime: number?)
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
+	onPhaseChangedEvent:Fire(roundData)
 end
 
 --[[
@@ -508,10 +513,21 @@ function RoundDataManager.setTerminalHackers(terminalId: number, hackers: { Play
 
 	terminalData.hackers = hackers
 
+	for userId, playerData in pairs(roundData.playerData) do
+		if table.find(hackers, Players:GetPlayerByUserId(playerData.playerId)) then
+			playerData.actions.isHacking = true
+		else
+			playerData.actions.isHacking = false
+		end
+	end
+
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
 		id = terminalId,
 		hackers = hackers,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
+	onTerminalDataUpdatedEvent:Fire(terminalData)
 end
 
 function RoundDataManager.addHacker(terminalId: number, hacker: Player)
@@ -521,23 +537,53 @@ function RoundDataManager.addHacker(terminalId: number, hacker: Player)
 
 	table.insert(terminalData.hackers, hacker)
 
+	for userId, playerData in pairs(roundData.playerData) do
+		if userId == hacker.UserId then
+			playerData.actions.isHacking = true
+		end
+	end
+
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
 		id = terminalId,
 		hackers = terminalData.hackers,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
+	onTerminalDataUpdatedEvent:Fire(terminalData)
 end
 
-function RoundDataManager.removeHacker(terminalId: number, hacker: Player)
+function RoundDataManager.removeHackers(terminalId: number, hackers: Player | { Player })
 	local terminalData = roundData.terminalData[terminalId]
 
 	assert(terminalData, "Terminal data does not exist")
 
-	table.remove(terminalData.hackers, table.find(terminalData.hackers, hacker))
+	if typeof(hackers) == "table" then
+		for _, hacker in ipairs(hackers) do
+			table.remove(terminalData.hackers, table.find(terminalData.hackers, hacker))
+
+			for userId, playerData in pairs(roundData.playerData) do
+				if userId == hacker.UserId then
+					playerData.actions.isHacking = false
+				end
+			end
+		end
+	else
+		table.remove(terminalData.hackers, table.find(terminalData.hackers, hackers))
+
+		for userId, playerData in pairs(roundData.playerData) do
+			if userId == hackers.UserId then
+				playerData.actions.isHacking = false
+			end
+		end
+	end
 
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
 		id = terminalId,
 		hackers = terminalData.hackers,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
+	onTerminalDataUpdatedEvent:Fire(terminalData)
 end
 
 function RoundDataManager.setTerminalProgress(terminalId: number, progress: number)
@@ -551,6 +597,9 @@ function RoundDataManager.setTerminalProgress(terminalId: number, progress: numb
 		id = terminalId,
 		progress = progress,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
+	onTerminalDataUpdatedEvent:Fire(terminalData)
 end
 
 function RoundDataManager.incrementTerminalProgress(terminalId: number, amount: number)
@@ -580,8 +629,11 @@ function RoundDataManager.setTerminalStates(terminalId: number, states: { [strin
 
 	ClientServerCommunication.replicateAsync("UpdateTerminalData", {
 		id = terminalId,
-		states = states,
+		_states = states,
 	})
+
+	onDataUpdatedEvent:Fire(roundData)
+	onTerminalDataUpdatedEvent:Fire(terminalData)
 end
 
 function RoundDataManager.setUpRound(
