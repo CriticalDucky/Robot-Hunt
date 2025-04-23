@@ -1,5 +1,5 @@
 --!strict
-local DEBUG_MULTIPLIER = 0.1
+local DEBUG_MULTIPLIER = 1
 local MINUTE = 60
 
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
@@ -31,6 +31,12 @@ local RoundConfiguration = {
 			[PhaseType.Results] = 10,
 			[PhaseType.Loading] = 5,
 		}
+	},
+
+	terminalPhases = {
+		[PhaseType.Infiltration] = true,
+		[PhaseType.PhaseOne] = true,
+		[PhaseType.Purge] = true,
 	},
 
 	lobbyPhases = {
@@ -72,7 +78,7 @@ local RoundConfiguration = {
 	maxTerminals = 6, -- Otherwise, the number of terminals is the number of players.
 	minTerminals = 2,
 	extraTerminals = 1,
-	terminalProgressPerSecondPerPlayer = 1/48,
+	terminalProgressPerSecondPerPlayer = 100/30,
 	minTerminalCooldown = 8,
 	maxTerminalCooldown = 12,
 	puzzleTimeout = 5,
