@@ -6,21 +6,20 @@ local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
 
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
 
-local Computed = Fusion.Computed
-local Hydrate = Fusion.Hydrate
+local scope = Fusion.scoped(Fusion)
 
-local musicVolume = Computed(function(use)
+local musicVolume = scope:Computed(function(use)
 	-- return ClientPlayerSettings.withData.getSetting(use(ClientPlayerSettings.value), "musicVolume")
 end)
 
-local sfxVolume = Computed(function(use)
+local sfxVolume = scope:Computed(function(use)
 	-- return ClientPlayerSettings.withData.getSetting(use(ClientPlayerSettings.value), "sfxVolume")
 end)
 
-Hydrate(SoundService:WaitForChild "Music") {
+scope:Hydrate(SoundService:WaitForChild "Music") {
 	Volume = musicVolume,
 }
 
-Hydrate(SoundService:WaitForChild "SFX") {
+scope:Hydrate(SoundService:WaitForChild "SFX") {
 	Volume = sfxVolume,
 }
