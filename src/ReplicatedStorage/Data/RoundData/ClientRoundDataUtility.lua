@@ -5,6 +5,7 @@ local dataFolder = ReplicatedStorage:WaitForChild("Data")
 local configurationFolder = ReplicatedStorage:WaitForChild("Configuration")
 
 local ClientState = require(dataFolder:WaitForChild("ClientState"))
+local ClientServerCommunication = require(dataFolder:WaitForChild("ClientServerCommunication"))
 local Enums = require(ReplicatedFirst:WaitForChild("Enums"))
 local RoundConfiguration = require(configurationFolder:WaitForChild("RoundConfiguration"))
 local PhaseType = Enums.PhaseType
@@ -12,10 +13,15 @@ local PhaseType = Enums.PhaseType
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild("Fusion"))
 
 local scope = Fusion.scoped(Fusion)
+local peek = Fusion.peek
 
 local roundPhases = RoundConfiguration.roundPhases
 
 local ClientRoundDataUtility = {}
+
+-- Event that fires when the map is finished loading
+ClientRoundDataUtility.mapLoadingFinished = Instance.new("BindableEvent")
+ClientRoundDataUtility.setUpRound = Instance.new("BindableEvent")
 
 -- Whether or not players are currently loaded into the map
 ClientRoundDataUtility.isRoundActive = scope:Computed(function(use)
@@ -59,6 +65,27 @@ ClientRoundDataUtility.isGunEnabled = scope:Computed(function(use)
     end
     
     return resultTable
+end)
+
+ClientRoundDataUtility.isHacking = scope:Computed(function(use)
+    local roundData = ClientState.external.roundData
+    local playerData = use(roundData.playerData)
+
+    local clientPlayerData
+    do
+        for _, data in pairs(playerData) do
+            if data.playerId == game.Players.LocalPlayer.UserId then
+                clientPlayerData = data
+                break
+            end
+        end
+    end
+
+    return clientPlayerData and clientPlayerData.actions.isHacking or false
+end)
+
+ClientServerCommunication.registerActionAsync("MapLoadingFinished", function()
+    ClientRoundDataUtility.mapLoadingFinished:Fire()
 end)
 
 return ClientRoundDataUtility
