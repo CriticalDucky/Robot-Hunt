@@ -9,6 +9,7 @@ local Actions = require(GameLoop.Actions)
 local RoundDataManager = require(GameLoop.RoundDataManager)
 local Promise = require(ReplicatedFirst.Vendor.Promise)
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
+local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCommunication)
 local Enums = require(ReplicatedFirst.Enums)
 
 local Loading = {}
@@ -35,6 +36,9 @@ function Loading.begin()
 
 		timer:andThen(function()
 			print "Loading ended"
+
+			ClientServerCommunication.replicateAsync("MapLoadingFinished")
+
 			resolve()
 		end)
 
