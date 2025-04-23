@@ -26,8 +26,6 @@ local humanoid: Humanoid?
 local humanoidRootPart: BasePart?
 
 local function onCharacterAdded(character)
-    isHacking:set(false)
-
     humanoid = character:WaitForChild "Humanoid"
     humanoidRootPart = character:WaitForChild "HumanoidRootPart"
 
@@ -42,6 +40,7 @@ local function onCharacterAdded(character)
     assert(trackHack, "Failed to load animations")
 
     trackHack.Priority = Enum.AnimationPriority.Action
+    trackHack.Looped = true
 end
 
 player.CharacterAdded:Connect(onCharacterAdded)
@@ -51,8 +50,6 @@ if player.Character then
 end
 
 player.CharacterRemoving:Connect(function()
-    isHacking:set(false)
-
     if not humanoid or not trackHack then
         return
     end
