@@ -1,0 +1,4 @@
+doublejump: rbxassetid://133431488803015
+dive: rbxassetid://89948319008277
+bounce: rbxassetid://115140690072602
+roll: rbxassetid://93903768228879
