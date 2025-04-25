@@ -25,12 +25,11 @@ local function onDescendantAdded(descendant)
 
 					if not RoundConfiguration.roundPhases[currentPhase] then return false end
 
-					local isCrawling = use(ClientState.actions.isCrawling)
 					local isShooting = playerData.actions.isShooting
 					local isHacking = playerData.actions.isHacking
 					local isAlive = playerData.status == Enums.PlayerStatus.alive
 
-					return not isCrawling and not isShooting and not isHacking and isAlive
+					return not isShooting and not isHacking and isAlive
 				end),
 			}
 		elseif descendant.Name == "Terminal" then
@@ -66,7 +65,7 @@ local function onDescendantAdded(descendant)
 
 					if not RoundConfiguration.terminalPhases[currentPhase] then return false end
 
-					local isCrawling = use(ClientState.actions.isCrawling)
+					local parkourState = use(ClientState.actions.parkourState)
 					local isShooting = playerData.actions.isShooting
 					local isHacking = playerData.actions.isHacking
 					local isAlive = playerData.status == Enums.PlayerStatus.alive
@@ -94,7 +93,7 @@ local function onDescendantAdded(descendant)
 						return false
 					end
 
-					return not isCrawling and not isShooting and not isHacking and isAlive
+					return parkourState == Enums.ParkourState.grounded and not isShooting and not isHacking and isAlive
 				end),
 			}
 		elseif descendant.Name == "HealRobot" then
@@ -135,12 +134,11 @@ local function onDescendantAdded(descendant)
 						end
 					end
 
-					local isCrawling = use(ClientState.actions.isCrawling)
 					local isShooting = playerData.actions.isShooting
 					local isHacking = playerData.actions.isHacking
 					local isAlive = playerData.status == Enums.PlayerStatus.alive
 
-					return not isCrawling and not isShooting and not isHacking and isAlive and isHoldingBattery
+					return not isShooting and not isHacking and isAlive and isHoldingBattery
 				end),
 			}
 		end

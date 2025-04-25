@@ -27,8 +27,6 @@ local isHoldingBattery = scope:Computed(function(use)
 	return false
 end)
 
-local isCrawling = ClientState.actions.isCrawling
-
 local batteryAnimation = Instance.new "Animation"
 batteryAnimation.AnimationId = BATTERY_ANIMATION
 
@@ -129,7 +127,6 @@ local function onPutDownRequest(_, state)
 end
 
 scope:Observer(isHoldingBattery):onChange(onBatteryStatusChange)
-scope:Observer(isCrawling):onChange(function() ClientServerCommunication.replicateAsync "PutDownBattery" end)
 
 ClientServerCommunication.registerActionAsync "PutDownBattery"
 

@@ -8,6 +8,7 @@ assert(RunService:IsClient(), "ClientState can only be required on the client.")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
 local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
+local Enums = require(ReplicatedFirst:WaitForChild("Enums"))
 
 type PlayerPersistentData = Types.PlayerPersistentData
 type RoundPlayerData = Types.RoundPlayerData
@@ -56,7 +57,7 @@ local ClientState = {
 	},
 
 	actions = {
-		isCrawling = scope:Value(false :: boolean),
+		parkourState = scope:Value(Enums.ParkourState.grounded),
 	}
 }
 

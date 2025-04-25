@@ -14,6 +14,7 @@ local ClientServerCommunication = require(dataFolder:WaitForChild "ClientServerC
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Mouse = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Mouse")
 local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
+local Enums = require(ReplicatedFirst.Enums)
 
 local peek = Fusion.peek
 local scope = Fusion.scoped(Fusion)
@@ -28,7 +29,7 @@ local humanoidRootPart: BasePart?
 local gunTipAttachmentObjectValue: ObjectValue?
 local hitboxObjectValue: ObjectValue?
 
-local isCrawling = ClientState.actions.isCrawling
+local parkourState = ClientState.actions.parkourState
 
 local isShooting = scope:Computed(function(use)
 	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
@@ -237,7 +238,7 @@ scope:Observer(isGunEnabled):onChange(onShootingStatusChange)
 local function onShootRequest(_, inputState)
 	if not humanoid or not trackAim or not humanoidRootPart then return end
 
-	if peek(isHacking) or peek(isCrawling) or not peek(isGunEnabled) then return end
+	if peek(isHacking) or peek(parkourState) == Enums.ParkourState.roll or not peek(isGunEnabled) then return end
 
 	local newPlayerData = peek(ClientState.external.roundData.playerData)
 	local playerData = newPlayerData[player.UserId]
