@@ -39,7 +39,14 @@
 
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "$path": "src/ServerScriptService"
+      "$path": "src/ServerScriptService",
+
+      "Nevermore": {
+        "$className": "Folder",
+        "node_modules": {
+          "$path": "node_modules"
+        }
+      }
     },
 
     "ServerStorage": {
@@ -74,7 +81,10 @@
       }
     },
 
-    
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$path": "src/StarterGui"
+    },
 
     "Workspace": {
       "$className": "Workspace",
