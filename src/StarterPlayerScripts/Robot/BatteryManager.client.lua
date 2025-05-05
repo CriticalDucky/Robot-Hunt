@@ -1,4 +1,4 @@
-local BATTERY_ANIMATION = "rbxassetid://16082327113"
+local BATTERY_ANIMATION = "rbxassetid://103853746609161"
 
 local Players = game:GetService "Players"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
@@ -49,12 +49,15 @@ local function onCharacterAdded(player: Player, character)
 
 		assert(trackBattery, "Failed to load animation")
 
-		trackBattery.Priority = Enum.AnimationPriority.Action2
+		-- trackBattery.Priority = Enum.AnimationPriority.Action2
 	end
 
 	local batteryModel = character:WaitForChild "Battery"
-	local body = batteryModel:WaitForChild "Body"
-	local neon = batteryModel:WaitForChild "Neon"
+	local body = batteryModel:WaitForChild "Body" :: MeshPart
+	local neon = batteryModel:WaitForChild "Neon" :: MeshPart
+
+	body.Massless = true; body.CanCollide = false; body.CanQuery = false
+	neon.Massless = true; neon.CanCollide = false; neon.CanQuery = false
 
 	body:WaitForChild("Battery"):Destroy()
 
