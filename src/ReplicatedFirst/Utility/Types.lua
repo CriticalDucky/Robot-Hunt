@@ -74,7 +74,8 @@ export type RoundPlayerData = {
 	ammo: number?,
 
 	-- The position the player is shooting. Only exists on the client
-	gunHitPosition: Vector3?,
+	gunHitPositionL: Vector3?,
+	gunHitPositionR: Vector3?,
 
 	-- The player's various actions.
 	actions: {
