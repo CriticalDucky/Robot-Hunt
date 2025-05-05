@@ -79,7 +79,8 @@ function getFilteredData(player: Player)
 			armor = playerData.armor,
 			lifeSupport = playerData.lifeSupport,
 			ammo = playerData.ammo,
-			gunHitPosition = if playerData.playerId ~= player.UserId then playerData.gunHitPosition else nil,
+			gunHitPositionL = if playerData.playerId ~= player.UserId then playerData.gunHitPositionL else nil,
+			gunHitPositionR = if playerData.playerId ~= player.UserId then playerData.gunHitPositionR else nil,
 			actions = playerData.actions,
 			stats = playerData.stats,
 		}
@@ -186,7 +187,8 @@ function RoundDataManager.createNewPlayerData(player: Player, team: number): Rou
 
 		ammo = 100,
 
-		gunHitPosition = nil,
+		gunHitPositionL = nil,
+		gunHitPositionR = nil,
 
 		actions = {
 			isHacking = false,
@@ -264,7 +266,8 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 	playerData.health = 0
 	playerData.armor = 0
 	playerData.lifeSupport = 0
-	playerData.gunHitPosition = nil
+	playerData.gunHitPositionL = nil
+	playerData.gunHitPositionR = nil
 	playerData.victims = {}
 
 	for _, otherPlayerData in pairs(roundData.playerData) do
@@ -462,20 +465,23 @@ end
 
     @param player Player - The player whose shooting status is being updated.
     @param value boolean - Whether the player is shooting.
-    @param gunHitPosition Vector3? - The position where the gun hit, if applicable.
+    @param gunHitPositionL Vector3? - The position where the gun hit, if applicable.
+	@param gunHitPositionR Vector3? - The position where the gun hit, if applicable.
 ]]
-function RoundDataManager.updateShootingStatus(player: Player, value: boolean, gunHitPosition: Vector3?)
+function RoundDataManager.updateShootingStatus(player: Player, value: boolean, gunHitPositionL: Vector3?, gunHitPositionR: Vector3?)
 	local playerData = roundData.playerData[player.UserId]
 
 	assert(playerData, "Player data does not exist")
 
 	playerData.actions.isShooting = value
-	playerData.gunHitPosition = gunHitPosition -- nil if not shooting
+	playerData.gunHitPositionL = gunHitPositionL -- nil if not shooting
+	playerData.gunHitPositionR = gunHitPositionR -- nil if not shooting
 
 	ClientServerCommunication.replicateAsync("UpdateShootingStatus", {
 		playerId = player.UserId,
 		value = value,
-		gunHitPosition = gunHitPosition,
+		gunHitPositionL = gunHitPositionL,
+		gunHitPositionR = gunHitPositionR,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
