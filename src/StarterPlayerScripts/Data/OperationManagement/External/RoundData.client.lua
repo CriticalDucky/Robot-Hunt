@@ -394,18 +394,20 @@ ClientServerCommunication.registerActionAsync("UpdateBatteryStatus", function(da
 end)
 
 --[[
-	function RoundDataManager.updateShootingStatus(player: Player, value: boolean, gunHitPosition: Vector3?)
+	function RoundDataManager.updateShootingStatus(player: Player, value: boolean, gunHitPositionL: Vector3?, gunHitPositionR: Vector3?)
 	local playerData = roundData.playerData[player.UserId]
 
 	assert(playerData, "Player data does not exist")
 
 	playerData.actions.isShooting = value
-	playerData.gunHitPosition = gunHitPosition -- nil if not shooting
+	playerData.gunHitPositionL = gunHitPositionL -- nil if not shooting
+	playerData.gunHitPositionR = gunHitPositionR -- nil if not shooting
 
 	ClientServerCommunication.replicateAsync("UpdateShootingStatus", {
 		playerId = player.UserId,
 		value = value,
-		gunHitPosition = gunHitPosition,
+		gunHitPositionL = gunHitPositionL,
+		gunHitPositionR = gunHitPositionR,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
@@ -425,7 +427,8 @@ ClientServerCommunication.registerActionAsync("UpdateShootingStatus", function(d
 	end
 
 	if playerId ~= game.Players.LocalPlayer.UserId then
-		playerData.gunHitPosition = data.gunHitPosition
+		playerData.gunHitPositionL = data.gunHitPositionL
+		playerData.gunHitPositionR = data.gunHitPositionR
 		playerData.actions.isShooting = value
 	end
 
