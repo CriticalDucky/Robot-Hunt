@@ -1,193 +1,222 @@
-local ServerStorage = game:GetService "ServerStorage"
-local ReplicatedFirst = game:GetService "ReplicatedFirst"
-local ReplicatedStorage = game:GetService "ReplicatedStorage"
+-- ServerGunManagerDual.lua  – supports two barrels & two GunCage parts
+---------------------------------------------------------------------
+-- SERVICES
+---------------------------------------------------------------------
+local SS = game:GetService "ServerStorage"
+local RF = game:GetService "ReplicatedFirst"
+local RS = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
 local RunService = game:GetService "RunService"
 
-local GameLoop = ServerStorage.GameLoop
-local Data = ReplicatedStorage.Data
-
-local RoundDataManager = require(GameLoop.RoundDataManager)
-local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
-local ClientServerCommunication = require(Data.ClientServerCommunication)
-local Enums = require(ReplicatedFirst.Enums)
+---------------------------------------------------------------------
+-- MODULES
+---------------------------------------------------------------------
+local RoundDataManager = require(SS.GameLoop.RoundDataManager)
+local RoundConfig = require(RS.Configuration.RoundConfiguration)
+local Net = require(RS.Data.ClientServerCommunication)
+local Enums = require(RF.Enums)
 
 local roundData = RoundDataManager.data
 
---[[
-    This function checks if the player can be shooting. This does not do phyisical checks,
-    only checks if the player is in the correct state to be shooting.
-
-    If the result of the function is false, the gun must be stopped from shooting.
-]]
-local function canBeShooting(player: Player): boolean
-	local playerData = roundData.playerData[player.UserId]
-
-	if not playerData then return false end
-	if playerData.status ~= Enums.PlayerStatus.alive then return false end
-	if playerData.ammo <= 0 then return false end
-	if playerData.actions.isHacking then return false end
+---------------------------------------------------------------------
+-- helpers
+---------------------------------------------------------------------
+local function canBeShooting(plr: Player): boolean
+	local pd = roundData.playerData[plr.UserId]
+	if not pd then return false end
+	if pd.status ~= Enums.PlayerStatus.alive then return false end
+	if pd.ammo <= 0 then return false end
+	if pd.actions.isHacking then return false end
 
 	if roundData.currentRoundType == Enums.RoundType.defaultRound then
-		local currentPhase = roundData.currentPhaseType
-
-		local gunPerms = {
-			[Enums.TeamType.rebels] = {
-				[Enums.PhaseType.PhaseTwo] = true,
-			},
+		local phase = roundData.currentPhaseType
+		local perms = {
+			[Enums.TeamType.rebels] = { [Enums.PhaseType.PhaseTwo] = true },
 			[Enums.TeamType.hunters] = {
 				[Enums.PhaseType.PhaseOne] = true,
 				[Enums.PhaseType.PhaseTwo] = true,
 				[Enums.PhaseType.Purge] = true,
 			},
 		}
-
-		if not gunPerms[playerData.team][currentPhase] then return false end
+		if not perms[pd.team][phase] then return false end
 	end
 
 	return true
 end
 
-local function getHitPositionAndVictim(
-	player: Player,
-	hitPosition: Vector3
-): { hitPosition: Vector3?, victim: Player?, distance: number? }
-	local character = player.Character -- the character must exist, if it errors then we dont care
-
-	local referencesFolder = character.Gun.References :: Configuration
-	local gunTipAttachment = referencesFolder.AttachmentTip.Value :: Attachment
-	local hitbox = referencesFolder.Hitbox.Value :: BasePart
-
-	local function isAnythingIntersectingGun(): boolean
-		local overlapParams = OverlapParams.new()
-		overlapParams.FilterDescendantsInstances = { player.Character }
-
-		local intersectingParts = workspace:GetPartsInPart(hitbox, overlapParams)
-
-		for _, part in ipairs(intersectingParts) do
-			if part:IsDescendantOf(player.Character) then continue end
-
-			return true
+---------------------------------------------------------------------
+-- collision check using two GunCage parts
+---------------------------------------------------------------------
+local function gunColliding(char: Model): boolean
+	local cages = {
+		char:FindFirstChild "LeftGunCage",
+		char:FindFirstChild "RightGunCage",
+	}
+	local params = OverlapParams.new()
+	params.FilterDescendantsInstances = { char }
+	for _, cage in ipairs(cages) do
+		if cage then
+			for _, p in ipairs(workspace:GetPartsInPart(cage, params)) do
+				if not p:IsDescendantOf(char) then return true end
+			end
 		end
-
-		return false
 	end
-
-	local direction = (hitPosition - gunTipAttachment.WorldPosition).Unit
-	local distance = (hitPosition - gunTipAttachment.WorldPosition).Magnitude
-	local newHitPosition
-	local hitInstance
-
-	do
-		if isAnythingIntersectingGun() then return { hitPosition = nil, victim = nil } end
-
-        local guns = {}
-        do
-            for _, player in ipairs(Players:GetPlayers()) do
-                local char = player.Character
-
-                if char then
-                    local gun = char:FindFirstChild "Gun"
-
-                    if gun then table.insert(guns, gun) end
-                end
-            end
-        end
-
-        local params = RaycastParams.new()
-        params.FilterDescendantsInstances = { character, unpack(guns) }
-        params.FilterType = Enum.RaycastFilterType.Exclude
-
-		local raycastResult = workspace:Raycast(
-			gunTipAttachment.WorldPosition,
-			direction * 256,
-			params
-		)
-
-		newHitPosition = raycastResult and raycastResult.Position or gunTipAttachment.WorldPosition + direction * 256
-		hitInstance = raycastResult and raycastResult.Instance
-	end
-
-
-	if hitInstance then
-		local hitPlayer = Players:GetPlayerFromCharacter(hitInstance.Parent)
-
-		if hitPlayer then return { hitPosition = newHitPosition, victim = hitPlayer, distance = distance } end
-
-		return { hitPosition = newHitPosition, victim = nil, distance = distance }
-	else
-		return { hitPosition = newHitPosition, victim = nil, distance = distance }
-	end
+	return false
 end
 
-ClientServerCommunication.registerActionAsync(
-	"UpdateShootingStatus",
-	function(player: Player, data: { hitPosition: Vector3 }?)
-		if data then -- if the player is shooting
-			if not canBeShooting(player) then return end
-			local shootData = getHitPositionAndVictim(player, data.hitPosition)
+---------------------------------------------------------------------
+-- returns hitPos, victim and distance for a single muzzle
+---------------------------------------------------------------------
+local function solveRay(player: Player, tip: Vector3, hitPos: Vector3): { pos: Vector3, victim: Player?, dist: number }
+	local char = player.Character
+	local origin = tip
 
-            RoundDataManager.updateShootingStatus(player, true, shootData.hitPosition)
+	local dir = (hitPos - origin).Unit
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = { char }
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.IgnoreWater = true
 
-			if shootData.victim then
-				RoundDataManager.addVictim(player, shootData.victim)
-            else
-                RoundDataManager.removeVictim(player)
-            end
-		elseif roundData.playerData[player.UserId].actions.isShooting then
-			RoundDataManager.removeVictim(player)
-			RoundDataManager.updateShootingStatus(player, false)
-		end
+	local result = workspace:Raycast(origin, dir * 256, params)
+	hitPos = result and result.Position or (origin + dir * 256)
+	local hitInst = result and result.Instance
+	local victim = hitInst and Players:GetPlayerFromCharacter(hitInst.Parent) or nil
+	return { pos = hitPos, victim = victim, dist = (hitPos - origin).Magnitude }
+end
+
+---------------------------------------------------------------------
+-- per-player shoot resolve (handles both muzzles)
+---------------------------------------------------------------------
+local function getShootData(player: Player, hitPosL: Vector3?, hitPosR: Vector3?)
+	local char = player.Character
+	if not char then return nil end
+
+	local leftUpperArm = char:FindFirstChild "LeftUpperArm"
+	local rightUpperArm = char:FindFirstChild "RightUpperArm"
+	if not leftUpperArm or not rightUpperArm then
+		warn "LeftUpperArm or RightUpperArm not found"
+		return nil
 	end
-)
 
-RoundDataManager.onDataUpdated:Connect(function(roundData)
-	for userId, playerData in pairs(roundData.playerData) do
-        local player = Players:GetPlayerByUserId(userId)
+	-- if gun blocked -> no shot
+	if gunColliding(char) then
+		return {
+			hitL = nil,
+			hitR = nil,
+			victimL = nil,
+			victimR = nil,
+			distL = nil,
+			distR = nil,
+		}
+	end
 
-        if not player then continue end
+	local resL = if hitPosL then solveRay(player, leftUpperArm.Position, hitPosL) else nil
+	local resR = if hitPosR then solveRay(player, rightUpperArm.Position, hitPosR) else nil
 
-		if playerData.actions.isShooting then
-			if not canBeShooting(player) then
-				RoundDataManager.updateShootingStatus(player, false)
-			end
+	return {
+		hitL = resL.pos,
+		hitR = resR.pos,
+		victimL = resL.victim,
+		victimR = resR.victim,
+		distL = resL.dist,
+		distR = resR.dist,
+	}
+end
+
+---------------------------------------------------------------------
+-- NETWORK
+---------------------------------------------------------------------
+Net.registerActionAsync("UpdateShootingStatus", function(plr, data)
+	-- data may contain hitPositionL / hitPositionR when client is shooting
+	local pd = roundData.playerData[plr.UserId]
+	if not pd then return end
+
+	if data then
+		-- begin/continue shooting
+		if not canBeShooting(plr) then return end
+
+		local shot = getShootData(plr, data.gunHitPositionL, data.gunHitPositionR)
+
+		if not shot then return end
+
+		RoundDataManager.updateShootingStatus(plr, true, shot.hitL, shot.hitR)
+
+		-- victims
+		if
+			shot.victimL
+			and roundData.playerData[shot.victimL.UserId]
+			and roundData.playerData[shot.victimL.UserId].team ~= pd.team
+		then
+			RoundDataManager.addVictim(plr, shot.victimL)
+		elseif
+			shot.victimR
+			and roundData.playerData[shot.victimR.UserId]
+			and roundData.playerData[shot.victimR.UserId].team ~= pd.team
+		then
+			RoundDataManager.addVictim(plr, shot.victimR)
+		else
+			RoundDataManager.removeVictim(plr)
+		end
+	else
+		-- stop shooting
+		RoundDataManager.removeVictim(plr)
+		RoundDataManager.updateShootingStatus(plr, false)
+	end
+end)
+
+---------------------------------------------------------------------
+-- keep data consistent if player can no longer shoot
+---------------------------------------------------------------------
+RoundDataManager.onDataUpdated:Connect(function()
+	for uid, pd in pairs(roundData.playerData) do
+		local plr = Players:GetPlayerByUserId(uid)
+		if plr and pd.actions.isShooting and not canBeShooting(plr) then
+			RoundDataManager.updateShootingStatus(plr, false)
 		end
 	end
 end)
 
+---------------------------------------------------------------------
+-- DAMAGE LOOP
+---------------------------------------------------------------------
 RunService.Heartbeat:Connect(function(dt)
-    for userId, playerData in pairs(roundData.playerData) do
-        local player = Players:GetPlayerByUserId(userId)
+	for uid, pd in pairs(roundData.playerData) do
+		if not pd.actions.isShooting or not (pd.gunHitPositionL or pd.gunHitPositionR) then continue end
+		local plr = Players:GetPlayerByUserId(uid)
+		if not plr then continue end
 
-        if not player then continue end
+		local char = plr.Character
+		if not char then continue end
 
-        if playerData.actions.isShooting and playerData.gunHitPosition then
-            local shootData = getHitPositionAndVictim(player, playerData.gunHitPosition)
+		local cagesBlocked = gunColliding(char)
+		if cagesBlocked then continue end
 
-            if shootData.hitPosition and shootData.victim and shootData.distance then
-				local victimPlayerData = roundData.playerData[shootData.victim.UserId]
+		-- Left hit
+		if pd.gunHitPositionL then
+			local result = getShootData(plr, pd.gunHitPositionL, pd.gunHitPositionL)
+			if result.victimL and result.distL then
+				local victimPd = roundData.playerData[result.victimL.UserId]
+				if victimPd and victimPd.status == Enums.PlayerStatus.alive then
+					local dmg = RoundConfig.gunBaseDamagePerSecond
+						* RoundConfig.gunStrengthMultiplier ^ result.distL
+						* dt
+					RoundDataManager.incrementAccountedHealth(result.victimL, -dmg)
+				end
+			end
+		end
 
-				if not victimPlayerData then continue end
-				if victimPlayerData.status ~= Enums.PlayerStatus.alive then continue end
-
-                local damage
-
-                do
-                    local multiplier = RoundConfiguration.gunStrengthMultiplier
-                    local baseDamage = RoundConfiguration.gunBaseDamagePerSecond
-                    local powerupMultiplier = RoundConfiguration.gunPowerupMultiplier
-
-                    damage = baseDamage * multiplier ^ (shootData.distance)
-
-                    if false then -- if the player has a powerup (TODO: implement powerups)
-                        damage *= powerupMultiplier
-                    end
-
-                    damage *= dt
-                end
-
-                RoundDataManager.incrementAccountedHealth(shootData.victim, -damage)
-            end
-        end
-    end
+		-- Right hit
+		if pd.gunHitPositionR then
+			local result = getShootData(plr, pd.gunHitPositionR, pd.gunHitPositionR)
+			if result.victimR and result.distR then
+				local victimPd = roundData.playerData[result.victimR.UserId]
+				if victimPd and victimPd.status == Enums.PlayerStatus.alive then
+					local dmg = RoundConfig.gunBaseDamagePerSecond
+						* RoundConfig.gunStrengthMultiplier ^ result.distR
+						* dt
+					RoundDataManager.incrementAccountedHealth(result.victimR, -dmg)
+				end
+			end
+		end
+	end
 end)
