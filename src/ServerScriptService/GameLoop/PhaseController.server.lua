@@ -59,9 +59,10 @@ while true do
 	for _, playerData in pairs(RoundDataManager.data.playerData) do
 		local player = Players:GetPlayerByUserId(playerData.playerId or 1)
 
-		if player then player.Team = Teams.Lobby end
-
-		player:LoadCharacter()
+		if player then
+			player.Team = Teams.Lobby
+			player:LoadCharacter()
+		end
 	end
 
 	Modules.Results.begin():await() -- Wait for results to finish
