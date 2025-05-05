@@ -5,5 +5,3 @@ for _, v in ipairs(character:GetDescendants()) do
 		v.CollisionGroup = "Character"
 	end
 end
-
-
