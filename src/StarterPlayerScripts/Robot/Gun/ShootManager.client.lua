@@ -1,271 +1,253 @@
-local AIM_ANIMATION = "rbxassetid://15940016280"
-
+-- ShootManagerDual.lua  – dual‑wield update using unified shootThread
+-------------------------------------------------------------------
+-- services
 local Players = game:GetService "Players"
-local ReplicatedStorage = game:GetService "ReplicatedStorage"
-local ReplicatedFirst = game:GetService "ReplicatedFirst"
-local ContextActionService = game:GetService "ContextActionService"
+local RS = game:GetService "ReplicatedStorage"
+local RF = game:GetService "ReplicatedFirst"
+local CAS = game:GetService "ContextActionService"
+local UIS = game:GetService "UserInputService"
 local RunService = game:GetService "RunService"
 
-local dataFolder = ReplicatedStorage:WaitForChild "Data"
+-- modules
+local ClientState = require(RS.Data.ClientState)
+local CRDU = require(RS.Data.RoundData.ClientRoundDataUtility)
+local Net = require(RS.Data.ClientServerCommunication)
+local Fusion = require(RF.Vendor.Fusion)
+local Mouse = require(RF.Utility.Mouse)
+local RoundConfig = require(RS.Configuration.RoundConfiguration)
+local Enums = require(RF.Enums)
 
-local ClientState = require(dataFolder:WaitForChild "ClientState")
-local ClientRoundDataUtility = require(dataFolder:WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
-local ClientServerCommunication = require(dataFolder:WaitForChild "ClientServerCommunication")
-local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
-local Mouse = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Mouse")
-local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
-local Enums = require(ReplicatedFirst.Enums)
-
+-------------------------------------------------------------------
+-- Fusion helpers
+-------------------------------------------------------------------
 local peek = Fusion.peek
 local scope = Fusion.scoped(Fusion)
 
-local aimAnimation = Instance.new "Animation"
-aimAnimation.AnimationId = AIM_ANIMATION
-
+-------------------------------------------------------------------
+-- runtime references
+-------------------------------------------------------------------
 local player = Players.LocalPlayer
-local trackAim: AnimationTrack?
-local humanoid: Humanoid?
-local humanoidRootPart: BasePart?
-local gunTipAttachmentObjectValue: ObjectValue?
-local hitboxObjectValue: ObjectValue?
+local humanoid
+local rootPart
 
+-- gun parts (populated on character spawn)
+local neonL
+local neonR
+local cageL -- LeftGunCage Part (hitbox)
+local cageR -- RightGunCage Part (hitbox)
+
+-------------------------------------------------------------------
+-- derived Fusion states
+-------------------------------------------------------------------
 local parkourState = ClientState.actions.parkourState
 
 local isShooting = scope:Computed(function(use)
-	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
-
-	return playerData and playerData.actions.isShooting or false	
+	local pd = use(ClientState.external.roundData.playerData)[player.UserId]
+	return pd and pd.actions.isShooting or false
 end)
 
 local isHacking = scope:Computed(function(use)
-	local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
-
-	return playerData and playerData.actions.isHacking or false
+	local pd = use(ClientState.external.roundData.playerData)[player.UserId]
+	return pd and pd.actions.isHacking or false
 end)
 
-local isGunEnabled = scope:Computed(function(use) return use(ClientRoundDataUtility.isGunEnabled)[player.UserId] end)
+local isGunEnabled = scope:Computed(function(use) return use(CRDU.isGunEnabled)[player.UserId] end)
 
-local thread: thread?
+-------------------------------------------------------------------
+-- utilities
+-------------------------------------------------------------------
+local function isAnythingIntersectingGun(): boolean
+	local overlapParams = OverlapParams.new()
+	for _, part in ipairs(workspace:GetPartsInPart(cageL, overlapParams)) do
+		if not part:IsDescendantOf(player.Character) then return true end
+	end
+	for _, part in ipairs(workspace:GetPartsInPart(cageR, overlapParams)) do
+		if not part:IsDescendantOf(player.Character) then return true end
+	end
+	return false
+end
 
+-------------------------------------------------------------------
+-- main shoot thread (dual‑ray version of legacy function)
+-------------------------------------------------------------------
+local thread
 local function shootThread()
 	while true do
 		RunService.RenderStepped:Wait()
 
-		local gunTipAttachment = gunTipAttachmentObjectValue and gunTipAttachmentObjectValue.Value
-		local hitbox = hitboxObjectValue and hitboxObjectValue.Value
+		-- make sure character & parts exist
+		if not (rootPart and neonL and neonR and cageL and cageR) then continue end
 
-		local function isAnythingIntersectingGun(): boolean
-			local overlapParams = OverlapParams.new()
+		-------------------------------------------------------------------
+		-- compute look direction (yaw only)
+		-------------------------------------------------------------------
+		local mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, 256)
+		local flatLook = Vector3.new(mouseWorldPosition.X, rootPart.Position.Y, mouseWorldPosition.Z)
+		rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
 
-			local intersectingParts = workspace:GetPartsInPart(hitbox, overlapParams)
+		-------------------------------------------------------------------
+		-- build exclusion list (own character + every gun model)
+		-------------------------------------------------------------------
+		local params = RaycastParams.new()
+		params.FilterDescendantsInstances = { player.Character }
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.IgnoreWater = true
 
-			for _, part in ipairs(intersectingParts) do
-				if not part:IsDescendantOf(player.Character) then return true end
+		-------------------------------------------------------------------
+		-- cast LEFT bullet
+		-------------------------------------------------------------------
+		local directionL = (mouseWorldPosition - neonL.Position).Unit
+		local resultL = workspace:Raycast(neonL.Position, directionL * 256, params)
+		local hitPositionL = resultL and resultL.Position or mouseWorldPosition
+		local victimL = (resultL and resultL.Instance) and Players:GetPlayerFromCharacter(resultL.Instance.Parent)
+			or nil
+
+		-------------------------------------------------------------------
+		-- cast RIGHT bullet
+		-------------------------------------------------------------------
+		local directionR = (mouseWorldPosition - neonR.Position).Unit
+		local resultR = workspace:Raycast(neonR.Position, directionR * 256, params)
+		local hitPositionR = resultR and resultR.Position or mouseWorldPosition
+		local victimR = (resultR and resultR.Instance) and Players:GetPlayerFromCharacter(resultR.Instance.Parent)
+			or nil
+
+		-------------------------------------------------------------------
+		-- replicate to server
+		-------------------------------------------------------------------
+		Net.replicateAsync("UpdateShootingStatus", {
+			gunHitPositionL = hitPositionL,
+			gunHitPositionR = hitPositionR,
+		})
+
+		-------------------------------------------------------------------
+		-- gun collision check (stops shooting if barrels clipped)
+		-------------------------------------------------------------------
+		if isAnythingIntersectingGun() then
+			local newData = peek(ClientState.external.roundData.playerData)
+			local pd = newData[player.UserId]
+			if pd then
+				pd.gunHitPositionL = nil
+				pd.gunHitPositionR = nil
+				pd.victims = {}
+				ClientState.external.roundData.playerData:set(newData)
 			end
-
-			return false
+			continue
 		end
 
-		if humanoidRootPart and gunTipAttachment and hitbox then
-			local direction, hitPosition, victim
+		-------------------------------------------------------------------
+		-- write results into Fusion roundData
+		-------------------------------------------------------------------
+		local newData = peek(ClientState.external.roundData.playerData)
+		local pd = newData[player.UserId]
+		if pd then
+			pd.gunHitPositionL = hitPositionL
+			pd.gunHitPositionR = hitPositionR
 
-			do
-				local mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, 256)
-
-				-- Make the humanoid root part look at the position (but make sure its only rotating on the Y axis)
-
-				local lookVector = Vector3.new(mouseWorldPosition.X, humanoidRootPart.Position.Y, mouseWorldPosition.Z)
-
-				humanoidRootPart.CFrame = CFrame.lookAt(humanoidRootPart.Position, lookVector)
-
-				direction = (mouseWorldPosition - gunTipAttachment.WorldPosition).Unit
-
-				local guns = {}
-				do
-					for _, player in ipairs(Players:GetPlayers()) do
-						local character = player.Character
-
-						if character then
-							local gun = character:FindFirstChild "Gun"
-
-							if gun then table.insert(guns, gun) end
-						end
-					end
+			-- victim bookkeeping (team‑safe)
+			local function registerVictim(victim)
+				if victim and newData[victim.UserId] and newData[victim.UserId].team ~= pd.team then
+					pd.victims[victim.UserId] = true
 				end
-
-				local params = RaycastParams.new()
-				params.FilterDescendantsInstances = { player.Character, unpack(guns) }
-				params.FilterType = Enum.RaycastFilterType.Exclude
-				params.IgnoreWater = true
-
-				local raycastResult = workspace:Raycast(gunTipAttachment.WorldPosition, direction * 256, params)
-
-				hitPosition = if raycastResult then raycastResult.Position else mouseWorldPosition
-
-				victim = if raycastResult and raycastResult.Instance
-					then Players:GetPlayerFromCharacter(raycastResult.Instance.Parent)
-					else nil
 			end
-
-			ClientServerCommunication.replicateAsync("UpdateShootingStatus", { hitPosition = hitPosition })
-
-			if isAnythingIntersectingGun() then
-				local newPlayerData = peek(ClientState.external.roundData.playerData)
-
-				local playerData = newPlayerData[player.UserId]
-
-				if playerData then
-					playerData.gunHitPosition = nil
-
-					ClientState.external.roundData.playerData:set(newPlayerData)
-				end
-
-				continue
-			end
-
-			local newPlayerData = peek(ClientState.external.roundData.playerData)
-
-			local playerData = newPlayerData[player.UserId]
-
-			if playerData then
-				playerData.gunHitPosition = hitPosition
-
-				if victim and newPlayerData[victim.UserId] and newPlayerData[victim.UserId].team ~= playerData.team then
-					playerData.victims[victim.UserId] = true
-				else
-					playerData.victims = {}
-				end
-
-				ClientState.external.roundData.playerData:set(newPlayerData)
-			end
+			registerVictim(victimL)
+			registerVictim(victimR)
+			ClientState.external.roundData.playerData:set(newData)
 		end
 	end
 end
 
-local function onCharacterAdded(character)
-	humanoid = character:WaitForChild "Humanoid"
-	humanoidRootPart = character:WaitForChild "HumanoidRootPart"
+-------------------------------------------------------------------
+-- character init / cleanup
+-------------------------------------------------------------------
+local function onCharacterAdded(char: Model)
+	humanoid = char:WaitForChild "Humanoid"
+	rootPart = char:WaitForChild "HumanoidRootPart"
 
-	local referencesFolder: Configuration = character:WaitForChild("Gun"):WaitForChild "References" :: Configuration
+	neonL = char:WaitForChild "LeftGunNeon"
+	neonR = char:WaitForChild "RightGunNeon"
 
-	gunTipAttachmentObjectValue = referencesFolder:WaitForChild "AttachmentTip" :: ObjectValue
-	hitboxObjectValue = referencesFolder:WaitForChild "Hitbox" :: ObjectValue
+	cageL = char:WaitForChild "LeftGunCage"
+	cageR = char:WaitForChild "RightGunCage"
+end
 
-	assert(humanoid and humanoid:IsA "Humanoid", "Object is not a humanoid")
+local function onCharacterRemoving()
+	-- stop remote shooting flag
+	local d = peek(ClientState.external.roundData.playerData)
+	local pd = d[player.UserId]
+	if pd then
+		pd.actions.isShooting = false
+		ClientState.external.roundData.playerData:set(d)
+	end
 
-	local animator: Instance | Animator = humanoid:WaitForChild "Animator"
+	if thread then
+		task.cancel(thread)
+		thread = nil
+	end
 
-	assert(animator:IsA "Animator", "Object is not an animator")
-
-	trackAim = animator:LoadAnimation(aimAnimation)
-
-	assert(trackAim, "Could not load aim animation")
-
-	trackAim.Priority = Enum.AnimationPriority.Action
+	humanoid, rootPart = nil, nil
+	neonL, neonR, cageL, cageR = nil
 end
 
 player.CharacterAdded:Connect(onCharacterAdded)
-
+player.CharacterRemoving:Connect(onCharacterRemoving)
 if player.Character then onCharacterAdded(player.Character) end
 
-player.CharacterRemoving:Connect(function()
-	local newPlayerData = peek(ClientState.external.roundData.playerData)
-	local playerData = newPlayerData[player.UserId]
-
-	if playerData then
-		playerData.actions.isShooting = false
-
-		ClientState.external.roundData.playerData:set(newPlayerData)
-	end
-
-	if not humanoid or not trackAim then return end
-
-	assert(trackAim)
-
-	trackAim:Stop()
-	trackAim:Destroy()
-	trackAim = nil
-
-	humanoid = nil
-	humanoidRootPart = nil
-
-	gunTipAttachmentObjectValue = nil
-	hitboxObjectValue = nil
-end)
-
-local function onShootingStatusChange()
-	local isShooting = peek(isShooting)
-	local isGunEnabled = peek(isGunEnabled)
-	local isDead = not humanoid or not trackAim or not humanoidRootPart
-
-	if not isShooting or not isGunEnabled then
+-------------------------------------------------------------------
+-- Fusion observers – start / stop shootThread
+-------------------------------------------------------------------
+local function updateShooting()
+	if not humanoid then return end
+	if peek(isShooting) and peek(isGunEnabled) then
+		if not thread then thread = task.spawn(shootThread) end
+	else
 		if thread then
 			task.cancel(thread)
 			thread = nil
 		end
-
-		local newPlayerData = peek(ClientState.external.roundData.playerData)
-
-		local playerData = newPlayerData[player.UserId]
-
-		if playerData then
-			playerData.gunHitPosition = nil
-			playerData.victims = {}
-
-			task.defer(function()
-				ClientState.external.roundData.playerData:set(newPlayerData)
-			end)
-		end
-
-		if not isDead and trackAim then trackAim:Stop() end
-
-		ClientServerCommunication.replicateAsync "UpdateShootingStatus"
-	else -- isShooting == true and isGunEnabled == true
-		if isDead or not trackAim then return end
-
-		assert(trackAim)
-
-		trackAim:Play()
-
-		if not thread then thread = task.spawn(shootThread) end
+		Net.replicateAsync "UpdateShootingStatus"
 	end
 end
 
--- connect all relevant states to the onShootingStatusChange function
-scope:Observer(isShooting):onChange(onShootingStatusChange)
-scope:Observer(isGunEnabled):onChange(onShootingStatusChange)
+scope:Observer(isShooting):onChange(updateShooting)
+scope:Observer(isGunEnabled):onChange(updateShooting)
 
-local function onShootRequest(_, inputState)
-	if not humanoid or not trackAim or not humanoidRootPart then return end
+-------------------------------------------------------------------
+-- input binding
+-------------------------------------------------------------------
+local function onShoot(_, state)
+	if not humanoid then return end
 
-	if peek(isHacking) or peek(parkourState) == Enums.ParkourState.roll or not peek(isGunEnabled) then return end
+	local data = peek(ClientState.external.roundData.playerData)
 
-	local newPlayerData = peek(ClientState.external.roundData.playerData)
-	local playerData = newPlayerData[player.UserId]
+	if state == Enum.UserInputState.Begin then
+		if state == Enum.UserInputState.Begin and peek(isHacking)
+		or not peek(isGunEnabled)
+		then
+			return
+		end
 
-	if not playerData then return end
-
-	if inputState == Enum.UserInputState.Begin then
-		playerData.actions.isShooting = true
-	elseif inputState == Enum.UserInputState.End then
-		playerData.actions.isShooting = false
+		data[player.UserId].actions.isShooting = true
+	elseif state == Enum.UserInputState.End then
+		data[player.UserId].actions.isShooting = false
 	end
 
-	ClientState.external.roundData.playerData:set(newPlayerData)
+	ClientState.external.roundData.playerData:set(data)
 end
 
 scope:Observer(isGunEnabled):onChange(function()
-	local isGunEnabled = peek(isGunEnabled)
-
-	if isGunEnabled then
-		ContextActionService:BindActionAtPriority(
+	if peek(isGunEnabled) then
+		CAS:BindActionAtPriority(
 			"Shoot",
-			onShootRequest,
+			onShoot,
 			true,
-			RoundConfiguration.controlPriorities.shootGun,
+			RoundConfig.controlPriorities.shootGun,
 			Enum.UserInputType.MouseButton1
 		)
 	else
-		ContextActionService:UnbindAction "Shoot"
+		CAS:UnbindAction "Shoot"
 	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if peek(isGunEnabled) and input.UserInputType == Enum.UserInputType.MouseButton1 then onShoot(nil, Enum.UserInputState.End) end
 end)
