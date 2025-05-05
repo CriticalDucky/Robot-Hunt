@@ -1,224 +1,271 @@
-local GUN_VISIBILITY_TWEEN_TIME = 1
+---------------------------------------------------------------------
+-- GunEffectManager (dual-gun version)
+---------------------------------------------------------------------
+local RETRACT_ANIM_ID = "rbxassetid://137512829777517" -- TODO: replace
 
 local Players = game:GetService "Players"
-local ReplicatedStorage = game:GetService "ReplicatedStorage"
-local ReplicatedFirst = game:GetService "ReplicatedFirst"
+local RS = game:GetService "ReplicatedStorage"
+local RF = game:GetService "ReplicatedFirst"
 local RunService = game:GetService "RunService"
 
-local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
-local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
-local ClientStateUtility =
-	require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
-local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
-local Types = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Types")
-local Enums = require(ReplicatedFirst:WaitForChild "Enums")
+-- modules
+local RoundCfg = require(RS.Configuration.RoundConfiguration)
+local ClientState = require(RS.Data.ClientState)
+local CRDU = require(RS.Data.RoundData.ClientRoundDataUtility)
+local Fusion = require(RF.Vendor.Fusion)
+local MouseUtil = require(RF.Utility.Mouse)
+local IK = require(RS.Utility.IK)
+local Types = require(RF.Utility.Types)
+local Enums = require(RF.Enums)
 
+---------------------------------------------------------------------
+-- Fusion helpers
+---------------------------------------------------------------------
+local peek = Fusion.peek
+local Out = Fusion.Out
 local scope = Fusion.scoped(Fusion)
 
-local peek = Fusion.peek
-
+---------------------------------------------------------------------
+-- Local helpers
+---------------------------------------------------------------------
 type RoundPlayerData = Types.RoundPlayerData
 
-local function calculateBeamWidth1(distance) return 0.2 + (distance / 100) end
+local function beamWidth1(dist: number): number return 0.2 + dist / 100 end
+local function strength(dist: number): number return RoundCfg.gunStrengthMultiplier ^ dist end
 
-local function calculateStrength(distance) return RoundConfiguration.gunStrengthMultiplier ^ distance end
+local playerScopes = {}
 
-local function onPlayerAdded(player)
-	local tipPositionUpdateConnection: RBXScriptConnection? = nil
-	local gunVisibilityUpdateConnection = nil
+---------------------------------------------------------------------
+-- Per-player glue
+---------------------------------------------------------------------
+local function onPlayer(player: Player)
+	-----------------------------------------------------------------
+	-- Fusion reactive values derived from round data
+	-----------------------------------------------------------------
+	local playerScope = scope:deriveScope()
+	playerScopes[player] = playerScope
 
-	local roundPlayerData = scope:Computed(function(use): RoundPlayerData?
-		local roundPlayerData = use(ClientState.external.roundData.playerData)
+	local rd = playerScope:Computed(
+		function(use): RoundPlayerData? return use(ClientState.external.roundData.playerData)[player.UserId] end
+	)
 
-		if not roundPlayerData then return end
+	local shoot = playerScope:Computed(function(u) return u(rd) and u(rd).actions.isShooting or false end)
+	local gunOn = playerScope:Computed(function(u) return u(CRDU.isGunEnabled)[player.UserId] or false end)
 
-		for id, data in pairs(roundPlayerData) do
-			if id == player.UserId then return data end
+	local beingAtk = playerScope:Computed(function(u)
+		for _, data in pairs(u(ClientState.external.roundData.playerData)) do
+			if data.victims[player.UserId] then return true end
 		end
-
-		return nil
-	end)
-
-	local gunHitPosition = scope:Computed(function(use)
-		local roundPlayerData = use(roundPlayerData)
-
-		if not roundPlayerData then return end
-
-		return roundPlayerData.gunHitPosition
-	end)
-
-	local isBeingAttacked = scope:Computed(function(use): boolean
-		for _, data in pairs(use(ClientState.external.roundData.playerData)) do
-			if data.victims[player.UserId] then
-				return true
-			end
-		end
-
 		return false
 	end)
 
-	local isShooting = scope:Computed(function(use): boolean
-		return use(roundPlayerData) and use(roundPlayerData).actions.isShooting
-	end)
+	-----------------------------------------------------------------
+	-- Character-specific setup
+	-----------------------------------------------------------------
+	local characterScope: Fusion.Scope = nil
 
-	local function onCharacterAdded(character)
-		local gun = character:WaitForChild "Gun"
-		local upperTorso = character:WaitForChild "UpperTorso"
+	local function characterAdded(char: Model)
+		characterScope = playerScope:innerScope()
 
-		local referencesFolder = gun:WaitForChild "References" :: Configuration
+		-- retract animation
+		local anim = Instance.new "Animation"
+		anim.AnimationId = RETRACT_ANIM_ID
 
-		local beamObjectValue: ObjectValue = referencesFolder:WaitForChild "Beam"
-		local hitPartObjectValue: ObjectValue = referencesFolder:WaitForChild "HitPart"
-		local tipAttachmentObjectValue: ObjectValue = referencesFolder:WaitForChild "AttachmentTip"
-		local tipPosition = scope:Value(nil :: Vector3?)
+		local hum = char:WaitForChild "Humanoid"
+		local animator = hum:WaitForChild "Animator" :: Animator
 
-		local function waitForValue(objectValue: ObjectValue): Instance?
-			local value = objectValue.Value
+		local retractTrack = animator:LoadAnimation(anim)
 
-			if value then return value end
-
-			objectValue.Changed:Wait()
-
-			return objectValue.Value
+		if not retractTrack then
+			warn "Failed to load gun retract animation"
+			return
 		end
 
-		local beam = waitForValue(beamObjectValue) :: Beam
-		local hitPart = waitForValue(hitPartObjectValue) :: Part
-		local tipAttachment = waitForValue(tipAttachmentObjectValue) :: Attachment
+		retractTrack.Priority = Enum.AnimationPriority.Action4
 
-		local distance = scope:Computed(function(use): number
-			if not use(isShooting) then return 0 end
+		-- gun FX folder refs
+		local gfx = char:WaitForChild "GunEffects"
+		local beamL = gfx:WaitForChild "BeamL" :: Beam
+		local beamR = gfx:WaitForChild "BeamR" :: Beam
+		local hitL = gfx:WaitForChild "HitL" :: Part
+		local hitR = gfx:WaitForChild "HitR" :: Part
+		local neonL = char:WaitForChild "LeftGunNeon" :: Part
+		local neonR = char:WaitForChild "RightGunNeon" :: Part
+		local colorL = char:WaitForChild("LeftGunColor") :: Part
+		local colorR = char:WaitForChild("RightGunColor") :: Part
+		local hitFlareL = hitL:WaitForChild("HitFlare"):WaitForChild("HitFlareImage") :: ImageLabel
+		local hitFlareR = hitR:WaitForChild("HitFlare"):WaitForChild("HitFlareImage") :: ImageLabel
+		local gunFlareL = neonL:WaitForChild("GunFlare"):WaitForChild("GunFlareImage") :: ImageLabel
+		local gunFlareR = neonR:WaitForChild("GunFlare"):WaitForChild("GunFlareImage") :: ImageLabel
 
-			local gunHitPosition = use(gunHitPosition)
-			local tipPosition = use(tipPosition)
+		local colors = {}
+		do 
+			local colorsConfig = char:WaitForChild("Colors") :: Configuration
 
-			if not gunHitPosition or not tipPosition then return 0 end
-
-			local distance = (use(gunHitPosition) - use(tipPosition)).Magnitude
-
-			return distance
-		end)
-
-		scope:Hydrate(hitPart) {
-			Position = scope:Computed(function(use)
-				local gunHitPosition = use(gunHitPosition)
-
-				if not gunHitPosition then return Vector3.new(0, 0, 0) end
-
-				return use(gunHitPosition)
-			end),
-		}
-
-		scope:Hydrate(beam) {
-			Enabled = true,
-			Width0 = scope:Computed(function(use) return if use(isShooting) and use(gunHitPosition) then 0.2 else 0 end),
-			Width1 = scope:Computed(
-				function(use)
-					return if use(isShooting) and use(gunHitPosition) then calculateBeamWidth1(use(distance)) else 0
-				end
-			),
-			Color = scope:Computed(function(use)
-				local color
-
-				local roundPlayerData = use(roundPlayerData)
-
-				if not roundPlayerData then
-					color = Color3.new(1, 1, 1)
-				else
-					color = RoundConfiguration.gunEffectColors[roundPlayerData.team].beamColor
-				end
-
-				return ColorSequence.new(color)
-			end),
-			Transparency = scope:Computed(function(use)
-				local distance = use(distance)
-
-				local keypoints = {}
-
-				for i = 0, 14 do
-					local currentDistance = i / 14 * distance
-
-					local transparency = 1 - calculateStrength(currentDistance)
-
-					table.insert(keypoints, NumberSequenceKeypoint.new(i / 14, transparency))
-				end
-
-				table.insert(keypoints, NumberSequenceKeypoint.new(1, calculateStrength(distance)))
-
-				return NumberSequence.new(keypoints)
-			end),
-		}
-
-		local gunHighlightTransparency = scope:Value(1 :: number)
-		local isGunVisible = scope:Value(peek(ClientStateUtility.isGunEnabled)[player.UserId] or false :: boolean)
-		local gunHighlightTransparencyTween = scope:Tween(
-			gunHighlightTransparency,
-			TweenInfo.new(GUN_VISIBILITY_TWEEN_TIME, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-		)
-
-		local function forEachGunDescendant(descendant: Instance)
-			if descendant:IsA "BasePart" and descendant.Name ~= "Hit" then
-				local transparency = descendant:GetAttribute "CustomTransparency" or 0
-
-				scope:Hydrate(descendant) {
-					Transparency = scope:Computed(function(use) return if use(isGunVisible) then transparency else 1 end),
-				}
-			elseif descendant:IsA "Highlight" then
-				scope:Hydrate(descendant) {
-					FillTransparency = scope:Computed(
-						function(use)
-							return if use(ClientStateUtility.isGunEnabled)
-								then peek(gunHighlightTransparencyTween)
-								else 1
-						end
-					),
+			for _, config in ipairs(colorsConfig:GetChildren()) do
+				local name = config.Name
+				local hunters = (config:WaitForChild("Hunters") :: Color3Value).Value
+				local rebels = (config:WaitForChild("Rebels") :: Color3Value).Value
+				colors[name] = {
+					[Enums.TeamType.hunters] = hunters,
+					[Enums.TeamType.rebels] = rebels,
+					[Enums.TeamType.lobby] = Color3.new(1, 1, 1),
 				}
 			end
 		end
 
-		local oppositeTeam = scope:Computed(function(use): number?
-			local roundPlayerData = use(roundPlayerData)
+		local tipPosL, tipPosR = characterScope:Value(nil), characterScope:Value(nil)
 
-			if not roundPlayerData then return end
+		----------------------------------------------------------------
+		-- distance computeds
+		----------------------------------------------------------------
+		local distL = characterScope:Computed(
+			function(u)
+				return if u(shoot)
+						and u(rd)
+						and u(rd).gunHitPositionL
+						and u(tipPosL)
+					then (u(rd).gunHitPositionL - u(tipPosL)).Magnitude
+					else 0
+			end
+		)
+		local distR = characterScope:Computed(
+			function(u)
+				return if u(shoot)
+						and u(rd)
+						and u(rd).gunHitPositionR
+						and u(tipPosR)
+					then (u(rd).gunHitPositionR - u(tipPosR)).Magnitude
+					else 0
+			end
+		)
 
-			return if roundPlayerData.team == Enums.TeamType.hunters
-				then Enums.TeamType.rebels
-				else Enums.TeamType.hunters
+		characterScope:Hydrate(neonL) {
+			[Out "Position"] = tipPosL,
+		}
+
+		characterScope:Hydrate(neonR) {
+			[Out "Position"] = tipPosR,
+		}
+
+		----------------------------------------------------------------
+		-- Hydrate beams & hit parts
+		----------------------------------------------------------------
+		local function setupBeam(beam: Beam, dist, hitPosKey: "gunHitPositionL" | "gunHitPositionR")
+			characterScope:Hydrate(beam) {
+				Enabled = true,
+				Width0 = characterScope:Computed(
+					function(u) return if u(shoot) and u(rd) and u(rd)[hitPosKey] then 0.2 else 0 end
+				),
+				Width1 = characterScope:Computed(
+					function(u) return if u(shoot) and u(rd) and u(rd)[hitPosKey] then beamWidth1(u(dist)) else 0 end
+				),
+				Color = characterScope:Computed(function(u)
+					local data = u(rd)
+					if not data then return ColorSequence.new(Color3.new(1, 1, 1)) end
+					local c = colors["Beam"][data.team] or Color3.new(1, 1, 1)
+					return ColorSequence.new(c)
+				end),
+				Transparency = characterScope:Computed(function(u)
+					local d = u(dist)
+					local keys = {}
+					for i = 0, 14 do
+						local frac = i / 14
+						local tr = 1 - strength(frac * d)
+						table.insert(keys, NumberSequenceKeypoint.new(frac, tr))
+					end
+					table.insert(keys, NumberSequenceKeypoint.new(1, strength(d)))
+					return NumberSequence.new(keys)
+				end),
+			}
+		end
+		
+		setupBeam(beamL, distL, "gunHitPositionL")
+		setupBeam(beamR, distR, "gunHitPositionR")
+
+		local function hydrateHit(hitPart: Part, key: "gunHitPositionL" | "gunHitPositionR")
+			characterScope:Hydrate(hitPart) {
+				Position = characterScope:Computed(function(u) return u(rd) and u(rd)[key] or Vector3.zero end),
+			}
+		end
+		hydrateHit(hitL, "gunHitPositionL")
+		hydrateHit(hitR, "gunHitPositionR")
+
+		local function hydrateFlare(hitFlare: ImageLabel, flareType: "HitFlare" | "GunFlare")
+			characterScope:Hydrate(hitFlare) {
+				Visible = characterScope:Computed(function(u) return u(shoot) end),
+				ImageColor3 = characterScope:Computed(function(u)
+					local data = u(rd)
+					if not data then return Color3.new(1, 1, 1) end
+					return colors[flareType][data.team] or Color3.new(1, 1, 1)
+				end),
+			}
+		end
+		hydrateFlare(hitFlareL, "HitFlare")
+		hydrateFlare(gunFlareL, "GunFlare")
+		hydrateFlare(hitFlareR, "HitFlare")
+		hydrateFlare(gunFlareR, "GunFlare")
+
+		local function hydrateGunParts(gunPart: Part, colorType: "GunColor" | "GunNeon")
+			characterScope:Hydrate(gunPart) {
+				Color = characterScope:Computed(function(u)
+					local data = u(rd)
+					if not data then return Color3.new(1, 1, 1) end
+					return colors[colorType][data.team] or Color3.new(1, 1, 1)
+				end),
+			}
+		end
+		hydrateGunParts(neonL, "GunNeon")
+		hydrateGunParts(neonR, "GunNeon")
+		hydrateGunParts(colorL, "GunColor")
+		hydrateGunParts(colorR, "GunColor")
+
+		----------------------------------------------------------------
+		-- torso effects
+		----------------------------------------------------------------
+		local upperTorso = char:WaitForChild "UpperTorso"
+
+		local oppositeTeam = characterScope:Computed(function(use): number?
+			local rd = use(rd)
+
+			if not rd then return end
+
+			return if rd.team == Enums.TeamType.hunters then Enums.TeamType.rebels else Enums.TeamType.hunters
 		end)
 
 		local function forEachUpperTorsoDescendant(descendant: Instance)
 			if descendant.Name == "AttackLight" then
-				scope:Hydrate(descendant) {
-					Enabled = scope:Computed(function(use) return use(isBeingAttacked) end),
-					Color = scope:Computed(function(use)
-						local roundPlayerData = use(roundPlayerData)
+				characterScope:Hydrate(descendant) {
+					Enabled = characterScope:Computed(function(use) return use(beingAtk) end),
+					Color = characterScope:Computed(function(use)
+						local rd = use(rd)
 						local oppositeTeam = use(oppositeTeam)
 
-						if not roundPlayerData or not oppositeTeam then return Color3.new(1, 1, 1) end
+						if not rd or not oppositeTeam then return Color3.new(1, 1, 1) end
 
-						return RoundConfiguration.gunEffectColors[oppositeTeam].attackLightColor
+						return colors["AttackLight"][oppositeTeam] or Color3.new(1, 1, 1)
 					end),
 				}
 			elseif descendant.Name == "AttackGlow" then
-				scope:Hydrate(descendant) {
-					Enabled = scope:Computed(function(use) return use(isBeingAttacked) end),
+				characterScope:Hydrate(descendant) {
+					Enabled = characterScope:Computed(function(use) return use(beingAtk) end),
 				}
 
-				scope:Hydrate(descendant:WaitForChild "ImageLabel") {
-					ImageColor3 = scope:Computed(function(use)
-						local roundPlayerData = use(roundPlayerData)
+				characterScope:Hydrate(descendant:WaitForChild "ImageLabel") {
+					ImageColor3 = characterScope:Computed(function(use)
+						local rd = use(rd)
 						local oppositeTeam = use(oppositeTeam)
 
-						if not roundPlayerData or not oppositeTeam then return Color3.new(1, 1, 1) end
+						if not rd or not oppositeTeam then return Color3.new(1, 1, 1) end
 
-						return RoundConfiguration.gunEffectColors[oppositeTeam].attackGlowColor
+						return colors["AttackGlow"][oppositeTeam] or Color3.new(1, 1, 1)
 					end),
 				}
 			elseif descendant.Name == "AttackElectricity" then
-				scope:Hydrate(descendant) {
-					Enabled = scope:Computed(function(use) return use(isBeingAttacked) end),
-					Color = scope:Computed(function(use)
-						local roundPlayerData = use(roundPlayerData)
+				characterScope:Hydrate(descendant) {
+					Enabled = characterScope:Computed(function(use) return use(beingAtk) end),
+					Color = characterScope:Computed(function(use)
+						local roundPlayerData = use(rd)
 						local oppositeTeam = use(oppositeTeam)
 
 						if not roundPlayerData or not oppositeTeam then
@@ -226,64 +273,175 @@ local function onPlayerAdded(player)
 						end
 
 						return ColorSequence.new(
-							RoundConfiguration.gunEffectColors[oppositeTeam].attackElectricityColor
+							colors["AttackElectricity"][oppositeTeam] or Color3.new(1, 1, 1)
 						)
 					end),
 				}
 			end
 		end
 
-		for _, descendant in ipairs(gun:GetDescendants()) do
-			forEachGunDescendant(descendant)
-		end
-
 		for _, descendant in ipairs(upperTorso:GetDescendants()) do
 			forEachUpperTorsoDescendant(descendant)
 		end
-
-		gun.DescendantAdded:Connect(forEachGunDescendant)
 		upperTorso.DescendantAdded:Connect(forEachUpperTorsoDescendant)
 
-		tipPositionUpdateConnection = RunService.RenderStepped:Connect(
-			function() tipPosition:set(tipAttachment.WorldPosition) end
-		)
-
-		local function onGunEnabledChanged()
-			local isGunEnabled = peek(ClientStateUtility.isGunEnabled)[player.UserId]
-
-			if isGunEnabled then
-				gunHighlightTransparency:set(0)
-				task.wait(GUN_VISIBILITY_TWEEN_TIME)
-				isGunVisible:set(true)
-				gunHighlightTransparency:set(1)
-			else -- Do the opposite
-				gunHighlightTransparency:set(0)
-				task.wait(GUN_VISIBILITY_TWEEN_TIME)
-				isGunVisible:set(false)
-				gunHighlightTransparency:set(1)
+		----------------------------------------------------------------
+		-- play / stop retract animation based on gunEnabled
+		----------------------------------------------------------------
+		local function updateRetract()
+			if peek(gunOn) then
+				if retractTrack.IsPlaying then retractTrack:Stop() end
+			else
+				if not retractTrack.IsPlaying then retractTrack:Play() end
 			end
 		end
+		updateRetract()
+		characterScope:Observer(gunOn):onChange(updateRetract)
 
-		gunVisibilityUpdateConnection = scope:Observer(
-			scope:Computed(function(use) return use(ClientStateUtility.isGunEnabled)[player.UserId] end)
-		):onChange(onGunEnabledChanged)
+		----------------------------------------------------------------
+		-- IK aiming
+		----------------------------------------------------------------
 
-		onGunEnabledChanged()
+		local IKUpdateThread = nil
+		local leftIK = nil
+		local rightIK = nil
+
+		-- local function stopThread()
+		-- 	if IKUpdateThread then
+		-- 		task.cancel(IKUpdateThread)
+		-- 		IKUpdateThread = nil
+		-- 	end
+
+		-- 	if leftIK then
+		-- 		leftIK:Destroy()
+		-- 		leftIK = nil
+		-- 	end
+		-- 	if rightIK then
+		-- 		rightIK:Destroy()
+		-- 		rightIK = nil
+		-- 	end
+
+		-- 	do -- We need to clear the edits to the C1 of LeftShoulder in LeftUpper Arm to (0, -90, 0) and right
+		-- 		local leftShoulder = char:FindFirstChild("LeftShoulder", true)
+		-- 		local rightShoulder = char:FindFirstChild("RightShoulder", true)
+
+		-- 		if leftShoulder then leftShoulder.C1 = CFrame.new(leftShoulder.C1.Position) end
+		-- 		if rightShoulder then rightShoulder.C1 = CFrame.new(rightShoulder.C1.Position) end
+		-- 	end
+		-- end
+
+		local function resetShoulderJoint(motor: Motor6D)
+			if motor then
+				motor.Transform = CFrame.identity
+				motor.C1 = CFrame.new(motor.C1.Position)
+				motor.CurrentAngle = 0
+				task.wait() -- :(
+				motor.CurrentAngle = 0
+			end
+		end
+		
+		local function stopThread()
+			if IKUpdateThread then
+				task.cancel(IKUpdateThread)
+				IKUpdateThread = nil
+			end
+		
+			if leftIK then leftIK:Destroy(); leftIK = nil end
+			if rightIK then rightIK:Destroy(); rightIK = nil end
+		
+			-- Reset joints properly
+			local leftShoulder = char:FindFirstChild("LeftShoulder", true)
+			local rightShoulder = char:FindFirstChild("RightShoulder", true)
+		
+			resetShoulderJoint(leftShoulder)
+			resetShoulderJoint(rightShoulder)
+		end
+		
+
+		local function onShootStatusChanged()
+			if not peek(shoot) then
+				stopThread()
+				return
+			else
+				if not IKUpdateThread then
+					IKUpdateThread = task.spawn(function()
+						if leftIK then error("Left IK already exists") end
+						leftIK = IK.AL.new(char, "Left", "Arm")
+						rightIK = IK.AL.new(char, "Right", "Arm")
+						leftIK.ExtendWhenUnreachable = true
+						rightIK.ExtendWhenUnreachable = true
+
+						do -- We need to set C1 of LeftShoulder in LeftUpper Arm to (0, -90, 0) and right
+							-- shoulder to (0, 90, 0) to make the arms point in the right direction, but we need to keep the position element of the cframes
+							local leftShoulder = char:FindFirstChild("LeftShoulder", true)
+							local rightShoulder = char:FindFirstChild("RightShoulder", true)
+
+							if leftShoulder then
+								leftShoulder.C1 = CFrame.new(leftShoulder.C1.Position)
+									* CFrame.Angles(0, math.rad(90), 0)
+							end
+							if rightShoulder then
+								rightShoulder.C1 = CFrame.new(rightShoulder.C1.Position)
+									* CFrame.Angles(0, math.rad(-90), 0)
+							end
+						end
+
+						while task.wait() do
+							local hitPosL = hitL.Position
+							local hitPosR = hitR.Position
+
+							leftIK:Solve(hitPosL)
+							rightIK:Solve(hitPosR)
+						end
+					end)
+				end
+			end
+		end
+		characterScope:Observer(shoot):onChange(onShootStatusChanged)
+		table.insert(characterScope, stopThread)
+		if player == Players.LocalPlayer then
+			table.insert(
+				characterScope,
+				RunService.Stepped:Connect(function()
+					if not peek(shoot) then return end
+
+					local mouseHitPosition = MouseUtil.getWorldPosition(nil, { player.Character }, 256)
+
+					IK.SetTemporaryAimPosition(mouseHitPosition)
+				end)
+			)
+		end
 	end
 
-	local function onCharacterRemoving()
-		if tipPositionUpdateConnection then tipPositionUpdateConnection:Disconnect() end
-		if gunVisibilityUpdateConnection then gunVisibilityUpdateConnection() end
+	table.insert(playerScope, player.CharacterAdded:Connect(characterAdded))
+	table.insert(playerScope, player.CharacterRemoving:Connect(function()
+		if characterScope then
+			characterScope:doCleanup()
+		end
+	end))
+	if player.Character then characterAdded(player.Character) end
+end
+
+---------------------------------------------------------------------
+-- connect all players
+---------------------------------------------------------------------
+Players.PlayerAdded:Connect(onPlayer)
+for _, plr in ipairs(Players:GetPlayers()) do
+	onPlayer(plr)
+end
+
+Players.PlayerRemoving:Connect(function(plr)
+	if playerScopes[plr] then
+		playerScopes[plr]:doCleanup()
+		playerScopes[plr] = nil
 	end
 
-	player.CharacterAdded:Connect(onCharacterAdded)
-	player.CharacterRemoving:Connect(onCharacterRemoving)
+	-- just go through the list and make sure each player is still playing
 
-	if player.Character then onCharacterAdded(player.Character) end
-end
-
-Players.PlayerAdded:Connect(onPlayerAdded)
-
-for _, player in ipairs(Players:GetPlayers()) do
-	onPlayerAdded(player)
-end
+	for player, playerScope in pairs(playerScopes) do
+		if not player:IsDescendantOf(Players) then
+			playerScope:doCleanup()
+			playerScopes[player] = nil
+		end
+	end
+end)
