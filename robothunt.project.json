@@ -29,10 +29,6 @@
 
         "Promise": {
           "$path": "vendor/evaera/roblox-lua-promise/lib"
-        },
-
-        "Signal": {
-          "$path": "vendor/Quenty/NevermoreEngine/src/signal/src/Shared"
         }
       }
     },
@@ -45,6 +41,7 @@
         "$className": "Folder",
         "node_modules": {
           "$path": "node_modules"
+          
         }
       }
     },
