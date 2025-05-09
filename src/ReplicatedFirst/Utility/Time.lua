@@ -26,6 +26,7 @@ local function date(format: string, time: number?): number
 end
 
 local Time = {}
+Time.value = timeValue
 
 --[[
     Gets the current year. Returns a number (e.g. 2020).
