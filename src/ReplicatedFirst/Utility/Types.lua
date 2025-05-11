@@ -55,9 +55,11 @@ export type RoundPlayerData = {
 
 	-- The players current status enum (Enums.PlayerStatus). The player is alive, dead, or in life support.
 	status: number,
+	isLobby: boolean,
 
 	-- The playerId of the last player to attack this player
 	lastAttackerId: number?,
+	damageLastTakenTime: number?,
 	killedById: number?,
 	-- The list of userids that are attacking this player.
 	victims: { [number]: boolean },
@@ -65,9 +67,9 @@ export type RoundPlayerData = {
 	-- The player's current team enum (Enums.TeamType)
 	team: number,
 
-	-- The player's current health, armor, life support (0-100)
+	-- The player's current health, shiled, life support (0-100)
 	health: number,
-	armor: number,
+	shield: number,
 	lifeSupport: number,
 
 	-- The player's ammo
