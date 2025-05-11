@@ -1,5 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local AL = require(script:WaitForChild("AL"))
 
@@ -7,6 +6,7 @@ local loader = ReplicatedStorage:WaitForChild("Nevermore"):WaitForChild("loader"
 local require = require(loader).bootstrapGame(loader.Parent)
 
 local serviceBag = require("ServiceBag").new()
+
 local ikServiceClient = serviceBag:GetService(require("IKServiceClient"))
 local IKAimPositionPriorites = require("IKAimPositionPriorites")
 
