@@ -1,4 +1,4 @@
-local HACK_ANIMATION = "rbxassetid://16357555206"
+local HACK_ANIMATION = "rbxassetid://121741743565097"
 
 local Players = game:GetService "Players"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
