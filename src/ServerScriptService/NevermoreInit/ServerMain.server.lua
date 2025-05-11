@@ -6,9 +6,37 @@ local loader = ServerScriptService.Nevermore:FindFirstChild("LoaderUtils", true)
 local require = require(loader).bootstrapGame(ServerScriptService.Nevermore)
 
 local serviceBag = require("ServiceBag").new()
-local ikService = serviceBag:GetService(require("IKService"))
+-- local Ragdoll = require("Ragdoll")
+
+serviceBag:GetService(require("IKService"))
+-- serviceBag:GetService(require("RagdollService"))
+
 serviceBag:Init()
 serviceBag:Start()
+
+-- task.wait(5)
+
+-- function setRagdollEnabled(humanoid: Humanoid, enabled: boolean)
+--     assert(humanoid, "Humanoid is nil")
+
+--     humanoid.RequiresNeck = false          -- keeps them alive when the neck Motor6D is swapped
+--     humanoid.BreakJointsOnDeath = false    -- stops automatic death on joint swap
+
+
+--     if enabled then
+--         Ragdoll:Tag(humanoid)
+--     else
+--         Ragdoll:Untag(humanoid)
+--     end
+-- end
+
+-- local humanoid = Players:GetChildren()[1].Character:WaitForChild("Humanoid") :: Humanoid
+
+-- setRagdollEnabled(humanoid, true)
+
+-- task.wait(5)
+
+-- setRagdollEnabled(humanoid, false)
 
 -- RunService.Stepped:Connect(function()
 --     -- Update IK targets for all players
