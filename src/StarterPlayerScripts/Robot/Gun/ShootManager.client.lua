@@ -67,6 +67,11 @@ local function isAnythingIntersectingGun(): boolean
 	return false
 end
 
+local function getPlayerFromCharDescendant(descendant: Instance): Player?
+	local player = Players:GetPlayerFromCharacter(descendant.Parent)
+	if not player and descendant.Parent then player = Players:GetPlayerFromCharacter(descendant.Parent.Parent) end
+	return player
+end
 -------------------------------------------------------------------
 -- main shoot thread (dual‑ray version of legacy function)
 -------------------------------------------------------------------
@@ -78,12 +83,7 @@ local function shootThread()
 		-- make sure character & parts exist
 		if not (rootPart and neonL and neonR and cageL and cageR) then continue end
 
-		-------------------------------------------------------------------
-		-- compute look direction (yaw only)
-		-------------------------------------------------------------------
 		local mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, 256)
-		local flatLook = Vector3.new(mouseWorldPosition.X, rootPart.Position.Y, mouseWorldPosition.Z)
-		rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
 
 		-------------------------------------------------------------------
 		-- build exclusion list (own character + every gun model)
@@ -99,8 +99,7 @@ local function shootThread()
 		local directionL = (mouseWorldPosition - neonL.Position).Unit
 		local resultL = workspace:Raycast(neonL.Position, directionL * 256, params)
 		local hitPositionL = resultL and resultL.Position or mouseWorldPosition
-		local victimL = (resultL and resultL.Instance) and Players:GetPlayerFromCharacter(resultL.Instance.Parent)
-			or nil
+		local victimL = (resultL and resultL.Instance) and getPlayerFromCharDescendant(resultL.Instance) or nil
 
 		-------------------------------------------------------------------
 		-- cast RIGHT bullet
@@ -108,8 +107,7 @@ local function shootThread()
 		local directionR = (mouseWorldPosition - neonR.Position).Unit
 		local resultR = workspace:Raycast(neonR.Position, directionR * 256, params)
 		local hitPositionR = resultR and resultR.Position or mouseWorldPosition
-		local victimR = (resultR and resultR.Instance) and Players:GetPlayerFromCharacter(resultR.Instance.Parent)
-			or nil
+		local victimR = (resultR and resultR.Instance) and getPlayerFromCharDescendant(resultR.Instance) or nil
 
 		-------------------------------------------------------------------
 		-- replicate to server
@@ -145,7 +143,11 @@ local function shootThread()
 
 			-- victim bookkeeping (team‑safe)
 			local function registerVictim(victim)
-				if victim and newData[victim.UserId] and newData[victim.UserId].team ~= pd.team then
+				if not victim then return end
+
+				local victimPlayerData = newData[victim.UserId]
+
+				if victimPlayerData and newData[victim.UserId].team ~= pd.team and victimPlayerData.status == Enums.PlayerStatus.alive then
 					pd.victims[victim.UserId] = true
 				end
 			end
@@ -160,7 +162,7 @@ end
 -- character init / cleanup
 -------------------------------------------------------------------
 local function onCharacterAdded(char: Model)
-	humanoid = char:WaitForChild "Humanoid"
+humanoid = char:WaitForChild "Humanoid"
 	rootPart = char:WaitForChild "HumanoidRootPart"
 
 	neonL = char:WaitForChild "LeftGunNeon"
@@ -220,11 +222,7 @@ local function onShoot(_, state)
 	local data = peek(ClientState.external.roundData.playerData)
 
 	if state == Enum.UserInputState.Begin then
-		if state == Enum.UserInputState.Begin and peek(isHacking)
-		or not peek(isGunEnabled)
-		then
-			return
-		end
+		if state == Enum.UserInputState.Begin and peek(isHacking) or not peek(isGunEnabled) then return end
 
 		data[player.UserId].actions.isShooting = true
 	elseif state == Enum.UserInputState.End then
@@ -249,5 +247,7 @@ scope:Observer(isGunEnabled):onChange(function()
 end)
 
 UIS.InputEnded:Connect(function(input)
-	if peek(isGunEnabled) and input.UserInputType == Enum.UserInputType.MouseButton1 then onShoot(nil, Enum.UserInputState.End) end
+	if peek(isGunEnabled) and input.UserInputType == Enum.UserInputType.MouseButton1 then
+		onShoot(nil, Enum.UserInputState.End)
+	end
 end)
