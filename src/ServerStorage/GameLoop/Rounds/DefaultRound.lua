@@ -18,7 +18,7 @@ local Table = require(ReplicatedFirst.Utility.Table)
 type RoundBatteryData = Types.RoundBatteryData
 type RoundTerminalData = Types.RoundTerminalData
 
-local teams = {
+local teamObjects = {
 	[Enums.TeamType.rebels] = Teams:WaitForChild "Rebels",
 	[Enums.TeamType.hunters] = Teams:WaitForChild "Hunters",
 }
@@ -143,7 +143,7 @@ function DefaultRound.begin()
 					local player = Players:GetPlayerByUserId(playerId)
 
 					if player then
-						player.Team = teams[data.team]
+						player.Team = teamObjects[data.team]
 						player:LoadCharacter()
 					end
 				end
