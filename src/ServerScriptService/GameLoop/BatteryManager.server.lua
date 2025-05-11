@@ -66,7 +66,7 @@ local function putDownBattery(player: Player, deleteBattery: boolean?)
 			end
 
 			RoundDataManager.updateBatteryStatus(data.id, nil)
-			
+
 			break
 		end
 	end
@@ -120,7 +120,7 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 		putDownBattery(player, true)
 
 		if toBeHealedData.status == Enums.PlayerStatus.lifeSupport then
-			RoundDataManager.revivePlayer(player)
+			RoundDataManager.revivePlayer(toBeHealed)
 		elseif toBeHealedData.status == Enums.PlayerStatus.alive then
 			RoundDataManager.setHealth(toBeHealed, nil, 100)
 		end
