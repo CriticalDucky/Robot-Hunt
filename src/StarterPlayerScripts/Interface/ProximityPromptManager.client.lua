@@ -34,21 +34,20 @@ local function onDescendantAdded(descendant)
 			}
 		elseif descendant.Name == "Terminal" then
 			local rootTerminalModel = descendant:FindFirstAncestor "Terminal" :: Folder
-			local terminalIdValue = rootTerminalModel:WaitForChild("Id") :: IntValue
+			local terminalIdValue = rootTerminalModel:WaitForChild "Id" :: IntValue
 			local terminalId = terminalIdValue.Value
-			
+
 			if terminalId == 0 then
 				local timeElapsed = 0
 
 				repeat
 					timeElapsed += task.wait()
-					print("waiting bbbbb")
 				until terminalIdValue.Value ~= 0 or timeElapsed >= 60 -- this only happens in an edge case where the map is deleted before stuff laods
 
 				terminalId = terminalIdValue.Value
 
 				if terminalId == 0 then
-					warn("Terminal ID is still 0 after waiting")
+					warn "Terminal ID is still 0 after waiting"
 					return
 				end
 			end
@@ -69,8 +68,20 @@ local function onDescendantAdded(descendant)
 					local isShooting = playerData.actions.isShooting
 					local isHacking = playerData.actions.isHacking
 					local isAlive = playerData.status == Enums.PlayerStatus.alive
+					local isHoldingBattery
 
-					local terminalData 
+					do
+						local batteryDatas = use(ClientState.external.roundData.batteryData)
+
+						for _, batteryData in pairs(batteryDatas) do
+							if batteryData.holder == player.UserId then
+								isHoldingBattery = true
+								break
+							end
+						end
+					end
+
+					local terminalData
 					do
 						local terminalDatas = use(ClientState.external.roundData.terminalData)
 
@@ -79,7 +90,6 @@ local function onDescendantAdded(descendant)
 								terminalData = data
 								break
 							else
-								
 							end
 						end
 					end
@@ -88,20 +98,16 @@ local function onDescendantAdded(descendant)
 						return false
 					end
 					if terminalData.progress >= 100 then
-						warn("????")
-
 						return false
 					end
 
-					return parkourState == Enums.ParkourState.grounded and not isShooting and not isHacking and isAlive
+					return parkourState == Enums.ParkourState.grounded and not isShooting and not isHacking and isAlive and not isHoldingBattery
 				end),
 			}
 		elseif descendant.Name == "HealRobot" then
 			local proximityPlayer = Players:GetPlayerFromCharacter(descendant.Parent.Parent)
 
-			if not proximityPlayer then
-				return
-			end
+			if not proximityPlayer then return end
 
 			if proximityPlayer == player then
 				descendant.Enabled = false
@@ -113,14 +119,22 @@ local function onDescendantAdded(descendant)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 					local proximityPlayerData = use(ClientState.external.roundData.playerData)[proximityPlayer.UserId]
 
-					if not playerData then return false end
+					if not playerData then
+						return false
+					end
 
 					local currentPhase = use(ClientState.external.roundData.currentPhaseType)
 
-					if not RoundConfiguration.roundPhases[currentPhase] then return false end
+					if not RoundConfiguration.roundPhases[currentPhase] then
+						return false
+					end
 
-					if playerData.team ~= proximityPlayerData.team then return false end
-					if proximityPlayerData.status == Enums.PlayerStatus.dead then return false end
+					if playerData.team ~= proximityPlayerData.team then
+						return false
+					end
+					if proximityPlayerData.status == Enums.PlayerStatus.dead then
+						return false
+					end
 
 					local isHoldingBattery
 					do
