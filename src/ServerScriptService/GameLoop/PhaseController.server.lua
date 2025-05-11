@@ -59,8 +59,9 @@ while true do
 	for _, playerData in pairs(RoundDataManager.data.playerData) do
 		local player = Players:GetPlayerByUserId(playerData.playerId or 1)
 
-		if player then
+		if player and player.Team ~= Teams.Lobby then
 			player.Team = Teams.Lobby
+			RoundDataManager.registerLobbyTeleport(player, false)
 			player:LoadCharacter()
 		end
 	end
