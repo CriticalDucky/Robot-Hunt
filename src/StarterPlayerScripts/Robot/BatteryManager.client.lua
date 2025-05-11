@@ -19,6 +19,13 @@ local localPlayer = Players.LocalPlayer
 
 local isHoldingBattery = scope:Computed(function(use)
 	local batteryData = use(ClientState.external.roundData.batteryData)
+	local currentPhase = use(ClientState.external.roundData.currentPhaseType)
+
+	if RoundConfiguration.lobbyPhases[currentPhase] then
+		return false
+	else
+		if not batteryData then return false end
+	end
 
 	for _, data in pairs(batteryData) do
 		if data.holder == localPlayer.UserId then return true end
@@ -56,8 +63,12 @@ local function onCharacterAdded(player: Player, character)
 	local body = batteryModel:WaitForChild "Body" :: MeshPart
 	local neon = batteryModel:WaitForChild "Neon" :: MeshPart
 
-	body.Massless = true; body.CanCollide = false; body.CanQuery = false
-	neon.Massless = true; neon.CanCollide = false; neon.CanQuery = false
+	body.Massless = true
+	body.CanCollide = false
+	body.CanQuery = false
+	neon.Massless = true
+	neon.CanCollide = false
+	neon.CanQuery = false
 
 	body:WaitForChild("Battery"):Destroy()
 
@@ -65,9 +76,16 @@ local function onCharacterAdded(player: Player, character)
 		scope:Hydrate(part) {
 			Transparency = scope:Computed(function(use)
 				local batteryDatas = use(ClientState.external.roundData.batteryData)
+				local currentPhase = use(ClientState.external.roundData.currentPhaseType)
+
+				if RoundConfiguration.lobbyPhases[currentPhase] then
+					return 1
+				end
 
 				for _, batterData in pairs(batteryDatas) do
-					if batterData.holder == player.UserId then return 0 end
+					if batterData.holder == player.UserId then
+						return 0
+					end
 				end
 
 				return 1
