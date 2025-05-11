@@ -44,6 +44,14 @@ local function canBeShooting(plr: Player): boolean
 	return true
 end
 
+local function getPlayerFromCharDescendant(descendant: Instance): Player?
+	local player = Players:GetPlayerFromCharacter(descendant.Parent)
+	if not player and descendant.Parent then
+		player = Players:GetPlayerFromCharacter(descendant.Parent.Parent)
+	end
+	return player
+end
+
 ---------------------------------------------------------------------
 -- collision check using two GunCage parts
 ---------------------------------------------------------------------
@@ -80,7 +88,7 @@ local function solveRay(player: Player, tip: Vector3, hitPos: Vector3): { pos: V
 	local result = workspace:Raycast(origin, dir * 256, params)
 	hitPos = result and result.Position or (origin + dir * 256)
 	local hitInst = result and result.Instance
-	local victim = hitInst and Players:GetPlayerFromCharacter(hitInst.Parent) or nil
+	local victim = hitInst and getPlayerFromCharDescendant(hitInst)
 	return { pos = hitPos, victim = victim, dist = (hitPos - origin).Magnitude }
 end
 
@@ -191,6 +199,8 @@ RunService.Heartbeat:Connect(function(dt)
 		local cagesBlocked = gunColliding(char)
 		if cagesBlocked then continue end
 
+		local damageTaken = false
+
 		-- Left hit
 		if pd.gunHitPositionL then
 			local result = getShootData(plr, pd.gunHitPositionL, pd.gunHitPositionL)
@@ -201,12 +211,13 @@ RunService.Heartbeat:Connect(function(dt)
 						* RoundConfig.gunStrengthMultiplier ^ result.distL
 						* dt
 					RoundDataManager.incrementAccountedHealth(result.victimL, -dmg)
+					damageTaken = true
 				end
 			end
 		end
 
 		-- Right hit
-		if pd.gunHitPositionR then
+		if pd.gunHitPositionR and not damageTaken then
 			local result = getShootData(plr, pd.gunHitPositionR, pd.gunHitPositionR)
 			if result.victimR and result.distR then
 				local victimPd = roundData.playerData[result.victimR.UserId]
