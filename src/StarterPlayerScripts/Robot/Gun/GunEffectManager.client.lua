@@ -30,7 +30,15 @@ local scope = Fusion.scoped(Fusion)
 ---------------------------------------------------------------------
 type RoundPlayerData = Types.RoundPlayerData
 
-local function beamWidth1(dist: number): number return 0.2 + dist / 100 end
+local function beamWidth1(dist: number): number
+	local startWidth = 0.2 -- The width of the beam at the start
+	local maxWidth = 2 -- The maximum width of the beam
+	local maxDist = 100 -- The maximum distance for scaling
+
+	-- Linear scaling with clamping
+	local width = startWidth + (maxWidth - startWidth) * math.min(dist / maxDist, 1)
+	return width
+end
 local function strength(dist: number): number return RoundCfg.gunStrengthMultiplier ^ dist end
 
 local playerScopes = {}
@@ -91,21 +99,21 @@ local function onPlayer(player: Player)
 		local hitR = gfx:WaitForChild "HitR" :: Part
 		local neonL = char:WaitForChild "LeftGunNeon" :: Part
 		local neonR = char:WaitForChild "RightGunNeon" :: Part
-		local colorL = char:WaitForChild("LeftGunColor") :: Part
-		local colorR = char:WaitForChild("RightGunColor") :: Part
-		local hitFlareL = hitL:WaitForChild("HitFlare"):WaitForChild("HitFlareImage") :: ImageLabel
-		local hitFlareR = hitR:WaitForChild("HitFlare"):WaitForChild("HitFlareImage") :: ImageLabel
-		local gunFlareL = neonL:WaitForChild("GunFlare"):WaitForChild("GunFlareImage") :: ImageLabel
-		local gunFlareR = neonR:WaitForChild("GunFlare"):WaitForChild("GunFlareImage") :: ImageLabel
+		local colorL = char:WaitForChild "LeftGunColor" :: Part
+		local colorR = char:WaitForChild "RightGunColor" :: Part
+		local hitFlareL = hitL:WaitForChild("HitFlare"):WaitForChild "HitFlareImage" :: ImageLabel
+		local hitFlareR = hitR:WaitForChild("HitFlare"):WaitForChild "HitFlareImage" :: ImageLabel
+		local gunFlareL = neonL:WaitForChild("GunFlare"):WaitForChild "GunFlareImage" :: ImageLabel
+		local gunFlareR = neonR:WaitForChild("GunFlare"):WaitForChild "GunFlareImage" :: ImageLabel
 
 		local colors = {}
-		do 
-			local colorsConfig = char:WaitForChild("Colors") :: Configuration
+		do
+			local colorsConfig = char:WaitForChild "Colors" :: Configuration
 
 			for _, config in ipairs(colorsConfig:GetChildren()) do
 				local name = config.Name
-				local hunters = (config:WaitForChild("Hunters") :: Color3Value).Value
-				local rebels = (config:WaitForChild("Rebels") :: Color3Value).Value
+				local hunters = (config:WaitForChild "Hunters" :: Color3Value).Value
+				local rebels = (config:WaitForChild "Rebels" :: Color3Value).Value
 				colors[name] = {
 					[Enums.TeamType.hunters] = hunters,
 					[Enums.TeamType.rebels] = rebels,
@@ -119,34 +127,49 @@ local function onPlayer(player: Player)
 		----------------------------------------------------------------
 		-- distance computeds
 		----------------------------------------------------------------
-		local distL = characterScope:Computed(
-			function(u)
-				return if u(shoot)
-						and u(rd)
-						and u(rd).gunHitPositionL
-						and u(tipPosL)
-					then (u(rd).gunHitPositionL - u(tipPosL)).Magnitude
-					else 0
-			end
-		)
-		local distR = characterScope:Computed(
-			function(u)
-				return if u(shoot)
-						and u(rd)
-						and u(rd).gunHitPositionR
-						and u(tipPosR)
-					then (u(rd).gunHitPositionR - u(tipPosR)).Magnitude
-					else 0
-			end
-		)
+		local distL = characterScope:Computed(function(u)
+			local isShooting = u(shoot)
 
-		characterScope:Hydrate(neonL) {
-			[Out "Position"] = tipPosL,
-		}
+			if not isShooting then return 0 end
 
-		characterScope:Hydrate(neonR) {
-			[Out "Position"] = tipPosR,
-		}
+			local playerData = u(rd)
+
+			if not playerData then return 0 end
+
+			if not playerData.gunHitPositionL then return 0 end
+
+			local tipPosL = u(tipPosL)
+
+			if tipPosL then
+				return (tipPosL - playerData.gunHitPositionL).Magnitude
+			else
+				return 0
+			end
+		end)
+		local distR = characterScope:Computed(function(u)
+			local isShooting = u(shoot)
+
+			if not isShooting then return 0 end
+
+			local playerData = u(rd)
+
+			if not playerData then return 0 end
+
+			if not playerData.gunHitPositionR then return 0 end
+
+			local tipPosR = u(tipPosR)
+
+			if tipPosR then
+				return (tipPosR - playerData.gunHitPositionR).Magnitude
+			else
+				return 0
+			end
+		end)
+
+		table.insert(characterScope, RunService.RenderStepped:Connect(function()
+			tipPosL:set(neonL.Position)
+			tipPosR:set(neonR.Position)
+		end))
 
 		----------------------------------------------------------------
 		-- Hydrate beams & hit parts
@@ -169,17 +192,22 @@ local function onPlayer(player: Player)
 				Transparency = characterScope:Computed(function(u)
 					local d = u(dist)
 					local keys = {}
-					for i = 0, 14 do
-						local frac = i / 14
-						local tr = 1 - strength(frac * d)
+					local numKeypoints = 14 -- Number of keypoints before the final one
+
+					for i = 0, numKeypoints do
+						-- Use a non-linear scaling function to concentrate keypoints near the start
+						local frac = (i / numKeypoints) ^ 2 -- Squaring frac to concentrate near 0
+						local tr = (1 - strength(frac * d)) ^ 1.3
 						table.insert(keys, NumberSequenceKeypoint.new(frac, tr))
 					end
+
+					-- Add the final keypoint at the end
 					table.insert(keys, NumberSequenceKeypoint.new(1, strength(d)))
 					return NumberSequence.new(keys)
 				end),
 			}
 		end
-		
+
 		setupBeam(beamL, distL, "gunHitPositionL")
 		setupBeam(beamR, distR, "gunHitPositionR")
 
@@ -272,9 +300,7 @@ local function onPlayer(player: Player)
 							return ColorSequence.new(Color3.new(1, 1, 1))
 						end
 
-						return ColorSequence.new(
-							colors["AttackElectricity"][oppositeTeam] or Color3.new(1, 1, 1)
-						)
+						return ColorSequence.new(colors["AttackElectricity"][oppositeTeam] or Color3.new(1, 1, 1))
 					end),
 				}
 			end
@@ -290,9 +316,9 @@ local function onPlayer(player: Player)
 		----------------------------------------------------------------
 		local function updateRetract()
 			if peek(gunOn) then
-				if retractTrack.IsPlaying then retractTrack:Stop() end
+				if retractTrack.IsPlaying then retractTrack:Stop(0.5) end
 			else
-				if not retractTrack.IsPlaying then retractTrack:Play() end
+				if not retractTrack.IsPlaying then retractTrack:Play(0.2) end
 			end
 		end
 		updateRetract()
@@ -306,30 +332,6 @@ local function onPlayer(player: Player)
 		local leftIK = nil
 		local rightIK = nil
 
-		-- local function stopThread()
-		-- 	if IKUpdateThread then
-		-- 		task.cancel(IKUpdateThread)
-		-- 		IKUpdateThread = nil
-		-- 	end
-
-		-- 	if leftIK then
-		-- 		leftIK:Destroy()
-		-- 		leftIK = nil
-		-- 	end
-		-- 	if rightIK then
-		-- 		rightIK:Destroy()
-		-- 		rightIK = nil
-		-- 	end
-
-		-- 	do -- We need to clear the edits to the C1 of LeftShoulder in LeftUpper Arm to (0, -90, 0) and right
-		-- 		local leftShoulder = char:FindFirstChild("LeftShoulder", true)
-		-- 		local rightShoulder = char:FindFirstChild("RightShoulder", true)
-
-		-- 		if leftShoulder then leftShoulder.C1 = CFrame.new(leftShoulder.C1.Position) end
-		-- 		if rightShoulder then rightShoulder.C1 = CFrame.new(rightShoulder.C1.Position) end
-		-- 	end
-		-- end
-
 		local function resetShoulderJoint(motor: Motor6D)
 			if motor then
 				motor.Transform = CFrame.identity
@@ -339,24 +341,29 @@ local function onPlayer(player: Player)
 				motor.CurrentAngle = 0
 			end
 		end
-		
+
 		local function stopThread()
 			if IKUpdateThread then
 				task.cancel(IKUpdateThread)
 				IKUpdateThread = nil
 			end
-		
-			if leftIK then leftIK:Destroy(); leftIK = nil end
-			if rightIK then rightIK:Destroy(); rightIK = nil end
-		
+
+			if leftIK then
+				leftIK:Destroy()
+				leftIK = nil
+			end
+			if rightIK then
+				rightIK:Destroy()
+				rightIK = nil
+			end
+
 			-- Reset joints properly
 			local leftShoulder = char:FindFirstChild("LeftShoulder", true)
 			local rightShoulder = char:FindFirstChild("RightShoulder", true)
-		
+
 			resetShoulderJoint(leftShoulder)
 			resetShoulderJoint(rightShoulder)
 		end
-		
 
 		local function onShootStatusChanged()
 			if not peek(shoot) then
@@ -365,11 +372,13 @@ local function onPlayer(player: Player)
 			else
 				if not IKUpdateThread then
 					IKUpdateThread = task.spawn(function()
-						if leftIK then error("Left IK already exists") end
+						if leftIK then error "Left IK already exists" end
 						leftIK = IK.AL.new(char, "Left", "Arm")
 						rightIK = IK.AL.new(char, "Right", "Arm")
 						leftIK.ExtendWhenUnreachable = true
 						rightIK.ExtendWhenUnreachable = true
+
+						local rootPart = char:WaitForChild "HumanoidRootPart" :: BasePart
 
 						do -- We need to set C1 of LeftShoulder in LeftUpper Arm to (0, -90, 0) and right
 							-- shoulder to (0, 90, 0) to make the arms point in the right direction, but we need to keep the position element of the cframes
@@ -387,6 +396,15 @@ local function onPlayer(player: Player)
 						end
 
 						while task.wait() do
+							local mouseWorldPosition = MouseUtil.getWorldPosition(nil, { player.Character }, 256)
+
+							if player == Players.LocalPlayer then
+								IK.SetTemporaryAimPosition(mouseWorldPosition)
+								local flatLook =
+									Vector3.new(mouseWorldPosition.X, rootPart.Position.Y, mouseWorldPosition.Z)
+								rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
+							end
+
 							local hitPosL = hitL.Position
 							local hitPosR = hitR.Position
 
@@ -399,26 +417,26 @@ local function onPlayer(player: Player)
 		end
 		characterScope:Observer(shoot):onChange(onShootStatusChanged)
 		table.insert(characterScope, stopThread)
-		if player == Players.LocalPlayer then
-			table.insert(
-				characterScope,
-				RunService.Stepped:Connect(function()
-					if not peek(shoot) then return end
+		-- if player == Players.LocalPlayer then
+		-- 	table.insert(
+		-- 		characterScope,
+		-- 		RunService.Stepped:Connect(function()
+		-- 			if not peek(shoot) then return end
 
-					local mouseHitPosition = MouseUtil.getWorldPosition(nil, { player.Character }, 256)
+		-- 			local mouseHitPosition = MouseUtil.getWorldPosition(nil, { player.Character }, 256)
 
-					IK.SetTemporaryAimPosition(mouseHitPosition)
-				end)
-			)
-		end
+		-- 		end)
+		-- 	)
+		-- end
 	end
 
 	table.insert(playerScope, player.CharacterAdded:Connect(characterAdded))
-	table.insert(playerScope, player.CharacterRemoving:Connect(function()
-		if characterScope then
-			characterScope:doCleanup()
-		end
-	end))
+	table.insert(
+		playerScope,
+		player.CharacterRemoving:Connect(function()
+			if characterScope then characterScope:doCleanup() end
+		end)
+	)
 	if player.Character then characterAdded(player.Character) end
 end
 
