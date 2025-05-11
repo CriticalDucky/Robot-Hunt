@@ -11,6 +11,7 @@ local ClientServerCommunication = require(ReplicatedStorage.Data.ClientServerCom
 
 local Enums = require(ReplicatedFirst.Enums)
 local Types = require(ReplicatedFirst.Utility.Types)
+local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local PhaseType = Enums.PhaseType
 
 -- Types
@@ -71,12 +72,13 @@ function getFilteredData(player: Player)
 		return {
 			playerId = playerData.playerId,
 			status = playerData.status,
+			isLobby = playerData.isLobby,
 			lastAttackerId = playerData.lastAttackerId,
 			killedById = playerData.killedById,
 			victims = playerData.victims,
 			team = playerData.team,
 			health = playerData.health,
-			armor = playerData.armor,
+			shield = playerData.shield,
 			lifeSupport = playerData.lifeSupport,
 			ammo = playerData.ammo,
 			gunHitPositionL = if playerData.playerId ~= player.UserId then playerData.gunHitPositionL else nil,
@@ -163,6 +165,26 @@ function RoundDataManager.setPhase(phaseType: number, endTime: number?)
 end
 
 --[[
+	Registers teleportation to the lobby for a player. The actual round script will handle teleportation.
+
+	@param player Player - The player to register for teleportation.
+]]
+function RoundDataManager.registerLobbyTeleport(player: Player, destinationIsGame: boolean)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+
+	playerData.isLobby = not destinationIsGame
+
+	ClientServerCommunication.replicateAsync("RegisterLobbyTeleport", {
+		playerId = player.UserId,
+		isLobby = playerData.isLobby,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
+end
+
+--[[
     Creates a new player data object.
 
     @param player Player - The player to create data for.
@@ -174,6 +196,7 @@ function RoundDataManager.createNewPlayerData(player: Player, team: number): Rou
 		playerId = player.UserId,
 
 		status = Enums.PlayerStatus.alive,
+		isLobby = false,
 
 		lastAttackerId = nil,
 		killedById = nil,
@@ -182,7 +205,7 @@ function RoundDataManager.createNewPlayerData(player: Player, team: number): Rou
 		team = team,
 
 		health = 100,
-		armor = 0,
+		shield = RoundConfiguration.shieldBaseAmount,
 		lifeSupport = 100,
 
 		ammo = 100,
@@ -264,7 +287,7 @@ function RoundDataManager.killPlayer(victim: Player, killer: Player?)
 
 	playerData.status = Enums.PlayerStatus.dead
 	playerData.health = 0
-	playerData.armor = 0
+	playerData.shield = 0
 	playerData.lifeSupport = 0
 	playerData.gunHitPositionL = nil
 	playerData.gunHitPositionR = nil
@@ -303,8 +326,7 @@ function RoundDataManager.revivePlayer(player: Player)
 
 	playerData.status = Enums.PlayerStatus.alive
 	playerData.health = 100
-	playerData.armor = 0
-	playerData.lifeSupport = 100
+	playerData.shield = RoundConfiguration.shieldBaseAmount
 
 	ClientServerCommunication.replicateAsync("RevivePlayer", {
 		playerId = player.UserId,
@@ -315,18 +337,19 @@ function RoundDataManager.revivePlayer(player: Player)
 end
 
 --[[
-    Sets the health and armor of a player.
+    Sets the health and shield of a player.
+	WARNING: Will not set playerData.damageLastTakenTime. You must set that manually.
 
     @param player Player - The player whose health is being set.
-    @param armor number? - The new armor value.
+    @param shield number? - The new shield value.
     @param health number? - The new health value.
 ]]
-function RoundDataManager.setHealth(player: Player, armor: number?, health: number?)
+function RoundDataManager.setHealth(player: Player, shield: number?, health: number?)
 	local playerData = roundData.playerData[player.UserId]
 
 	assert(playerData, "Player data does not exist")
 
-	if armor then playerData.armor = armor end
+	if shield then playerData.shield = shield end
 
 	if health then
 		playerData.health = health
@@ -337,7 +360,7 @@ function RoundDataManager.setHealth(player: Player, armor: number?, health: numb
 	ClientServerCommunication.replicateAsync("UpdateHealth", {
 		playerId = player.UserId,
 		health = playerData.health,
-		armor = playerData.armor,
+		shield = playerData.shield,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
@@ -359,16 +382,18 @@ function RoundDataManager.incrementAccountedHealth(player: Player, amount: numbe
 	assert(playerData, "Player data does not exist")
 
 	local health = playerData.health
-	local armor = playerData.armor
+	local shield = playerData.shield
 
 	if amount < 0 then
-		-- Take shield damage first
-		armor += amount
+		playerData.damageLastTakenTime = os.clock()
 
-		if armor < 0 then
+		-- Take shield damage first
+		shield += amount
+
+		if shield < 0 then
 			-- Take health damage
-			health += armor
-			armor = 0
+			health += shield
+			shield = 0
 		end
 	else
 		-- Gain health
@@ -377,7 +402,7 @@ function RoundDataManager.incrementAccountedHealth(player: Player, amount: numbe
 
 	health = math.clamp(health, 0, 100)
 
-	RoundDataManager.setHealth(player, armor, health)
+	RoundDataManager.setHealth(player, shield, health)
 end
 
 --[[
@@ -419,6 +444,22 @@ function RoundDataManager.incrementLifeSupport(player: Player, amount: number)
 	local lifeSupport = math.clamp(playerData.lifeSupport + amount, 0, 100)
 
 	RoundDataManager.setLifeSupport(player, lifeSupport)
+end
+
+--[[
+	Increments the shield value for a player.
+
+	@param player Player - The player whose shield is being incremented.
+	@param amount number - The amount to increment shield by.
+]]
+function RoundDataManager.incrementShield(player: Player, amount: number)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+
+	local shield = math.clamp(playerData.shield + amount, 0, RoundConfiguration.shieldBaseAmount)
+
+	RoundDataManager.setHealth(player, shield)
 end
 
 --[[
