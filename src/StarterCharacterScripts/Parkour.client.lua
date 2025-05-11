@@ -15,6 +15,10 @@ local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild 
 local Enums = require(ReplicatedFirst.Enums)
 local ParkourState = Enums.ParkourState
 local parkourState = ClientState.actions.parkourState
+local RoundConfig = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
+local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
+local scope = Fusion.scoped(Fusion)
+local peek = Fusion.peek
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild "PlayerGui"
@@ -63,8 +67,8 @@ end
 --------------------------------------------------------------------
 --  CONSTANTS
 --------------------------------------------------------------------
-local BASE_WALK_SPEED = 16
-local JUMP_POWER = 50
+local BASE_WALK_SPEED = RoundConfig.walkSpeed
+local JUMP_POWER = RoundConfig.jumpPower
 local DOUBLE_JUMP_POWER = 45
 local DIVE_FORCE = 35
 local DIVE_UPWARD_NUDGE = 40
@@ -93,6 +97,14 @@ local jumpHeld = false -- gate against key-repeat
 local function ResetAirFlags()
 	hasDoubleJumped, hasDived = false, false
 end
+
+local playerState = scope:Computed(function(use)
+	local playerData = use(ClientState.external.roundData.playerData)[Player.UserId]
+
+	if not playerData then return end
+
+	return playerData.status
+end)
 
 --------------------------------------------------------------------
 --  DEBUG GUI (restored)
@@ -172,6 +184,17 @@ local function IsGrounded()
 	return st == Enum.HumanoidStateType.Running or st == Enum.HumanoidStateType.Landed
 end
 local function InFluid() return currentState == ParkourState.climb or currentState == ParkourState.swim end
+
+local function isParkourEnabled()
+	local playerData = peek(ClientState.external.roundData.playerData)[Player.UserId]
+	if not playerData then return true end
+
+	if peek(playerState) == Enums.PlayerStatus.lifeSupport and not playerData.isLobby then
+		return false
+	end
+
+	return true
+end
 
 --------------------------------------------------------------------
 --  HUMANOID STATE CHANGES
@@ -323,6 +346,7 @@ end
 --  INPUT / ROLL-DIVE BINDING
 --------------------------------------------------------------------
 UserInputService.InputBegan:Connect(function(inp, gp)
+	if isParkourEnabled() == false then return end
 	if gp then return end
 	if inp.KeyCode == Enum.KeyCode.Space or inp.KeyCode == Enum.KeyCode.ButtonA then
 		if not jumpHeld then
@@ -339,6 +363,7 @@ end)
 -- Connect to mobile jump button if it exists
 if MobileJumpButtonEvent then
 	MobileJumpButtonEvent.Event:Connect(function(begin)
+		if isParkourEnabled() == false then return end
 		if begin then
 			if not jumpHeld then
 				jumpHeld = true
@@ -353,6 +378,7 @@ end
 CAS:BindAction("RollDive", function(_, st)
 	if st ~= Enum.UserInputState.Begin then return end
 	if InFluid() then return end
+	if isParkourEnabled() == false then return end
 	if IsGrounded() then
 		StartRoll()
 	else
@@ -379,6 +405,8 @@ local function hookMobileButton()
 	btn.LayoutOrder = 1
 
 	btn.MouseButton1Down:Connect(function()
+		if isParkourEnabled() == false then return end
+
 		if InFluid() then return end
 		if IsGrounded() then
 			StartRoll()
@@ -448,20 +476,20 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 
-	local gui = EnsureDebugGui()
-	if gui then
-		gui.StateText.Text = string.format(
-			"State: %s\nHumState: %s\nGrounded: %s\nWater: %s\nGrace: %s\nDoubleJ: %s\nRolling: %s\nDiving: %s",
-			currentState,
-			tostring(Humanoid:GetState()),
-			tostring(IsGrounded()),
-			tostring(inWater),
-			tostring(fluidExitGrace),
-			tostring(hasDoubleJumped),
-			tostring(isRolling),
-			tostring(isDiving)
-		)
-	end
+	-- local gui = EnsureDebugGui()
+	-- if gui then
+	-- 	gui.StateText.Text = string.format(
+	-- 		"State: %s\nHumState: %s\nGrounded: %s\nWater: %s\nGrace: %s\nDoubleJ: %s\nRolling: %s\nDiving: %s",
+	-- 		currentState,
+	-- 		tostring(Humanoid:GetState()),
+	-- 		tostring(IsGrounded()),
+	-- 		tostring(inWater),
+	-- 		tostring(fluidExitGrace),
+	-- 		tostring(hasDoubleJumped),
+	-- 		tostring(isRolling),
+	-- 		tostring(isDiving)
+	-- 	)
+	-- end
 
 	-- Update the client state
 	parkourState:set(currentState)
