@@ -12,6 +12,7 @@ local roundDataFolder = replicatedStorageData:WaitForChild "RoundData"
 local ClientState = require(replicatedStorageData:WaitForChild "ClientState")
 local ClientServerCommunication = require(replicatedStorageData:WaitForChild "ClientServerCommunication")
 local ClientRoundDataUtility = require(roundDataFolder:WaitForChild("ClientRoundDataUtility"))
+local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local Enums = require(ReplicatedFirst:WaitForChild "Enums")
 local Table = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Table")
@@ -31,6 +32,33 @@ ClientServerCommunication.registerActionAsync("InitializeRoundData", function(ne
 	end
 end)
 
+--[[
+function RoundDataManager.setPhase(phaseType: number, endTime: number?)
+	if phaseType == PhaseType.GameOver then
+		roundData.isGameOver = true
+	else
+		roundData.currentPhaseType = phaseType
+	end
+
+	roundData.phaseEndTime = endTime
+
+	if phaseType == PhaseType.Intermission then
+		roundData.currentRoundType = nil
+		roundData.isGameOver = false
+	elseif phaseType == PhaseType.Loading then
+		table.clear(roundData.playerData)
+	end
+
+	ClientServerCommunication.replicateAsync("SetPhase", {
+		phaseType = phaseType,
+		phaseEndTime = endTime,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
+	onPhaseChangedEvent:Fire(roundData)
+end
+]]
+
 ClientServerCommunication.registerActionAsync("SetPhase", function(data)
 	local phaseType = data.phaseType
 	local endTime = data.phaseEndTime
@@ -44,9 +72,10 @@ ClientServerCommunication.registerActionAsync("SetPhase", function(data)
 	roundData.phaseEndTime:set(endTime)
 
 	if phaseType == PhaseType.Intermission then
-		roundData.playerData:set {}
-	elseif phaseType == PhaseType.Loading then
+		roundData.isGameOver:set(false)
 		roundData.currentRoundType:set(nil)
+	elseif phaseType == PhaseType.Loading then
+		roundData.playerData:set {}
 	elseif phaseType == PhaseType.Results then
 		local playerDatas = peek(roundData.playerData)
 
@@ -56,6 +85,38 @@ ClientServerCommunication.registerActionAsync("SetPhase", function(data)
 
 		roundData.playerData:set(playerDatas)
 	end
+end)
+
+--[[ How its like on the server
+function RoundDataManager.registerLobbyTeleport(player: Player, destinationIsGame: boolean)
+	local playerData = roundData.playerData[player.UserId]
+
+	assert(playerData, "Player data does not exist")
+
+	playerData.isLobby = not destinationIsGame
+
+	ClientServerCommunication.replicateAsync("RegisterLobbyTeleport", {
+		playerId = player.UserId,
+		isLobby = playerData.isLobby,
+	})
+
+	onDataUpdatedEvent:Fire(roundData)
+end
+]]
+ClientServerCommunication.registerActionAsync("RegisterLobbyTeleport", function(data)
+	local playerId = data.playerId
+	local isLobby = data.isLobby
+
+	local newPlayerData = peek(roundData.playerData)
+	local playerData = newPlayerData[playerId]
+
+	if not newPlayerData or not playerData then
+		return
+	end
+
+	playerData.isLobby = isLobby
+
+	roundData.playerData:set(newPlayerData)
 end)
 
 --[[ How its like on the server
@@ -119,7 +180,7 @@ end)
 
 	playerData.status = Enums.PlayerStatus.dead
 	playerData.health = 0
-	playerData.armor = 0
+	playerData.shield = 0
 	playerData.lifeSupport = 0
 
 	if killer then
@@ -152,7 +213,7 @@ ClientServerCommunication.registerActionAsync("KillPlayer", function(data)
 
 	victimData.status = Enums.PlayerStatus.dead
 	victimData.health = 0
-	victimData.armor = 0
+	victimData.shield = 0
 	victimData.lifeSupport = 0
 	victimData.killedById = killedById
 
@@ -175,8 +236,7 @@ end)
 
 	playerData.status = Enums.PlayerStatus.alive
 	playerData.health = 100
-	playerData.armor = 0
-	playerData.lifeSupport = 100
+	playerData.shield = base amount
 
 	ClientServerCommunication.replicateAsync("revivePlayer", {
 		playerId = player.UserId,
@@ -198,20 +258,19 @@ ClientServerCommunication.registerActionAsync("RevivePlayer", function(data)
 
 	playerData.status = Enums.PlayerStatus.alive
 	playerData.health = 100
-	playerData.armor = 0
-	playerData.lifeSupport = 100
+	playerData.shield = RoundConfiguration.shieldBaseAmount
 
 	roundData.playerData:set(newPlayerData)
 end)
 
 --[[
-	function RoundDataManager.setHealth(player: Player, armor: number?, health: number?)
+	function RoundDataManager.setHealth(player: Player, shield: number?, health: number?)
 	local playerData = roundData.playerData[player.UserId]
 
 	assert(playerData, "Player data does not exist")
 
-	if armor then
-		playerData.armor = armor
+	if shield then
+		playerData.shield = shield
 	end
 
 	if health then
@@ -225,7 +284,7 @@ end)
 	ClientServerCommunication.replicateAsync("UpdateHealth", {
 		playerId = player.UserId,
 		health = playerData.health,
-		armor = playerData.armor,
+		shield = playerData.shield,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
@@ -235,7 +294,7 @@ end
 ClientServerCommunication.registerActionAsync("UpdateHealth", function(data)
 	local playerId = data.playerId
 	local health = data.health
-	local armor = data.armor
+	local shield = data.shield
 
 	local newPlayerData = peek(roundData.playerData)
 	local playerData = newPlayerData[playerId]
@@ -244,8 +303,8 @@ ClientServerCommunication.registerActionAsync("UpdateHealth", function(data)
 		return
 	end
 
-	if armor then
-		playerData.armor = armor
+	if shield then
+		playerData.shield = shield
 	end
 
 	if health then
