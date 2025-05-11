@@ -144,6 +144,18 @@ RunService.Heartbeat:Connect(function(dt)
 			end
 
 			RoundDataManager.incrementLifeSupport(player, -lifeSupportLoss)
+		elseif
+			playerData
+			and playerData.status == Enums.PlayerStatus.alive
+			and not RoundDataManager.data.isGameOver
+			and playerData.damageLastTakenTime
+			and os.clock() - playerData.damageLastTakenTime > RoundConfiguration.shieldRegenBuffer
+		then
+			local shield = playerData.shield or 0
+
+			if shield < RoundConfiguration.shieldBaseAmount then
+				RoundDataManager.incrementShield(player, RoundConfiguration.shieldRegenAmountPerSecond * dt)
+			end
 		end
 	end
 end)
