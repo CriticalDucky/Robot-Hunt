@@ -57,21 +57,10 @@ local RoundConfiguration = {
 	gunPowerupMultiplier = 1.2,
 	gunBaseDamagePerSecond = 20,
 
-	gunEffectColors = {
-		[TeamType.hunters] = {
-			beamColor = Color3.fromRGB(255, 0, 0),
-			attackLightColor = Color3.fromRGB(255, 32, 32),
-			attackGlowColor = Color3.fromRGB(255, 48, 48),
-			attackElectricityColor = Color3.fromRGB(255, 142, 142),
-		},
-
-		[TeamType.rebels] = {
-			beamColor = Color3.fromRGB(59, 193, 255),
-			attackLightColor = Color3.fromRGB(106, 173, 255),
-			attackGlowColor = Color3.fromRGB(106, 173, 255),
-			attackElectricityColor = Color3.fromRGB(101, 247, 255),
-		},
-	},
+	shieldRegenBuffer = 8, -- The time it takes to start regenerating the shield after taking damage.
+	shieldRegenAmountPerSecond = 5,
+	shieldBaseAmount = 25,
+	lifeSupportLossPerSecond = 100/45,
 
 	hunterToRebelRatio = 1/3,
 
@@ -87,6 +76,11 @@ local RoundConfiguration = {
 
 	batteryLowerPercentage = 0.1, -- At least 50% of the batteries will spawn.
 	batteryUpperPercentage = 0.5, -- At most 75% of the batteries will spawn.
+
+	walkSpeed = 16,
+	jumpPower = 50,
+
+	deathWaitTime = 3,
 
 	minPlayers = 2,
 
