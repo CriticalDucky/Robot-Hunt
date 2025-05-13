@@ -135,6 +135,9 @@ local function onDescendantAdded(descendant)
 					if proximityPlayerData.status == Enums.PlayerStatus.dead then
 						return false
 					end
+					if proximityPlayerData.health >= 100 then
+						return false
+					end
 
 					local isHoldingBattery
 					do
