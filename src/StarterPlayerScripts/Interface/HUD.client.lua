@@ -163,16 +163,16 @@ scope:New "ScreenGui" {
 			[Children] = {
 				scope:New "Frame" {
 					Name = "Health",
-					AnchorPoint = Vector2.new(0.5, 1),
+					AnchorPoint = Vector2.new(0, 1),
 					BackgroundTransparency = 1,
 					Position = scope:Tween(
 						scope:Computed(function(use)
 							local isHealthGuiEnabled = use(isHealthGuiEnabled)
 
 							if isHealthGuiEnabled then
-								return UDim2.fromScale(0.5, 1)
+								return UDim2.fromScale(0, 1)
 							else
-								return UDim2.fromScale(0.5, 1)
+								return UDim2.fromScale(0, 1)
 									+ UDim2.fromOffset(0, OFFSCREEN_HEALTH_LIFESUPPORT_OFFSET)
 							end
 						end),
@@ -382,16 +382,16 @@ scope:New "ScreenGui" {
 
 				scope:New "Frame" {
 					Name = "LifeSupport",
-					AnchorPoint = Vector2.new(0.5, 1),
+					AnchorPoint = Vector2.new(0, 1),
 					BackgroundTransparency = 1,
 					Position = scope:Tween(
 						scope:Computed(function(use)
 							local isLifeSupportGuiEnabled = use(isLifeSupportGuiEnabled)
 
 							if isLifeSupportGuiEnabled then
-								return UDim2.fromScale(0.5, 1)
+								return UDim2.fromScale(0, 1)
 							else
-								return UDim2.fromScale(0.5, 1)
+								return UDim2.fromScale(0, 1)
 									+ UDim2.fromOffset(0, OFFSCREEN_HEALTH_LIFESUPPORT_OFFSET)
 							end
 						end),
