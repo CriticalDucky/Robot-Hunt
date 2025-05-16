@@ -14,43 +14,38 @@ local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local UserInputService = game:GetService "UserInputService"
 
-local replicatedStorageShared = ReplicatedStorage:WaitForChild "Shared"
 local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
-local componentsFolder = replicatedStorageShared:WaitForChild("Interface"):WaitForChild "Components"
+local componentsFolder = ReplicatedStorage:WaitForChild("Interface"):WaitForChild "Components"
 
 local buttonInput = require(componentsFolder:WaitForChild "ButtonInput")
 
 -- Optional: Remove imports that you don't need
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
-local New = Fusion.New
 local Children = Fusion.Children
-local Cleanup = Fusion.Cleanup
 local Out = Fusion.Out
-local Value = Fusion.Value
-local Computed = Fusion.Computed
 local peek = Fusion.peek
 
 ---@diagnostic disable-next-line: undefined-type oh my godddd
-type CanBeState<T> = Fusion.CanBeState<T>
+type UsedAs<T> = Fusion.UsedAs<T>
 type Value<T> = Fusion.Value<T>
 -- #endregion
 
 export type Props = {
 	-- Default props
-	Name: CanBeState<string>?,
-	LayoutOrder: CanBeState<number>?,
-	Position: CanBeState<UDim2>?,
-	AnchorPoint: CanBeState<Vector2>?,
-	Size: CanBeState<UDim2>?,
-	ZIndex: CanBeState<number>?,
+	Name: UsedAs<string>?,
+	LayoutOrder: UsedAs<number>?,
+	Position: UsedAs<UDim2>?,
+	AnchorPoint: UsedAs<Vector2>?,
+	Size: UsedAs<UDim2>?,
+	ZIndex: UsedAs<number>?,
 
 	-- Custom props
-	BackgroundInputShrink: CanBeState<Vector2>?, -- This size will be subtracted from the background input's size to create a smaller hitbox/draggable area.
-	BackgroundBody: CanBeState<GuiObject>?, -- The actual design of the slider background
-	SliderBody: CanBeState<GuiObject>?, -- The actual design of the slider
-	SliderSize: CanBeState<UDim2>?, -- The size of the slider, which centers with the input body
-	ProgressAlpha: CanBeState<number>?, -- Between 0 and 1, what the slider displays.
-	Disabled: CanBeState<boolean>?, -- Whether or not the slider is disabled
+	BackgroundInputShrink: UsedAs<Vector2>?, -- This size will be subtracted from the background input's size to create a smaller hitbox/draggable area.
+	BackgroundBody: UsedAs<GuiObject>?, -- The actual design of the slider background
+	SliderBody: UsedAs<GuiObject>?, -- The actual design of the slider
+	SliderSize: UsedAs<UDim2>?, -- The size of the slider, which centers with the input body
+	ProgressAlpha: UsedAs<number>?, -- Between 0 and 1, what the slider displays.
+	Disabled: UsedAs<boolean>?, -- Whether or not the slider is disabled
 	InputProgressChanged: (number) -> (), -- Inexpensive, unyielding callback that runs every frame and updates ProgressAlpha called when the slider is changed
 
 	isHoveringBackground: Value<boolean>?,
@@ -63,20 +58,20 @@ export type Props = {
 --[[
 	This component creates an unstyled slider frame
 ]]
-local function Component(props: Props)
+local function Component(scope: Fusion.Scope, props: Props)
 	local mousePosition: Vector2? = nil -- Mouse position in screen space
-	local selected: Value<("Background" | "Slider" | nil)> = props.draggingMode or Value(nil) -- Which part of the slider is selected
+	local selected: Value<("Background" | "Slider" | nil)> = props.draggingMode or scope:Value(nil) -- Which part of the slider is selected
 	local sliderInputOffset: Vector2? -- Only relevant when selected == "Slider"
 
-	local sliderAbsolutePosition = Value(Vector2.new(0, 0))
-	local sliderAbsoluteSize = Value(Vector2.new(0, 0))
+	local sliderAbsolutePosition = scope:Value(Vector2.new(0, 0))
+	local sliderAbsoluteSize = scope:Value(Vector2.new(0, 0))
 
-	local backgroundAbsolutePosition = Value(Vector2.new(0, 0))
-	local backgroundAbsoluteSize = Value(Vector2.new(0, 0))
-	local backgroundAbsoluteSizeComputed = Computed(
+	local backgroundAbsolutePosition = scope:Value(Vector2.new(0, 0))
+	local backgroundAbsoluteSize = scope:Value(Vector2.new(0, 0))
+	local backgroundAbsoluteSizeComputed = scope:Computed(
 		function(use) return use(backgroundAbsoluteSize) - (use(props.BackgroundInputShrink) or Vector2.new(0, 0)) end
 	)
-	local backgroundAbsolutePositionComputed = Computed(
+	local backgroundAbsolutePositionComputed = scope:Computed(
 		function(use)
 			return use(backgroundAbsolutePosition) + ((use(props.BackgroundInputShrink) or Vector2.new(0, 0)) / 2)
 		end
@@ -111,7 +106,9 @@ local function Component(props: Props)
 		end
 	end)
 
-	local frame = New "Frame" {
+	table.insert(scope, { inputChangedConnection, inputEndedConnection })
+
+	local frame = scope:New "Frame" {
 		Size = props.Size,
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,
@@ -120,18 +117,13 @@ local function Component(props: Props)
 		BackgroundTransparency = 1,
 		Name = props.Name or "SliderBase",
 
-		[Cleanup] = {
-			inputChangedConnection,
-			inputEndedConnection,
-		},
-
 		[Out "AbsolutePosition"] = backgroundAbsolutePosition,
 		[Out "AbsoluteSize"] = backgroundAbsoluteSize,
 
 		[Children] = {
-			buttonInput {
+			buttonInput(scope, {
 				Name = "BackgroundInput",
-				Size = Computed(function(use)
+				Size = scope:Computed(function(use)
 					local inputShrinkVector2 = use(props.BackgroundInputShrink) or Vector2.new(0, 0)
 					return UDim2.fromScale(1, 1) - UDim2.fromOffset(inputShrinkVector2.X, inputShrinkVector2.Y)
 				end),
@@ -143,21 +135,21 @@ local function Component(props: Props)
 
 				InputBegan = function(input: InputObject)
 					if SELECT_INPUTS[input.UserInputType] then
-						selected:set("Background")
+						selected:set "Background"
 						updateProgress(input)
 					end
 				end,
 
 				isHeldDown = props.isHeldDownBackground,
 				isHovering = props.isHoveringBackground,
-			},
+			}),
 
 			props.BackgroundBody,
 
-			New "Frame" {
+			scope:New "Frame" {
 				Name = "SliderContainer",
 				BackgroundTransparency = 1,
-				Size = Computed(function(use)
+				Size = scope:Computed(function(use)
 					local BackgroundInputShrink = use(props.BackgroundInputShrink) or Vector2.new(0, 0)
 					return UDim2.fromScale(1, 1) - UDim2.fromOffset(BackgroundInputShrink.X, BackgroundInputShrink.Y)
 				end),
@@ -166,12 +158,12 @@ local function Component(props: Props)
 				ZIndex = 20000,
 
 				[Children] = {
-					New "Frame" {
+					scope:New "Frame" {
 						Name = "SliderFrame",
 						BackgroundTransparency = 1,
 						Size = props.SliderSize or UDim2.fromOffset(20, 20),
 						AnchorPoint = Vector2.new(0.5, 0.5),
-						Position = Computed(
+						Position = scope:Computed(
 							function(use) return UDim2.fromScale(use(props.ProgressAlpha) or 0, 0.5) end
 						),
 
@@ -179,7 +171,7 @@ local function Component(props: Props)
 						[Out "AbsoluteSize"] = sliderAbsoluteSize,
 
 						[Children] = {
-							buttonInput {
+							buttonInput(scope, {
 								Name = "SliderInput",
 								Size = UDim2.fromScale(1, 1),
 								ZIndex = 10000,
@@ -188,7 +180,7 @@ local function Component(props: Props)
 
 								InputBegan = function(input: InputObject)
 									if SELECT_INPUTS[input.UserInputType] then
-										selected:set("Slider")
+										selected:set "Slider"
 										sliderInputOffset = peek(sliderAbsolutePosition)
 											- Vector2.new(math.round(input.Position.X), math.round(input.Position.Y))
 										updateProgress(input)
@@ -197,7 +189,7 @@ local function Component(props: Props)
 
 								isHeldDown = props.isHeldDownSlider,
 								isHovering = props.isHoveringSlider,
-							},
+							}),
 
 							props.SliderBody,
 						},

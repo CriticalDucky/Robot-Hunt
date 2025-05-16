@@ -6,18 +6,18 @@ local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
 -- Optional: Remove imports that you don't need
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
 
-type CanBeState<T> = Fusion.CanBeState<T>
--- #endregion
+type UsedAs<T> = Fusion.UsedAs<T>
+--#endregion
 
 export type Props = {
 	-- Default props
-	Name: CanBeState<string>?,
-	LayoutOrder: CanBeState<number>?,
-	Position: CanBeState<UDim2>?,
-	AnchorPoint: CanBeState<Vector2>?,
-	Size: CanBeState<UDim2>?,
-	AutomaticSize: CanBeState<Enum.AutomaticSize>?,
-	ZIndex: CanBeState<number>?,
+	Name: UsedAs<string>?,
+	LayoutOrder: UsedAs<number>?,
+	Position: UsedAs<UDim2>?,
+	AnchorPoint: UsedAs<Vector2>?,
+	Size: UsedAs<UDim2>?,
+	AutomaticSize: UsedAs<Enum.AutomaticSize>?,
+	ZIndex: UsedAs<number>?,
 }
 
 --[[
@@ -25,10 +25,10 @@ export type Props = {
 
 	Example usage:
 	```lua
-
+	
 	```
 ]]
-local function Component(props: Props)
+local function Component(scope: Fusion.Scope, props: Props)
 
 end
 

@@ -5,17 +5,15 @@ local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
 
 -- Optional: Remove imports that you don't need
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
-local New = Fusion.New
-local Computed = Fusion.Computed
-type CanBeState<T> = Fusion.CanBeState<T>
+type UsedAs<T> = Fusion.UsedAs<T>
 -- #endregion
 
 export type Props = {
 	-- Default props
-	CornerRadius: CanBeState<number>?,
-	Color: CanBeState<Color3>?,
-	ScrollbarOffset: CanBeState<number>?,
-	Disabled: CanBeState<boolean>?,
+	CornerRadius: UsedAs<number>?,
+	Color: UsedAs<Color3>?,
+	ScrollbarOffset: UsedAs<number>?,
+	Disabled: UsedAs<boolean>?,
 }
 
 --[[
@@ -26,7 +24,7 @@ export type Props = {
 
     To use, create this component as a sibling to the scrolling frame you want to mask.
 ]]
-local function Component(props: Props)
+local function Component(scope: Fusion.Scope, props: Props)
 	local rounderImageId = "rbxassetid://8657765392"
 
 	local cornerRadius = props.CornerRadius or 8
@@ -35,7 +33,7 @@ local function Component(props: Props)
 	local ZIndex = 10000000
 
 	return {
-		New "ImageLabel" {
+		scope:New "ImageLabel" {
 			AnchorPoint = Vector2.new(0, 0),
 			BackgroundTransparency = 1,
 			Position = UDim2.fromScale(0, 0),
@@ -45,16 +43,16 @@ local function Component(props: Props)
 			ImageRectSize = Vector2.new(128, 128),
 			ImageRectOffset = Vector2.new(0, 0),
 			ZIndex = ZIndex,
-			Visible = Computed(function(use)
+			Visible = scope:Computed(function(use)
 				local disabled = use(props.Disabled) or false
 				return not disabled
 			end),
 		},
 
-		New "ImageLabel" {
+		scope:New "ImageLabel" {
 			AnchorPoint = Vector2.new(1, 0),
 			BackgroundTransparency = 1,
-			Position = Computed(function(use)
+			Position = scope:Computed(function(use)
 				local scrollbarOffset = use(props.ScrollbarOffset) or 0
 				return UDim2.fromScale(1, 0) - UDim2.fromOffset(scrollbarOffset, 0)
 			end),
@@ -64,13 +62,13 @@ local function Component(props: Props)
 			ImageRectSize = Vector2.new(128, 128),
 			ImageRectOffset = Vector2.new(128, 0),
 			ZIndex = ZIndex,
-            Visible = Computed(function(use)
+            Visible = scope:Computed(function(use)
 				local disabled = use(props.Disabled) or false
 				return not disabled
 			end),
 		},
 
-		New "ImageLabel" {
+		scope:New "ImageLabel" {
 			AnchorPoint = Vector2.new(0, 1),
 			BackgroundTransparency = 1,
 			Position = UDim2.fromScale(0, 1),
@@ -80,16 +78,16 @@ local function Component(props: Props)
 			ImageRectSize = Vector2.new(128, 128),
 			ImageRectOffset = Vector2.new(0, 128),
 			ZIndex = ZIndex,
-            Visible = Computed(function(use)
+            Visible = scope:Computed(function(use)
 				local disabled = use(props.Disabled) or false
 				return not disabled
 			end)
 		},
 
-		New "ImageLabel" {
+		scope:New "ImageLabel" {
 			AnchorPoint = Vector2.new(1, 1),
 			BackgroundTransparency = 1,
-			Position = Computed(function(use)
+			Position = scope:Computed(function(use)
 				local scrollbarOffset = use(props.ScrollbarOffset) or 0
 				return UDim2.fromScale(1, 1) - UDim2.fromOffset(scrollbarOffset, 0)
 			end),
@@ -99,7 +97,7 @@ local function Component(props: Props)
 			ImageRectSize = Vector2.new(128, 128),
 			ImageRectOffset = Vector2.new(128, 128),
 			ZIndex = ZIndex,
-            Visible = Computed(function(use)
+            Visible = scope:Computed(function(use)
 				local disabled = use(props.Disabled) or false
 				return not disabled
 			end)

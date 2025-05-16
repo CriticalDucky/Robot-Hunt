@@ -10,18 +10,14 @@ local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
 
 -- Optional: Remove imports that you don't need
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
-local New = Fusion.New
 local Children = Fusion.Children
 local OnEvent = Fusion.OnEvent
-local Value = Fusion.Value
-local Computed = Fusion.Computed
-local Spring = Fusion.Spring
 local peek = Fusion.peek
 
 ---@diagnostic disable-next-line: undefined-type wtf!!!!!!!
-type CanBeState<T> = Fusion.CanBeState<T>
+type CanBeState<T> = Fusion.UsedAs<T>
 type Value<T> = Fusion.Value<T>
--- #endregion
+--#endregion
 
 export type Props = {
 	-- some generic properties we'll allow other code to control directly
@@ -52,14 +48,14 @@ export type Props = {
 
     WARNING: Hovering will be set to true even if the button is covered by other UI.
 ]]
-local function Component(props: Props)
-	local isHovering = props.isHovering or Value(false)
-	local isHeldDown = props.isHeldDown or Value(false)
+local function Component(scope: Fusion.Scope, props: Props)
+	local isHovering = props.isHovering or scope:Value(false)
+	local isHeldDown = props.isHeldDown or scope:Value(false)
 
 	isHovering:set(false)
 	isHeldDown:set(false)
 
-	return New "TextButton" {
+	return scope:New "TextButton" {
 		Name = props.Name or "Button",
 		LayoutOrder = props.LayoutOrder,
 		Position = props.Position,
@@ -72,8 +68,8 @@ local function Component(props: Props)
 		TextColor3 = Color3.fromHex "FFFFFF",
 
 		BackgroundTransparency = props.BackgroundTransparency or 1, -- The rough style behavior below will never be visible to the player, only for testing
-		BackgroundColor3 = Spring(
-			Computed(function(use)
+		BackgroundColor3 = scope:Spring(
+			scope:Computed(function(use)
 				if use(props.Disabled) then
 					return Color3.fromHex "CCCCCC"
 				else
@@ -128,11 +124,11 @@ local function Component(props: Props)
 		end,
 
 		[Children] = {
-			props.CornerRadius and New "UICorner" {
+			props.CornerRadius and scope:New "UICorner" {
 				CornerRadius = props.CornerRadius,
 			},
 
-			New "UIPadding" {
+			scope:New "UIPadding" {
 				PaddingTop = UDim.new(0, 6),
 				PaddingBottom = UDim.new(0, 6),
 				PaddingLeft = UDim.new(0, 6),
