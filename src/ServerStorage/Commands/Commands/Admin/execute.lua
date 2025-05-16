@@ -6,7 +6,7 @@ local SCRIPT = [[
         local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
         local ExecuteGlobals = require(
-            ReplicatedStorage:WaitForChild("Shared")
+            ReplicatedStorage
                 :WaitForChild("Commands")
                 :WaitForChild("Utility")
                 :WaitForChild "ExecuteGlobals"
@@ -22,11 +22,6 @@ local SCRIPT = [[
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
 local loadstring = require(ReplicatedStorage:WaitForChild("Vendor"):WaitForChild "Loadstring")
-
--- local replicatedStorageShared = ReplicatedStorage:WaitForChild "Shared"
--- local replicatedStorageSharedCommands = replicatedStorageShared:WaitForChild "Commands"
-
--- local ExecuteGlobals = require(replicatedStorageSharedCommands:WaitForChild("Utility"):WaitForChild "ExecuteGlobals")
 
 return {
 	Name = "execute",
