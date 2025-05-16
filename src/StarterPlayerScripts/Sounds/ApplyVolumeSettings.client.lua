@@ -2,7 +2,6 @@ local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local SoundService = game:GetService "SoundService"
 
 local replicatedFirstVendor = ReplicatedFirst:WaitForChild "Vendor"
--- local replicatedFirstShared = ReplicatedFirst:WaitForChild "Shared"
 
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
 
