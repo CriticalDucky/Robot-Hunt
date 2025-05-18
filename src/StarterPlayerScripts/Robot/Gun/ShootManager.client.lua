@@ -96,11 +96,12 @@ local function shootThread()
 		-------------------------------------------------------------------
 		-- cast LEFT bullet
 		-------------------------------------------------------------------
+		--[[
 		local directionL = (mouseWorldPosition - neonL.Position).Unit
 		local resultL = workspace:Raycast(neonL.Position, directionL * 256, params)
 		local hitPositionL = resultL and resultL.Position or mouseWorldPosition
 		local victimL = (resultL and resultL.Instance) and getPlayerFromCharDescendant(resultL.Instance) or nil
-
+		--]]
 		-------------------------------------------------------------------
 		-- cast RIGHT bullet
 		-------------------------------------------------------------------
@@ -113,7 +114,7 @@ local function shootThread()
 		-- replicate to server
 		-------------------------------------------------------------------
 		Net.replicateAsync("UpdateShootingStatus", {
-			gunHitPositionL = hitPositionL,
+			-- gunHitPositionL = hitPositionL,
 			gunHitPositionR = hitPositionR,
 		})
 
@@ -138,7 +139,7 @@ local function shootThread()
 		local newData = peek(ClientState.external.roundData.playerData)
 		local pd = newData[player.UserId]
 		if pd then
-			pd.gunHitPositionL = hitPositionL
+			-- pd.gunHitPositionL = hitPositionL
 			pd.gunHitPositionR = hitPositionR
 
 			-- victim bookkeeping (team‑safe)
@@ -151,7 +152,7 @@ local function shootThread()
 					pd.victims[victim.UserId] = true
 				end
 			end
-			registerVictim(victimL)
+			-- registerVictim(victimL)
 			registerVictim(victimR)
 			ClientState.external.roundData.playerData:set(newData)
 		end

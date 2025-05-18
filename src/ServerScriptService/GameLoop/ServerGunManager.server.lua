@@ -122,12 +122,12 @@ local function getShootData(player: Player, hitPosL: Vector3?, hitPosR: Vector3?
 	local resR = if hitPosR then solveRay(player, rightUpperArm.Position, hitPosR) else nil
 
 	return {
-		hitL = resL.pos,
-		hitR = resR.pos,
-		victimL = resL.victim,
-		victimR = resR.victim,
-		distL = resL.dist,
-		distR = resR.dist,
+		hitL = resL and resL.pos,
+		hitR = resR and resR.pos,
+		victimL = resL and resL.victim,
+		victimR = resR and resR.victim,
+		distL = resL and resL.dist,
+		distR = resR and resR.dist,
 	}
 end
 

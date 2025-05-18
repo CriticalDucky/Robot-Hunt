@@ -18,6 +18,10 @@ local IK = require(RS.Utility.IK)
 local Types = require(RF.Utility.Types)
 local Enums = require(RF.Enums)
 
+local GunEffectsFolder = Instance.new("Folder")
+GunEffectsFolder.Name = "GunEffects"
+GunEffectsFolder.Parent = workspace
+
 ---------------------------------------------------------------------
 -- Fusion helpers
 ---------------------------------------------------------------------
@@ -105,6 +109,15 @@ local function onPlayer(player: Player)
 		local hitFlareR = hitR:WaitForChild("HitFlare"):WaitForChild "HitFlareImage" :: ImageLabel
 		local gunFlareL = neonL:WaitForChild("GunFlare"):WaitForChild "GunFlareImage" :: ImageLabel
 		local gunFlareR = neonR:WaitForChild("GunFlare"):WaitForChild "GunFlareImage" :: ImageLabel
+
+		if player == Players.LocalPlayer then
+			beamL.Parent = GunEffectsFolder
+			beamR.Parent = GunEffectsFolder
+
+			table.insert(characterScope, beamL)
+			table.insert(characterScope, beamR)
+		end
+		
 
 		local colors = {}
 		do
@@ -219,9 +232,9 @@ local function onPlayer(player: Player)
 		hydrateHit(hitL, "gunHitPositionL")
 		hydrateHit(hitR, "gunHitPositionR")
 
-		local function hydrateFlare(hitFlare: ImageLabel, flareType: "HitFlare" | "GunFlare")
+		local function hydrateFlare(hitFlare: ImageLabel, flareType: "HitFlare" | "GunFlare", key: "gunHitPositionL" | "gunHitPositionR")
 			characterScope:Hydrate(hitFlare) {
-				Visible = characterScope:Computed(function(u) return u(shoot) end),
+				Visible = characterScope:Computed(function(u) return u(shoot) and u(rd) and u(rd)[key] end),
 				ImageColor3 = characterScope:Computed(function(u)
 					local data = u(rd)
 					if not data then return Color3.new(1, 1, 1) end
@@ -229,10 +242,10 @@ local function onPlayer(player: Player)
 				end),
 			}
 		end
-		hydrateFlare(hitFlareL, "HitFlare")
-		hydrateFlare(gunFlareL, "GunFlare")
-		hydrateFlare(hitFlareR, "HitFlare")
-		hydrateFlare(gunFlareR, "GunFlare")
+		hydrateFlare(hitFlareL, "HitFlare", "gunHitPositionL")
+		hydrateFlare(gunFlareL, "GunFlare", "gunHitPositionL")
+		hydrateFlare(hitFlareR, "HitFlare", "gunHitPositionR")
+		hydrateFlare(gunFlareR, "GunFlare", "gunHitPositionR")
 
 		local function hydrateGunParts(gunPart: Part, colorType: "GunColor" | "GunNeon")
 			characterScope:Hydrate(gunPart) {
@@ -337,7 +350,7 @@ local function onPlayer(player: Player)
 				motor.Transform = CFrame.identity
 				motor.C1 = CFrame.new(motor.C1.Position)
 				motor.CurrentAngle = 0
-				task.wait() -- :(
+				RunService.RenderStepped:Wait() -- :(
 				motor.CurrentAngle = 0
 			end
 		end
@@ -372,11 +385,22 @@ local function onPlayer(player: Player)
 			else
 				if not IKUpdateThread then
 					IKUpdateThread = task.spawn(function()
-						if leftIK then error "Left IK already exists" end
-						leftIK = IK.AL.new(char, "Left", "Arm")
-						rightIK = IK.AL.new(char, "Right", "Arm")
-						leftIK.ExtendWhenUnreachable = true
-						rightIK.ExtendWhenUnreachable = true
+						local playerData = peek(ClientState.external.roundData.playerData)[player.UserId]
+
+						if not playerData then return end
+						local hitPosL = playerData.gunHitPositionL
+						local hitPosR = playerData.gunHitPositionR
+
+						repeat
+							hitPosL = playerData.gunHitPositionL
+							hitPosR = playerData.gunHitPositionR
+							task.wait()
+						until hitPosL or hitPosR
+
+						leftIK = hitPosL and IK.AL.new(char, "Left", "Arm")
+						rightIK = hitPosR and IK.AL.new(char, "Right", "Arm")
+						if hitPosL then leftIK.ExtendWhenUnreachable = true end
+						if hitPosR then rightIK.ExtendWhenUnreachable = true end
 
 						local rootPart = char:WaitForChild "HumanoidRootPart" :: BasePart
 
@@ -385,11 +409,11 @@ local function onPlayer(player: Player)
 							local leftShoulder = char:FindFirstChild("LeftShoulder", true)
 							local rightShoulder = char:FindFirstChild("RightShoulder", true)
 
-							if leftShoulder then
+							if leftShoulder and hitPosL then
 								leftShoulder.C1 = CFrame.new(leftShoulder.C1.Position)
 									* CFrame.Angles(0, math.rad(90), 0)
 							end
-							if rightShoulder then
+							if rightShoulder and hitPosR then
 								rightShoulder.C1 = CFrame.new(rightShoulder.C1.Position)
 									* CFrame.Angles(0, math.rad(-90), 0)
 							end
@@ -405,11 +429,8 @@ local function onPlayer(player: Player)
 								rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
 							end
 
-							local hitPosL = hitL.Position
-							local hitPosR = hitR.Position
-
-							leftIK:Solve(hitPosL)
-							rightIK:Solve(hitPosR)
+							if hitPosL then leftIK:Solve(hitL.Position) end
+							if hitPosR then rightIK:Solve(hitR.Position) end
 						end
 					end)
 				end
