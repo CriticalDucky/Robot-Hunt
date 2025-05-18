@@ -112,6 +112,7 @@ export type RoundTerminalData = {
 
 	isPuzzleMode: boolean,
 	puzzleQueue: { Player }, -- The players that are in the puzzle queue; not replicated
+	hasPuzzleErrored: boolean, -- Whether or not the terminal errored this puzzle; not replicated
 
 	progress: number, -- 0-100
 	cooldown: number,
