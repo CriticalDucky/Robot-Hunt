@@ -32,6 +32,8 @@
 -- 			Size = UDim2.new(0, 100, 0, 100),
 -- 			Position = UDim2.fromScale(0, 0),
 -- 			AnchorPoint = Vector2.new(0, 0),
+--             ProgressThickness = 20,
+--             ProgressColor = Color3.fromRGB(0, 0, 255),
 -- 			Rotation = 0,
 -- 			Visible = true,
 -- 			ZIndex = 1,
@@ -39,7 +41,7 @@
 -- 			IsPie = false,
 -- 			Flip = flip,
 
--- 			BackgroundColor = Color3.fromRGB(0, 0, 0),
+-- 			BackgroundColor = Color3.fromRGB(255, 0, 0),
 -- 			BackgroundTransparency = 0.75,
 -- 		},
 
