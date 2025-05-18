@@ -41,18 +41,21 @@ function onClientPuzzleResult(player, terminalId, success)
 		RoundDataManager.setTerminalStates(terminalId, {
 			isErrored = true,
 		})
+
+		terminalData.hasPuzzleErrored = true
 	end
 
 	if #terminalData.puzzleQueue == 0 then
 		RoundDataManager.setTerminalStates(terminalId, {
 			isPuzzleMode = false,
+			isErrored = if terminalData.hasPuzzleErrored then true else false,
 		})
+
+		terminalData.hasPuzzleErrored = false
 	end
 end
 
 function promptPuzzle(terminalData: Types.RoundTerminalData)
-	warn("PUZZLE PROMPTED!!!!")
-
 	RoundDataManager.setTerminalStates(terminalData.id, {
 		isPuzzleMode = true,
 	})
