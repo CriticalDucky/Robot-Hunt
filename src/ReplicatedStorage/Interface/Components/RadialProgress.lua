@@ -17,6 +17,7 @@ export type Props = {
 	ZIndex: UsedAs<number>?,
 
 	IsPie: boolean?, -- if true, the radial progress will be a pie instead of a ring
+	ProgressThickness: UsedAs<number>?,
 	ProgressImageId: UsedAs<number>?,
 	ProgressColor: UsedAs<Color3>?,
 	ProgressTransparency: UsedAs<number>?,
@@ -39,6 +40,7 @@ local DEFAULT_ID = 2763450503
 
 local function RadialProgress(scope: Fusion.Scope, props: Props)
 	local isPie = props.IsPie or nil
+	local thickness = props.ProgressThickness
 
 	assert(props.Progress, "RadialProgress: Progress is required")
 
@@ -80,6 +82,21 @@ local function RadialProgress(scope: Fusion.Scope, props: Props)
 		}
 	end)
 
+	local gradientRotationLeft = scope:Computed(function(use)
+		if not use(props.Flip) then
+			return math.clamp(use(percentNumber), 180, 360)
+		else
+			return 180 - math.clamp(use(percentNumber), 0, 180)
+		end
+	end)
+	local gradientRotationRight = scope:Computed(function(use)
+		if not use(props.Flip) then
+			return math.clamp(use(percentNumber), 0, 180)
+		else
+			return 180 - math.clamp(use(percentNumber), 180, 360)
+		end
+	end)
+
 	return scope:New "Frame" {
 		Name = props.Name or "RadialProgress",
 		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
@@ -99,27 +116,60 @@ local function RadialProgress(scope: Fusion.Scope, props: Props)
 				Size = UDim2.fromScale(0.5, 1),
 
 				[Children] = {
-					scope:New(if isPie then "Frame" else "ImageLabel") {
+					scope:New(if isPie or thickness then "Frame" else "ImageLabel") {
 						BackgroundTransparency = if isPie then 0 else 1,
-						Image = if isPie then nil else "rbxassetid://" .. tostring(props.ProgressImageId or DEFAULT_ID),
+						Image = if isPie or thickness
+							then nil
+							else "rbxassetid://" .. tostring(props.ProgressImageId or DEFAULT_ID),
 						Size = UDim2.fromScale(2, 1),
 
 						[Children] = {
-							scope:New "UIGradient" {
-								Transparency = halfTransparency,
-								Color = halfColor,
-								Rotation = scope:Computed(function(use)
-									if not use(props.Flip) then
-										return math.clamp(use(percentNumber), 180, 360)
-									else
-										return 180 - math.clamp(use(percentNumber), 0, 180)
-									end
-								end)
-							},
+							if not thickness
+								then scope:New "UIGradient" {
+									Transparency = halfTransparency,
+									Color = halfColor,
+									Rotation = gradientRotationLeft,
+								}
+								else nil,
 
-							isPie and scope:New "UICorner" {
-								CornerRadius = UDim.new(1, 0),
-							},
+							if isPie
+								then scope:New "UICorner" {
+									CornerRadius = UDim.new(1, 0),
+								}
+								else nil,
+
+							if thickness
+								then scope:New "Frame" {
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									Position = UDim2.fromScale(0.5, 0.5),
+									Size = scope:Computed(function(use)
+										local thickness = use(thickness)
+
+										return UDim2.fromScale(1, 1) - UDim2.fromOffset(thickness * 2, thickness * 2)
+									end),
+									BackgroundTransparency = 1,
+
+									[Children] = {
+										scope:New "UIStroke" {
+											Thickness = thickness,
+											Color = Color3.new(1, 1, 1),
+											ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+
+											[Children] = {
+												scope:New "UIGradient" {
+													Transparency = halfTransparency,
+													Color = halfColor,
+													Rotation = gradientRotationLeft,
+												},
+											},
+										},
+
+										scope:New "UICorner" {
+											CornerRadius = UDim.new(1, 0),
+										},
+									},
+								}
+								else nil,
 						},
 					},
 				},
@@ -134,28 +184,61 @@ local function RadialProgress(scope: Fusion.Scope, props: Props)
 				Size = UDim2.fromScale(0.5, 1),
 
 				[Children] = {
-					scope:New "ImageLabel" {
+					scope:New(if isPie or thickness then "Frame" else "ImageLabel") {
 						BackgroundTransparency = if isPie then 0 else 1,
-						Image = if isPie then nil else "rbxassetid://" .. tostring(props.ProgressImageId or DEFAULT_ID),
+						Image = if isPie or thickness
+							then nil
+							else "rbxassetid://" .. tostring(props.ProgressImageId or DEFAULT_ID),
 						Position = UDim2.fromScale(-1, 0),
 						Size = UDim2.fromScale(2, 1),
 
 						[Children] = {
-							scope:New "UIGradient" {
-								Transparency = halfTransparency,
-								Color = halfColor,
-								Rotation = scope:Computed(function(use)
-									if not use(props.Flip) then
-										return math.clamp(use(percentNumber), 0, 180)
-									else
-										return 180 - math.clamp(use(percentNumber), 180, 360)
-									end
-								end)
-							},
+							if not thickness
+								then scope:New "UIGradient" {
+									Transparency = halfTransparency,
+									Color = halfColor,
+									Rotation = gradientRotationRight,
+								}
+								else nil,
 
-							isPie and scope:New "UICorner" {
-								CornerRadius = UDim.new(1, 0),
-							},
+							if isPie
+								then scope:New "UICorner" {
+									CornerRadius = UDim.new(1, 0),
+								}
+								else nil,
+
+							if thickness
+								then scope:New "Frame" {
+									AnchorPoint = Vector2.new(0.5, 0.5),
+									Position = UDim2.fromScale(0.5, 0.5),
+									Size = scope:Computed(function(use)
+										local thickness = use(thickness)
+
+										return UDim2.fromScale(1, 1) - UDim2.fromOffset(thickness * 2, thickness * 2)
+									end),
+									BackgroundTransparency = 1,
+
+									[Children] = {
+										scope:New "UIStroke" {
+											Thickness = thickness,
+											Color = Color3.new(1, 1, 1),
+											ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+
+											[Children] = {
+												scope:New "UIGradient" {
+													Transparency = halfTransparency,
+													Color = halfColor,
+													Rotation = gradientRotationRight,
+												},
+											},
+										},
+
+										scope:New "UICorner" {
+											CornerRadius = UDim.new(1, 0),
+										},
+									},
+								}
+								else nil,
 						},
 					},
 				},
