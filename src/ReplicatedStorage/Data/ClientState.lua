@@ -58,6 +58,7 @@ local ClientState = {
 
 	actions = {
 		parkourState = scope:Value(Enums.ParkourState.grounded),
+		isSpectating = scope:Value(false :: boolean),
 	}
 }
 
