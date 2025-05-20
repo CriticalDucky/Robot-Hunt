@@ -155,10 +155,10 @@ scope:New "ScreenGui" {
 	[Children] = {
 		scope:New "Frame" {
 			Name = "HUD",
-			AnchorPoint = Vector2.new(0.5, 1),
+			AnchorPoint = Vector2.new(0, 1),
 			BackgroundTransparency = 1,
-			Position = UDim2.new(0.5, 0, 1, -20),
-			Size = UDim2.new(1, -400, 0, 70),
+			Position = UDim2.new(0, 50, 1, -20),
+			Size = UDim2.new(1, -250, 0, 70),
 
 			[Children] = {
 				scope:New "Frame" {
