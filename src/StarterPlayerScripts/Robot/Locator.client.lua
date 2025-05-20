@@ -166,7 +166,7 @@ local function onPlayerAdded(player: Player)
 								return Color3.fromRGB(255, 255, 255)
 							end),
 
-							IsPie = true,
+							ProgressThickness = 6,
 
 							ProgressTransparency = characterScope:Spring(
 								characterScope:Computed(function(use)
@@ -325,7 +325,7 @@ local function onPlayerAdded(player: Player)
 	table.insert(
 		playerScope,
 		Players.PlayerRemoving:Connect(function(removedPlayer)
-			if removedPlayer == player then playerScope:destroy() end
+			if removedPlayer == player then playerScope:doCleanup() end
 		end)
 	)
 end
