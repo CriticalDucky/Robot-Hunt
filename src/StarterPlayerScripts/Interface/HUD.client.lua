@@ -12,6 +12,7 @@ local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild 
 local ClientRoundDataUtility =
 	require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
 local Enums = require(ReplicatedFirst:WaitForChild "Enums")
+local Platform = require(ReplicatedFirst:WaitForChild ("Utility"):WaitForChild "Platform")
 
 local Fusion = require(replicatedFirstVendor:WaitForChild "Fusion")
 local Children = Fusion.Children
@@ -64,88 +65,6 @@ local isLifeSupportGuiEnabled = scope:Computed(function(use)
 	end
 end)
 
---[[
-scope:New "ScreenGui" {
-	Parent = playerGui,
-
-	[Children] = {
-		scope:New "Frame" { -- Health bar
-			Name = "HealthBar",
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-			Size = UDim2.new(0.2, 0, 0.05, 0),
-			Position = UDim2.new(0.5, 0, 0.9, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Visible = scope:Computed(function(use)
-				local playerDatas = use(roundData.playerData)
-				local playerData = playerDatas[Players.LocalPlayer.UserId]
-
-				if playerData then
-					if playerData.isLobby then return false end
-
-					return playerData.status == Enums.PlayerStatus.alive
-						or playerData.status == Enums.PlayerStatus.lifeSupport
-				else
-					return false
-				end
-			end),
-			[Children] = {
-				scope:New "Frame" {
-					Name = "Fill",
-					BackgroundColor3 = scope:Computed(function(use) -- red if alive, blue if life support
-						local playerDatas = use(roundData.playerData)
-						local playerData = playerDatas[Players.LocalPlayer.UserId]
-
-						if playerData then
-							if playerData.status == Enums.PlayerStatus.alive then
-                                if playerData.shield > 0 then
-                                    return Color3.fromRGB(17, 164, 255)
-                                end
-
-								return Color3.fromRGB(248, 221, 14)
-							elseif playerData.status == Enums.PlayerStatus.lifeSupport then
-								return Color3.fromRGB(51, 0, 255)
-							else
-								return Color3.fromRGB(100, 0, 0)
-							end
-						else
-							return Color3.fromRGB(100, 0, 0)
-						end
-					end),
-					AnchorPoint = Vector2.new(0, 0.5),
-					Position = UDim2.new(0, 0, 0.5, 0),
-					BorderSizePixel = 0,
-					Size = scope:Computed(function(use)
-						local playerDatas = use(roundData.playerData)
-						local playerData = playerDatas[Players.LocalPlayer.UserId]
-
-						if playerData then
-							if playerData.status == Enums.PlayerStatus.alive then
-								local health = playerData.health or 100
-                                local shield = playerData.shield or 0
-                                if shield > 0 then
-                                    return UDim2.new(shield / RoundConfiguration.shieldBaseAmount, 0, 1, 0)
-                                end
-
-								return UDim2.new(health / 100, 0, 1, 0)
-							elseif playerData.status == Enums.PlayerStatus.lifeSupport then
-								local lifeSupport = playerData.lifeSupport
-								return UDim2.new(lifeSupport and lifeSupport / 100 or 0, 0, 1, 0)
-							else
-								return UDim2.new(0, 0, 1, 0)
-							end
-						else
-							return UDim2.new(0, 0, 1, 0)
-						end
-					end),
-				},
-			},
-		},
-	},
-}
-
-]]
-
 scope:New "ScreenGui" {
 	Name = "HUD",
 	ResetOnSpawn = false,
@@ -158,7 +77,7 @@ scope:New "ScreenGui" {
 			AnchorPoint = Vector2.new(0, 1),
 			BackgroundTransparency = 1,
 			Position = UDim2.new(0, 50, 1, -20),
-			Size = UDim2.new(1, -250, 0, 70),
+			Size = UDim2.new(1, -100, 0, 70),
 
 			[Children] = {
 				scope:New "Frame" {
@@ -508,7 +427,205 @@ scope:New "ScreenGui" {
 						},
 					},
 				},
+
+				scope:New "Frame" {
+					Name = "Terminal",
+					AnchorPoint = Vector2.new(0.5, 1),
+					BackgroundTransparency = 1,
+					Position = scope:Tween(
+						scope:Computed(function(use)
+							local isHacking = use(ClientRoundDataUtility.isHacking)
+
+							if isHacking then
+								return UDim2.fromScale(0.5, 1)
+							else
+								return UDim2.fromScale(0.5, 1)
+									+ UDim2.fromOffset(0, OFFSCREEN_HEALTH_LIFESUPPORT_OFFSET)
+							end
+						end),
+						scope:Computed(function(use)
+							local isHacking = use(ClientRoundDataUtility.isHacking)
+
+							if isHacking then
+								return OFFSCREEN_SLIDEIN_HUDGUI_INFO
+							else
+								return OFFSCREEN_SLIDEOUT_HUDGUI_INFO
+							end
+						end)
+					),
+					Size = UDim2.fromOffset(180, 60),
+					ZIndex = 3,
+				
+					[Children] = {
+						scope:New "Frame" {
+							Name = "TerminalBar",
+							AnchorPoint = Vector2.new(0, 1),
+							BackgroundTransparency = 1,
+							LayoutOrder = 1,
+							Position = UDim2.fromOffset(0, 40),
+							Size = UDim2.fromOffset(180, 24),
+				
+							[Children] = {
+								scope:New "ImageLabel" {
+									Name = "Background",
+									AnchorPoint = Vector2.new(0, 1),
+									BackgroundTransparency = 1,
+									Image = "rbxassetid://7952769553",
+									ImageColor3 = Color3.new(),
+									ImageTransparency = 0.75,
+									Position = UDim2.fromScale(0, 1),
+									ScaleType = Enum.ScaleType.Slice,
+									Size = UDim2.fromScale(1, 1),
+									SliceCenter = Rect.new(127, 0, 173, 0),
+									SliceScale = 10,
+									ZIndex = 0,
+								},
+				
+								scope:New "ImageLabel" {
+									Name = "Content",
+									AnchorPoint = Vector2.new(0, 1),
+									BackgroundTransparency = 1,
+									Image = "rbxassetid://7952769553",
+									ImageColor3 = Color3.fromRGB(127, 214, 250),
+									Position = UDim2.fromScale(0, 1),
+									ScaleType = Enum.ScaleType.Slice,
+									Size = scope:Computed(function(use)
+										local terminalData = use(ClientRoundDataUtility.currentHackingTerminal)
+										if not terminalData then
+											return UDim2.fromScale(0, 1)
+										end
+
+										local scaleOfTerminalBarAtZeroProgress = 0.24
+										return UDim2.fromScale(
+											scaleOfTerminalBarAtZeroProgress
+												+ (1 - scaleOfTerminalBarAtZeroProgress)
+													* (terminalData.progress or 0)
+													/ 100,
+											1
+										)
+									end),
+									SliceCenter = Rect.new(127, 0, 173, 0),
+									SliceScale = 10,
+								},
+							}
+						},
+				
+						scope:New "ImageLabel" {
+							Name = "TerminalImage",
+							BackgroundTransparency = 1,
+							Image = "rbxassetid://107341936047436",
+							Position = UDim2.fromOffset(-12, -1),
+							Size = UDim2.fromOffset(60, 60),
+							ZIndex = 2,
+						},
+				
+						scope:New "Frame" {
+							Name = "Puzzle",
+							AnchorPoint = Vector2.new(0.5, 1),
+							BackgroundColor3 = Color3.new(1, 1, 1),
+							BackgroundTransparency = 1,
+							Position = UDim2.new(0.5, 0, 0, -10),
+							Size = UDim2.fromOffset(70, 70),
+						},
+					}
+				}
 			},
 		},
 	},
+}
+
+-- Left-side buttons
+scope:New "ScreenGui" {
+    Name = "MobileControls",
+    ClipToDeviceSafeArea = false,
+    ResetOnSpawn = false,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Enabled = scope:Computed(function(use)
+		return use(Platform.mobileButtonVisibilityState).visible
+	end),
+	Parent = playerGui,
+
+	[Children] = {
+		scope:New "Frame" {
+			Name = "MobileButtons",
+			AnchorPoint = Vector2.new(1, 1),
+			BackgroundTransparency = 1,
+			Position = scope:Computed(function(use)
+				local isSmallScreen = use(Platform.isMobileSmallScreen)
+				local jumpButtonSize = use(Platform.mobileButtonVisibilityState).size
+				return isSmallScreen and UDim2.new(1, -(jumpButtonSize*0.5-10), 1, - 20) or UDim2.new(1, -(jumpButtonSize*0.5-10), 1, -jumpButtonSize * 0.75)
+			end),
+			Size = scope:Computed(function(use)
+				local jumpButtonSize = use(Platform.mobileButtonVisibilityState).size
+				return UDim2.fromOffset(jumpButtonSize, jumpButtonSize)
+			end),
+		
+			[Children] = {
+				scope:New "ImageButton" {
+					Name = "ParkourButton",
+					BackgroundTransparency = 1,
+					Image = "rbxassetid://14242992621",
+					Position = UDim2.fromScale(-1.1, 0),
+					PressedImage = "rbxassetid://14242994214",
+					Size = UDim2.fromScale(1, 1),
+				},
+		
+				scope:New "TextButton" {
+					Name = "Context",
+					AnchorPoint = Vector2.new(0.5, 1),
+					BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+					BackgroundTransparency = 0.4,
+					FontFace = Font.new(
+						"rbxasset://fonts/families/TitilliumWeb.json",
+						Enum.FontWeight.Bold,
+						Enum.FontStyle.Normal
+					),
+					Position = UDim2.fromScale(-0.05, -0.1),
+					Size = UDim2.fromScale(1.4, 0.7),
+					Text = scope:Computed(function(use)
+						local isHoldingBattery = use(ClientRoundDataUtility.isHoldingBattery)
+						local isGunEnabled = use(ClientRoundDataUtility.isGunEnabled)[Players.LocalPlayer.UserId]
+
+						if not isHoldingBattery and not isGunEnabled then
+							return ""
+						end
+
+						if isHoldingBattery then
+							return "DROP"
+						end
+
+						if isGunEnabled then
+							return "SHOOT"
+						end
+
+						return ""
+					end),
+					TextColor3 = Color3.fromRGB(125, 147, 196),
+					TextScaled = true,
+					Visible = scope:Computed(function(use)
+						local isHoldingBattery = use(ClientRoundDataUtility.isHoldingBattery)
+						local isGunEnabled = use(ClientRoundDataUtility.isGunEnabled)[Players.LocalPlayer.UserId]
+
+						return isHoldingBattery or isGunEnabled
+					end),
+					Active = false,
+		
+					[Children] = {
+						scope:New "UICorner" {
+							Name = "UICorner",
+							CornerRadius = UDim.new(0.2, 0),
+						},
+		
+						scope:New "UIPadding" {
+							Name = "UIPadding",
+							PaddingBottom = UDim.new(0.1, 0),
+							PaddingLeft = UDim.new(0.1, 0),
+							PaddingRight = UDim.new(0.1, 0),
+							PaddingTop = UDim.new(0.1, 0),
+						},
+					}
+				},
+			}
+		}
+	}
 }
