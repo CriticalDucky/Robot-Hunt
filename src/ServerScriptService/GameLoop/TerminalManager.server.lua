@@ -23,7 +23,24 @@ function getRandomCooldownTime()
 	return math.random(RoundConfiguration.minTerminalCooldown, RoundConfiguration.maxTerminalCooldown)
 end
 
-function onClientPuzzleResult(player, terminalId, success)
+function onClientPuzzleResult(player, data)
+	local success = data.success
+
+	local terminalId do
+		local terminalData = RoundDataManager.data.terminalData
+		for id, data in pairs(terminalData) do
+			if table.find(data.puzzleQueue, player) then
+				terminalId = id
+				break
+			end
+		end
+	end
+
+	if not terminalId then
+		warn("Player not found in any terminal's puzzle queue")
+		return
+	end
+
 	local terminalData = RoundDataManager.data.terminalData[terminalId]
 
 	assert(terminalData, "Terminal data not found")
@@ -35,6 +52,7 @@ function onClientPuzzleResult(player, terminalId, success)
 	if success then
 		RoundDataManager.incrementTerminalProgress(terminalId, RoundConfiguration.puzzleBonusPerPlayer)
 	else
+		print("Failed")
 		RoundDataManager.incrementTerminalProgress(terminalId, -RoundConfiguration.puzzlePenaltyPerPlayer)
 		RoundDataManager.removeHackers(terminalId, player) -- haha
 
@@ -68,7 +86,7 @@ function promptPuzzle(terminalData: Types.RoundTerminalData)
 
 		task.delay(RoundConfiguration.puzzleTimeout, function()
 			if table.find(terminalData.puzzleQueue, player) then
-				onClientPuzzleResult(player, terminalData.id, false)
+				onClientPuzzleResult(player, {success = false})
 			end
 		end)
 	end
