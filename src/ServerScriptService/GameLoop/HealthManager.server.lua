@@ -11,6 +11,7 @@ local RunService = game:GetService "RunService"
 local GameLoop = ServerStorage.GameLoop
 
 local RoundDataManager = require(GameLoop.RoundDataManager)
+local Actions = require(GameLoop.Actions)
 local RoundConfiguration = require(ReplicatedStorage.Configuration.RoundConfiguration)
 local Enums = require(ReplicatedFirst.Enums)
 
@@ -79,9 +80,7 @@ RoundDataManager.onPlayerStatusUpdated:Connect(function(playerData)
 			then
 				body.Parent = bodiesFolder
 
-				player.Team = lobbyTeam
-				player:LoadCharacter()
-				RoundDataManager.registerLobbyTeleport(player, false)
+				Actions.teleport.toLobby(player)
 			else
 				body:Destroy()
 			end

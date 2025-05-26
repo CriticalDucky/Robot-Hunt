@@ -60,9 +60,7 @@ while true do
 		local player = Players:GetPlayerByUserId(playerData.playerId or 1)
 
 		if player and player.Team ~= Teams.Lobby then
-			player.Team = Teams.Lobby
-			RoundDataManager.registerLobbyTeleport(player, false)
-			player:LoadCharacter()
+			Actions.teleport.toLobby(player)
 		end
 	end
 

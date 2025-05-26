@@ -137,14 +137,14 @@ function DefaultRound.begin()
 
 				-- now we create the round data
 
-				RoundDataManager.setUpRound(Enums.RoundType.defaultRound, playerDatas, terminalData, batteryData)
+				RoundDataManager.setUpRound(Enums.RoundType.defaultRound, playerDatas, terminalData, batteryData, numRequiredTerminals)
 
 				for playerId, data in pairs(playerDatas) do
 					local player = Players:GetPlayerByUserId(playerId)
 
 					if player then
 						player.Team = teamObjects[data.team]
-						player:LoadCharacter()
+						Actions.teleport.toGame(player)
 					end
 				end
 
@@ -184,7 +184,7 @@ function DefaultRound.begin()
 					return -- Tie
 				end
 			end)
-			:catch(function(err) print("Error in default round: " .. err) end)
+			:catch(function(err) print("Error in default round: ", err) end)
 
 		local playerStatusChangedConnection = RoundDataManager.onPlayerStatusUpdated:Connect(function()
 			local numActiveHunters = 0
