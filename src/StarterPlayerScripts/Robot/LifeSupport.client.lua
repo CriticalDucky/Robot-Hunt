@@ -25,6 +25,14 @@ local playerState = scope:Computed(function(use)
 	return playerData.status
 end)
 
+local isLobby = scope:Computed(function(use)
+	local playerData = use(ClientState.external.roundData.playerData)[localPlayer.UserId]
+
+	if not playerData then return true end
+
+	return playerData.isLobby
+end)
+
 local characterScope
 local isLifeSupportPlaying = false
 
@@ -57,9 +65,7 @@ local function onCharacterAdded(character)
 	local function onStateChanged()
 		local currentPlayerState = peek(playerState)
 
-		if not currentPlayerState then return end -- if player is not in the game
-
-		if currentPlayerState == Enums.PlayerStatus.alive then
+		if currentPlayerState == Enums.PlayerStatus.alive or peek(isLobby) then
             if not isLifeSupportPlaying then return end
             isLifeSupportPlaying = false
 			track:Stop(0.2)
@@ -67,9 +73,7 @@ local function onCharacterAdded(character)
             humanoid.JumpPower = RoundConfiguration.jumpPower
             humanoidRootPart.Anchored = false
 			IK.SetLookAround(true)
-        elseif currentPlayerState == Enums.PlayerStatus.dead then
-            
-		else
+        elseif currentPlayerState == Enums.PlayerStatus.lifeSupport then
             if isLifeSupportPlaying then return end
             isLifeSupportPlaying = true
 			track:Play(0.2)
@@ -81,6 +85,7 @@ local function onCharacterAdded(character)
 	end
 
 	characterScope:Observer(playerState):onChange(onStateChanged)
+	characterScope:Observer(isLobby):onChange(onStateChanged)
 end
 
 if localPlayer.Character then onCharacterAdded(localPlayer.Character) end
