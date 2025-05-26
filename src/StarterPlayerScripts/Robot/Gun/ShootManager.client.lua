@@ -14,6 +14,7 @@ local CRDU = require(RS.Data.RoundData.ClientRoundDataUtility)
 local Net = require(RS.Data.ClientServerCommunication)
 local Fusion = require(RF.Vendor.Fusion)
 local Mouse = require(RF.Utility.Mouse)
+local Platform = require(RF.Utility.Platform)
 local RoundConfig = require(RS.Configuration.RoundConfiguration)
 local Enums = require(RF.Enums)
 
@@ -36,6 +37,12 @@ local neonR
 local cageL -- LeftGunCage Part (hitbox)
 local cageR -- RightGunCage Part (hitbox)
 
+-- mobile ui
+local playerGui = player:WaitForChild "PlayerGui"
+local mobileControls = playerGui:WaitForChild "MobileControls"
+local mobileButtons = mobileControls:WaitForChild "MobileButtons"
+local contextButton = mobileButtons:WaitForChild "Context"
+
 -------------------------------------------------------------------
 -- derived Fusion states
 -------------------------------------------------------------------
@@ -56,15 +63,25 @@ local isGunEnabled = scope:Computed(function(use) return use(CRDU.isGunEnabled)[
 -------------------------------------------------------------------
 -- utilities
 -------------------------------------------------------------------
-local function isAnythingIntersectingGun(): boolean
+local function isAnythingIntersectingGuns(): boolean
+	local l = false
+	local r = false
+
 	local overlapParams = OverlapParams.new()
 	for _, part in ipairs(workspace:GetPartsInPart(cageL, overlapParams)) do
-		if not part:IsDescendantOf(player.Character) then return true end
+		if not part:IsDescendantOf(player.Character) then
+			l = true
+			break
+		end
 	end
 	for _, part in ipairs(workspace:GetPartsInPart(cageR, overlapParams)) do
-		if not part:IsDescendantOf(player.Character) then return true end
+		if not part:IsDescendantOf(player.Character) then
+			r = true
+			break
+		end
 	end
-	return false
+
+	return l, r
 end
 
 local function getPlayerFromCharDescendant(descendant: Instance): Player?
@@ -83,7 +100,35 @@ local function shootThread()
 		-- make sure character & parts exist
 		if not (rootPart and neonL and neonR and cageL and cageR) then continue end
 
-		local mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, 256)
+		local mouseWorldPosition
+		do
+			local maxDepth = 256
+			local platform = peek(Platform.platform)
+
+			if platform == Enums.PlatformType.Mobile then
+				local camera = workspace.CurrentCamera
+				if not camera then continue end
+
+				local viewportSize = camera.ViewportSize
+
+				local ray = camera:ViewportPointToRay(viewportSize.X / 2, viewportSize.Y / 2, maxDepth)
+
+				local rayCastParams = RaycastParams.new()
+
+				rayCastParams.FilterType = Enum.RaycastFilterType.Exclude
+				rayCastParams.FilterDescendantsInstances = { player.Character }
+
+				local result = workspace:Raycast(camera.CFrame.Position, ray.Direction * maxDepth, rayCastParams)
+
+				if result then
+					mouseWorldPosition = result.Position
+				else
+					mouseWorldPosition = ray.Origin + ray.Direction * maxDepth
+				end
+			else
+				mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, maxDepth)
+			end
+		end
 
 		-------------------------------------------------------------------
 		-- build exclusion list (own character + every gun model)
@@ -121,12 +166,18 @@ local function shootThread()
 		-------------------------------------------------------------------
 		-- gun collision check (stops shooting if barrels clipped)
 		-------------------------------------------------------------------
-		if isAnythingIntersectingGun() then
+		local isL, isR = isAnythingIntersectingGuns()
+
+		if isR then
 			local newData = peek(ClientState.external.roundData.playerData)
 			local pd = newData[player.UserId]
 			if pd then
-				pd.gunHitPositionL = nil
-				pd.gunHitPositionR = nil
+				-- if isL then
+				-- 	pd.gunHitPositionL = nil
+				-- end
+				if isR then
+					pd.gunHitPositionR = nil
+				end
 				pd.victims = {}
 				ClientState.external.roundData.playerData:set(newData)
 			end
@@ -148,7 +199,11 @@ local function shootThread()
 
 				local victimPlayerData = newData[victim.UserId]
 
-				if victimPlayerData and newData[victim.UserId].team ~= pd.team and victimPlayerData.status == Enums.PlayerStatus.alive then
+				if
+					victimPlayerData
+					and newData[victim.UserId].team ~= pd.team
+					and victimPlayerData.status == Enums.PlayerStatus.alive
+				then
 					pd.victims[victim.UserId] = true
 				end
 			end
@@ -163,7 +218,7 @@ end
 -- character init / cleanup
 -------------------------------------------------------------------
 local function onCharacterAdded(char: Model)
-humanoid = char:WaitForChild "Humanoid"
+	humanoid = char:WaitForChild "Humanoid"
 	rootPart = char:WaitForChild "HumanoidRootPart"
 
 	neonL = char:WaitForChild "LeftGunNeon"
@@ -207,16 +262,30 @@ local function updateShooting()
 			task.cancel(thread)
 			thread = nil
 		end
+		
 		Net.replicateAsync "UpdateShootingStatus"
 	end
 end
 
 scope:Observer(isShooting):onChange(updateShooting)
-scope:Observer(isGunEnabled):onChange(updateShooting)
+scope:Observer(isGunEnabled):onChange(function()
+	updateShooting()
+
+	if not peek(isGunEnabled) then
+		local d = peek(ClientState.external.roundData.playerData)
+		local pd = d[player.UserId]
+		if pd then
+			pd.actions.isShooting = false
+			ClientState.external.roundData.playerData:set(d)
+		end
+	end
+end)
 
 -------------------------------------------------------------------
 -- input binding
 -------------------------------------------------------------------
+local currentMobileInput: InputObject? = nil
+
 local function onShoot(_, state)
 	if not humanoid then return end
 
@@ -233,7 +302,18 @@ local function onShoot(_, state)
 	ClientState.external.roundData.playerData:set(data)
 end
 
+scope:Hydrate(contextButton) {
+	[Fusion.OnEvent "InputBegan"] = function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			currentMobileInput = input
+			if peek(isGunEnabled) and not peek(isHacking) then onShoot(nil, Enum.UserInputState.Begin) end
+		end
+	end,
+}
+
 scope:Observer(isGunEnabled):onChange(function()
+	if Platform:GetPlatform() == Enums.PlatformType.Mobile then return end
+
 	if peek(isGunEnabled) then
 		CAS:BindActionAtPriority(
 			"Shoot",
@@ -247,8 +327,15 @@ scope:Observer(isGunEnabled):onChange(function()
 	end
 end)
 
+Platform.onPlatformChanged:Connect(function(platform)
+	if platform == Enums.PlatformType.Mobile then CAS:UnbindAction "Shoot" end
+end)
+
 UIS.InputEnded:Connect(function(input)
 	if peek(isGunEnabled) and input.UserInputType == Enum.UserInputType.MouseButton1 then
+		onShoot(nil, Enum.UserInputState.End)
+	elseif input == currentMobileInput then
+		currentMobileInput = nil
 		onShoot(nil, Enum.UserInputState.End)
 	end
 end)
