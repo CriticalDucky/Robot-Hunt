@@ -91,9 +91,9 @@ local function RadialProgress(scope: Fusion.Scope, props: Props)
 	end)
 	local gradientRotationRight = scope:Computed(function(use)
 		if not use(props.Flip) then
-			return math.clamp(use(percentNumber), 0, 180)
+			return math.clamp(use(percentNumber), 0, 179.99)
 		else
-			return 180 - math.clamp(use(percentNumber), 180, 360)
+			return math.clamp((180 - math.clamp(use(percentNumber), 180, 360)), 0, 179.99)
 		end
 	end)
 
@@ -109,7 +109,7 @@ local function RadialProgress(scope: Fusion.Scope, props: Props)
 		Visible = props.Visible or true,
 
 		[Children] = {
-			scope:New "Frame" {
+			scope:New (if props.Rotation then "CanvasGroup" else "Frame") {
 				Name = "Left",
 				BackgroundTransparency = 1,
 				ClipsDescendants = true,
@@ -175,7 +175,7 @@ local function RadialProgress(scope: Fusion.Scope, props: Props)
 				},
 			},
 
-			scope:New "Frame" {
+			scope:New (if props.Rotation then "CanvasGroup" else "Frame") {
 				Name = "Right",
 				AnchorPoint = Vector2.new(1, 0),
 				BackgroundTransparency = 1,
