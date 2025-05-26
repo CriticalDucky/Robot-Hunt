@@ -24,4 +24,6 @@ Enums.TeamType = require(script:WaitForChild "TeamType")
 
 Enums.ParkourState = require(script:WaitForChild "ParkourState")
 
+Enums.PlatformType = require(script:WaitForChild "PlatformType")
+
 return Enums
