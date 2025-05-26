@@ -16,6 +16,7 @@ local Enums = require(ReplicatedFirst.Enums)
 local ParkourState = Enums.ParkourState
 local parkourState = ClientState.actions.parkourState
 local RoundConfig = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
+local Platform = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild("Platform"))
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local scope = Fusion.scoped(Fusion)
 local peek = Fusion.peek
@@ -27,15 +28,6 @@ local Humanoid = Character:WaitForChild "Humanoid"
 local HRP = Character:WaitForChild "HumanoidRootPart"
 local UpperTorso = Character:WaitForChild "UpperTorso"
 local Head = Character:WaitForChild "Head"
-
--- Check for Mobile Controls GUI
-local MobileJumpButtonEvent
-if
-	PlayerGui:FindFirstChild "ParkourMobileControls"
-	and PlayerGui.ParkourMobileControls:FindFirstChild "MobileJumpButton"
-then
-	MobileJumpButtonEvent = PlayerGui.ParkourMobileControls:WaitForChild "MobileJumpButton"
-end
 
 --------------------------------------------------------------------
 --  ANIMATIONS
@@ -361,19 +353,17 @@ UserInputService.InputEnded:Connect(function(inp, gp)
 end)
 
 -- Connect to mobile jump button if it exists
-if MobileJumpButtonEvent then
-	MobileJumpButtonEvent.Event:Connect(function(begin)
-		if isParkourEnabled() == false then return end
-		if begin then
-			if not jumpHeld then
-				jumpHeld = true
-				Jump()
-			end
-		else
-			jumpHeld = false
+Platform.onJumpButtonPressed:Connect(function(state)
+	if isParkourEnabled() == false then return end
+	if state == Enum.UserInputState.Begin then
+		if not jumpHeld then
+			jumpHeld = true
+			Jump()
 		end
-	end)
-end
+	else
+		jumpHeld = false
+	end
+end)
 
 CAS:BindAction("RollDive", function(_, st)
 	if st ~= Enum.UserInputState.Begin then return end
@@ -392,7 +382,7 @@ end, false, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.Button
 local function hookMobileButton()
 	if not UserInputService.TouchEnabled then return end
 
-	local gui = Player:WaitForChild("PlayerGui"):WaitForChild("ParkourMobileControls", 5)
+	local gui = Player:WaitForChild("PlayerGui"):WaitForChild("MobileControls", 5)
 	if not gui then return end
 
 	local btn = gui:WaitForChild("MobileButtons", 2)
@@ -400,9 +390,6 @@ local function hookMobileButton()
 
 	btn = btn:WaitForChild("ParkourButton", 2)
 	if not btn then return end
-
-	-- Optional cosmetic: make sure it sits above the Roblox jump button
-	btn.LayoutOrder = 1
 
 	btn.MouseButton1Down:Connect(function()
 		if isParkourEnabled() == false then return end
@@ -505,5 +492,3 @@ else
 	Player.CharacterAdded:Wait() -- safety for edge cases
 	task.spawn(hookMobileButton)
 end
-
-print "Parkour Movement System v4.6-r4 (Delivery Edition) loaded"
