@@ -9,17 +9,20 @@ local peek = Fusion.peek
 
 local scope = Fusion.scoped(Fusion)
 
-local cameraState = scope:Value({})
-
 local watchingProps = {
     "CFrame",
     "ViewportSize",
 }
 
+local cameraState = scope:Value({}) :: Fusion.Value<{
+    CFrame: CFrame?,
+    ViewportSize: Vector2?,
+}>
+
 local function initCamera()
     local camera = workspace.CurrentCamera
 
-    Hydrate(camera){
+    scope:Hydrate(camera){
         [OnEvent "Changed"] = function()
             local currentCameraState = peek(cameraState)
 
@@ -30,6 +33,11 @@ local function initCamera()
             cameraState:set(currentCameraState)
         end
     }
+
+    cameraState:set({
+        CFrame = camera.CFrame,
+        ViewportSize = camera.ViewportSize,
+    })
 end
 
 workspace.Changed:Connect(function(property)
@@ -37,5 +45,9 @@ workspace.Changed:Connect(function(property)
         initCamera()
     end
 end)
+
+if workspace.CurrentCamera then
+    initCamera()
+end
 
 return cameraState
