@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
+local Players = game:GetService "Players"
 
 local dataFolder = ReplicatedStorage:WaitForChild "Data"
 
@@ -12,6 +13,8 @@ local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusi
 local scope = Fusion:scoped()
 local peek = Fusion.peek
 local Children = Fusion.Children
+
+local player = Players.LocalPlayer
 
 local mapScope = scope:deriveScope()
 local hydratedInstances = {}
@@ -88,6 +91,21 @@ function hydrateInstances()
 				LightInfluence = 1,
 				Size = UDim2.fromOffset(1, 1),
 				ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+				Enabled = mapScope:Computed(function(use)
+					local playerDatas = use(ClientState.external.roundData.playerData)
+					if not playerDatas then return false end
+					local playerData = playerDatas[player.UserId]
+					
+					if not use(ClientState.actions.isSpectating) then
+						if playerData and playerData.isLobby then
+							return false
+						elseif not playerData then
+							return false
+						end
+					end
+
+					return true
+				end),
                 Parent = instance,
 
 				[Children] = {
