@@ -57,7 +57,7 @@ end
 ---------------------------------------------------------------------
 local function gunColliding(char: Model): boolean
 	local cages = {
-		char:FindFirstChild "LeftGunCage",
+		-- char:FindFirstChild "LeftGunCage",
 		char:FindFirstChild "RightGunCage",
 	}
 	local params = OverlapParams.new()
