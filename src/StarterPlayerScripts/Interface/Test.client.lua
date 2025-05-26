@@ -34,7 +34,7 @@
 -- 			AnchorPoint = Vector2.new(0, 0),
 --             ProgressThickness = 20,
 --             ProgressColor = Color3.fromRGB(0, 0, 255),
--- 			Rotation = 0,
+-- 			Rotation = 50,
 -- 			Visible = true,
 -- 			ZIndex = 1,
 
