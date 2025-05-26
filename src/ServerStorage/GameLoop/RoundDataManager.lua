@@ -34,6 +34,8 @@ type RoundData = {
 	-- The Unix timestamp of when the phase should end
 	phaseEndTime: number?,
 
+	numRequiredTerminals: number?,
+
 	terminalData: { RoundTerminalData },
 
 	batteryData: { RoundBatteryData },
@@ -93,6 +95,31 @@ function getFilteredData(player: Player)
 	filteredData.currentRoundType = roundData.currentRoundType
 	filteredData.currentPhaseType = roundData.currentPhaseType
 	filteredData.phaseEndTime = roundData.phaseEndTime
+	filteredData.numRequiredTerminals = roundData.numRequiredTerminals
+	filteredData.isGameOver = roundData.isGameOver
+	filteredData.terminalData = {}
+
+	for _, terminalData in ipairs(roundData.terminalData) do
+		table.insert(filteredData.terminalData, {
+			id = terminalData.id,
+			model = terminalData.model,
+			hackers = terminalData.hackers,
+			progress = terminalData.progress,
+			cooldown = terminalData.cooldown,
+			isErrored = terminalData.isErrored,
+			isPuzzleMode = terminalData.isPuzzleMode,
+			puzzleQueue = terminalData.puzzleQueue,
+		})
+	end
+
+	filteredData.batteryData = {}
+	for _, batteryData in ipairs(roundData.batteryData) do
+		table.insert(filteredData.batteryData, {
+			id = batteryData.id,
+			model = batteryData.model,
+			holder = batteryData.holder,
+		})
+	end
 
 	filteredData.playerData = {}
 
@@ -151,6 +178,7 @@ function RoundDataManager.setPhase(phaseType: number, endTime: number?)
 	if phaseType == PhaseType.Intermission then
 		roundData.currentRoundType = nil
 		roundData.isGameOver = false
+		roundData.numRequiredTerminals = nil
 	elseif phaseType == PhaseType.Loading then
 		table.clear(roundData.playerData)
 	end
@@ -687,13 +715,16 @@ function RoundDataManager.setUpRound(
 	roundType: number,
 	playerDatas: { [number]: RoundPlayerData },
 	terminalData: { RoundTerminalData },
-	batteryData: { RoundBatteryData }
+	batteryData: { RoundBatteryData },
+	numRequiredTerminals: number? -- optional, only used for default round
 )
 	roundData.currentRoundType = roundType
 	roundData.playerData = playerDatas
 
 	roundData.terminalData = terminalData
 	roundData.batteryData = batteryData
+
+	roundData.numRequiredTerminals = numRequiredTerminals
 
 	ClientServerCommunication.replicateAsync("SetUpRound", {
 		roundType = roundType,

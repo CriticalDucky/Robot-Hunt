@@ -38,6 +38,7 @@ local ClientState = {
 			currentRoundType = scope:Value(nil :: number?),
 			currentPhaseType = scope:Value(nil :: number?),
 			phaseEndTime = scope:Value(nil :: number?),
+			numRequiredTerminals = scope:Value(nil :: number?),
 			isGameOver = scope:Value(false :: boolean),
 
 			batteryData = scope:Value({nil :: RoundBatteryData?}),

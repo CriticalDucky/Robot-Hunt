@@ -74,6 +74,7 @@ ClientServerCommunication.registerActionAsync("SetPhase", function(data)
 	if phaseType == PhaseType.Intermission then
 		roundData.isGameOver:set(false)
 		roundData.currentRoundType:set(nil)
+		roundData.numRequiredTerminals:set(nil)
 	elseif phaseType == PhaseType.Loading then
 		roundData.playerData:set {}
 	elseif phaseType == PhaseType.Results then
@@ -524,6 +525,14 @@ ClientServerCommunication.registerActionAsync("UpdateTerminalData", function(dat
 		terminal[key] = value
 	end
 
+	if terminal.progress >= 100 then
+		terminal.progress = 100
+		terminal.cooldown = 0 -- reset cooldown when terminal is completed
+		terminal.isPuzzleMode = false -- reset puzzle mode when terminal is completed
+		terminal.hackers = {} -- clear hackers when terminal is completed
+		terminal.puzzleQueue = {} -- clear puzzle queue when terminal is completed
+	end
+
 	roundData.terminalData:set(newTerminalData)
 
 	-- Now, we need to set isHacking for all players based on if they appear in terminal.hackers
@@ -532,16 +541,14 @@ ClientServerCommunication.registerActionAsync("UpdateTerminalData", function(dat
 	for _, playerData in pairs(newPlayerData) do
 		if table.find(terminal.hackers, Players:GetPlayerByUserId(playerData.playerId)) then
 			playerData.actions.isHacking = true
+			-- print("Player is hacking:", playerData.playerId)
 		else
 			playerData.actions.isHacking = false
+			-- print("Player is no longer hacking:", playerData.playerId)
 		end
 	end
 
 	roundData.playerData:set(newPlayerData)
-end)
-
-ClientServerCommunication.registerActionAsync("PromptTerminalPuzzle", function(data)
-	-- beh
 end)
 
 --[[
@@ -577,6 +584,7 @@ ClientServerCommunication.registerActionAsync("SetUpRound", function(data)
 	roundData.playerData:set(data.playerData)
 	roundData.terminalData:set(data.terminalData)
 	roundData.batteryData:set(data.batteryData)
+	roundData.numRequiredTerminals:set(data.numRequiredTerminals)
 
 	ClientRoundDataUtility.setUpRound:Fire()
 end)
