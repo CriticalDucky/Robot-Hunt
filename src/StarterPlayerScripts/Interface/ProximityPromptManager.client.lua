@@ -119,6 +119,11 @@ local function onDescendantAdded(descendant)
 					local playerData = use(ClientState.external.roundData.playerData)[player.UserId]
 					local proximityPlayerData = use(ClientState.external.roundData.playerData)[proximityPlayer.UserId]
 
+					if not proximityPlayerData then
+						-- print(proximityPlayer, proximityPlayer.Name, proximityPlayer.UserId)
+						return false
+					end
+
 					if not playerData then
 						return false
 					end
