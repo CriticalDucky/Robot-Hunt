@@ -67,11 +67,11 @@ local RoundConfiguration = {
 	maxTerminals = 6, -- Otherwise, the number of terminals is the number of players.
 	minTerminals = 2,
 	extraTerminals = 1,
-	terminalProgressPerSecondPerPlayer = 100/30,
+	terminalProgressPerSecondPerPlayer = 100/45,
 	minTerminalCooldown = 8,
 	maxTerminalCooldown = 12,
-	puzzleTimeout = 5,
-	puzzleBonusPerPlayer = 6,
+	puzzleTimeout = 6,
+	puzzleBonusPerPlayer = 0,
 	puzzlePenaltyPerPlayer = 3,
 
 	batteryLowerPercentage = 0.1, -- At least 50% of the batteries will spawn.
