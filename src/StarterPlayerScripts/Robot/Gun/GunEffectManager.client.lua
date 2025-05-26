@@ -14,11 +14,12 @@ local ClientState = require(RS.Data.ClientState)
 local CRDU = require(RS.Data.RoundData.ClientRoundDataUtility)
 local Fusion = require(RF.Vendor.Fusion)
 local MouseUtil = require(RF.Utility.Mouse)
+local Platform = require(RF.Utility.Platform)
 local IK = require(RS.Utility.IK)
 local Types = require(RF.Utility.Types)
 local Enums = require(RF.Enums)
 
-local GunEffectsFolder = Instance.new("Folder")
+local GunEffectsFolder = Instance.new "Folder"
 GunEffectsFolder.Name = "GunEffects"
 GunEffectsFolder.Parent = workspace
 
@@ -44,6 +45,35 @@ local function beamWidth1(dist: number): number
 	return width
 end
 local function strength(dist: number): number return RoundCfg.gunStrengthMultiplier ^ dist end
+
+local function getTargetPosition(player: Player)
+	local maxDepth = 256
+	local platform = peek(Platform.platform)
+
+	if platform == Enums.PlatformType.Mobile then
+		local camera = workspace.CurrentCamera
+		if not camera then return end
+
+		local viewportSize = camera.ViewportSize
+
+		local ray = camera:ViewportPointToRay(viewportSize.X / 2, viewportSize.Y / 2, maxDepth)
+
+		local rayCastParams = RaycastParams.new()
+
+		rayCastParams.FilterType = Enum.RaycastFilterType.Exclude
+		rayCastParams.FilterDescendantsInstances = { player.Character }
+
+		local result = workspace:Raycast(camera.CFrame.Position, ray.Direction * maxDepth, rayCastParams)
+
+		if result then
+			return result.Position
+		else
+			return ray.Origin + ray.Direction * maxDepth
+		end
+	else
+		return MouseUtil.getWorldPosition(nil, { player.Character }, maxDepth)
+	end
+end
 
 local playerScopes = {}
 
@@ -117,13 +147,12 @@ local function onPlayer(player: Player)
 			table.insert(characterScope, beamL)
 			table.insert(characterScope, beamR)
 		end
-		
 
-		local colors = {}
+		local colors = characterScope:Value({})
 		do
 			local colorsConfig = char:WaitForChild "Colors" :: Configuration
 
-			for _, config in ipairs(colorsConfig:GetChildren()) do
+			local function forChildren(config: Configuration)
 				local name = config.Name
 				local hunters = (config:WaitForChild "Hunters" :: Color3Value).Value
 				local rebels = (config:WaitForChild "Rebels" :: Color3Value).Value
@@ -133,6 +162,16 @@ local function onPlayer(player: Player)
 					[Enums.TeamType.lobby] = Color3.new(1, 1, 1),
 				}
 			end
+
+			for _, config in ipairs(colorsConfig:GetChildren()) do
+				forChildren(config)
+			end
+
+			colorsConfig.ChildAdded:Connect(function(child)
+				if child:IsA "Configuration" then
+					forChildren(child)
+				end
+			end)
 		end
 
 		local tipPosL, tipPosR = characterScope:Value(nil), characterScope:Value(nil)
@@ -179,10 +218,13 @@ local function onPlayer(player: Player)
 			end
 		end)
 
-		table.insert(characterScope, RunService.RenderStepped:Connect(function()
-			tipPosL:set(neonL.Position)
-			tipPosR:set(neonR.Position)
-		end))
+		table.insert(
+			characterScope,
+			RunService.RenderStepped:Connect(function()
+				tipPosL:set(neonL.Position)
+				tipPosR:set(neonR.Position)
+			end)
+		)
 
 		----------------------------------------------------------------
 		-- Hydrate beams & hit parts
@@ -232,7 +274,11 @@ local function onPlayer(player: Player)
 		hydrateHit(hitL, "gunHitPositionL")
 		hydrateHit(hitR, "gunHitPositionR")
 
-		local function hydrateFlare(hitFlare: ImageLabel, flareType: "HitFlare" | "GunFlare", key: "gunHitPositionL" | "gunHitPositionR")
+		local function hydrateFlare(
+			hitFlare: ImageLabel,
+			flareType: "HitFlare" | "GunFlare",
+			key: "gunHitPositionL" | "gunHitPositionR"
+		)
 			characterScope:Hydrate(hitFlare) {
 				Visible = characterScope:Computed(function(u) return u(shoot) and u(rd) and u(rd)[key] end),
 				ImageColor3 = characterScope:Computed(function(u)
@@ -384,6 +430,8 @@ local function onPlayer(player: Player)
 				return
 			else
 				if not IKUpdateThread then
+					local localThread = nil
+
 					IKUpdateThread = task.spawn(function()
 						local playerData = peek(ClientState.external.roundData.playerData)[player.UserId]
 
@@ -419,33 +467,63 @@ local function onPlayer(player: Player)
 							end
 						end
 
-						while task.wait() do
-							local mouseWorldPosition = MouseUtil.getWorldPosition(nil, { player.Character }, 256)
+						while RunService.PreRender:Wait() do
+							if localThread ~= IKUpdateThread then
+								-- if the thread was stopped, we don't want to continue
+								return
+							end
 
-							if player == Players.LocalPlayer then
+							if player == Players.LocalPlayer then --and peek(Platform.platform) ~= Enums.PlatformType.Mobile then
+								local mouseWorldPosition = getTargetPosition(player)
+								if not mouseWorldPosition then continue end
+
 								IK.SetTemporaryAimPosition(mouseWorldPosition)
-								local flatLook =
-									Vector3.new(mouseWorldPosition.X, rootPart.Position.Y, mouseWorldPosition.Z)
-								rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
+								-- if on mobile, just make hrp follow the camera
+								if peek(Platform.platform) == Enums.PlatformType.Mobile then
+									local camera = workspace.CurrentCamera
+
+									if camera then
+										local camLook =
+											Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z).Unit
+										rootPart.CFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + camLook)
+									end
+								else
+									local flatLook =
+										Vector3.new(mouseWorldPosition.X, rootPart.Position.Y, mouseWorldPosition.Z)
+									rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
+								end
 							end
 
 							if hitPosL then leftIK:Solve(hitL.Position) end
 							if hitPosR then rightIK:Solve(hitR.Position) end
 						end
 					end)
+
+					localThread = IKUpdateThread
 				end
 			end
 		end
 		characterScope:Observer(shoot):onChange(onShootStatusChanged)
 		table.insert(characterScope, stopThread)
 		-- if player == Players.LocalPlayer then
+		-- 	local rootPart = char:WaitForChild "HumanoidRootPart" :: BasePart
+
 		-- 	table.insert(
 		-- 		characterScope,
-		-- 		RunService.Stepped:Connect(function()
-		-- 			if not peek(shoot) then return end
+		-- 		RunService.RenderStepped:Connect(function()
+		-- 			if peek(Platform.platform) ~= Enums.PlatformType.Mobile then return end
 
-		-- 			local mouseHitPosition = MouseUtil.getWorldPosition(nil, { player.Character }, 256)
+		-- 			if peek(CRDU.isGunEnabled)[player.UserId] then
+		-- 				local mouseWorldPosition = getTargetPosition(player)
+		-- 				if not mouseWorldPosition then return end
 
+		-- 				local camCF = workspace.CurrentCamera and workspace.CurrentCamera.CFrame
+		-- 				if not camCF then return end
+		-- 				local camLook = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z).Unit
+
+		-- 				IK.SetTemporaryAimPosition(mouseWorldPosition)
+		-- 				rootPart.CFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + camLook)
+		-- 			end
 		-- 		end)
 		-- 	)
 		-- end
