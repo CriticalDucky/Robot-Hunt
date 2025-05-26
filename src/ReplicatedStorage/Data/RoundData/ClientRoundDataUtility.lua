@@ -80,6 +80,24 @@ ClientRoundDataUtility.isHacking = scope:Computed(function(use)
 	return clientPlayerData and clientPlayerData.actions.isHacking or false
 end)
 
+ClientRoundDataUtility.currentHackingTerminal = scope:Computed(function(use)
+	local roundData = ClientState.external.roundData
+	local terminalData = use(roundData.terminalData)
+
+	if not terminalData then return nil end
+
+	for _, data in pairs(terminalData) do
+		local hackers = data.hackers
+		for _, hacker in pairs(hackers) do
+			if hacker == game.Players.LocalPlayer then
+				return data
+			end
+		end
+	end
+
+	return nil
+end)
+
 ClientRoundDataUtility.isHoldingBattery = scope:Computed(function(use)
 	local roundData = ClientState.external.roundData
 	local batteryData = use(roundData.batteryData)
