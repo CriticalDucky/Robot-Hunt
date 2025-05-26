@@ -10,12 +10,19 @@ local DataFolder = ReplicatedStorage:WaitForChild "Data"
 local ClientState = require(DataFolder:WaitForChild "ClientState")
 local ClientServerCommunication = require(DataFolder:WaitForChild "ClientServerCommunication")
 local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
+local Platform = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild("Platform"))
+local Enums = require(ReplicatedFirst:WaitForChild "Enums")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 
 local peek = Fusion.peek
 local scope = Fusion.scoped(Fusion)
 
 local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild "PlayerGui"
+local mobileControls = playerGui:WaitForChild "MobileControls"
+local mobileButtons = mobileControls:WaitForChild "MobileButtons"
+local contextButton = mobileButtons:WaitForChild "Context"
+
 
 local isHoldingBattery = scope:Computed(function(use)
 	local batteryData = use(ClientState.external.roundData.batteryData)
@@ -147,11 +154,29 @@ local function onPutDownRequest(_, state)
 	if state == Enum.UserInputState.End then ClientServerCommunication.replicateAsync "PutDownBattery" end
 end
 
+local currentInputObject = nil
+
+scope:Hydrate(contextButton) {
+	[Fusion.OnEvent "InputBegan"] = function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			currentInputObject = input
+		end
+	end,
+	[Fusion.OnEvent "InputEnded"] = function(input)
+		if input == currentInputObject then
+			currentInputObject = nil
+			onPutDownRequest(nil, Enum.UserInputState.End)
+		end
+	end,
+}
+
 scope:Observer(isHoldingBattery):onChange(onBatteryStatusChange)
 
 ClientServerCommunication.registerActionAsync "PutDownBattery"
 
 scope:Observer(isHoldingBattery):onChange(function()
+	if Platform:GetPlatform() == Enums.PlatformType.Mobile then return end
+
 	local isHoldingBattery = peek(isHoldingBattery)
 
 	if isHoldingBattery then
@@ -166,4 +191,8 @@ scope:Observer(isHoldingBattery):onChange(function()
 	else
 		ContextActionService:UnbindAction "PutDownBattery"
 	end
+end)
+
+Platform.onPlatformChanged:Connect(function(platform)
+	if platform == Enums.PlatformType.Mobile then ContextActionService:UnbindAction "PutDownBattery" end
 end)
