@@ -60,6 +60,7 @@ export type RoundPlayerData = {
 	-- The playerId of the last player to attack this player
 	lastAttackerId: number?,
 	damageLastTakenTime: number?,
+	mapLaserLastHitTime: number?,
 	killedById: number?,
 	-- The list of userids that are attacking this player.
 	victims: { [number]: boolean },
