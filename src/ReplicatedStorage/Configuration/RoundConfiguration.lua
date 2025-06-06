@@ -19,7 +19,7 @@ type PhaseType = number
 local RoundConfiguration = {
 	timeLengths = {
 		[RoundType.defaultRound] = {
-			[PhaseType.Infiltration] = 5,--15*DEBUG_MULTIPLIER,
+			[PhaseType.Infiltration] = 10,--15*DEBUG_MULTIPLIER,
 			[PhaseType.PhaseOne] = MINUTE*6*DEBUG_MULTIPLIER,
 			[PhaseType.PhaseTwo] = MINUTE*6*DEBUG_MULTIPLIER,
 			[PhaseType.Purge] = MINUTE*6*DEBUG_MULTIPLIER,
@@ -56,6 +56,7 @@ local RoundConfiguration = {
 	gunStrengthMultiplier = 29/30,
 	gunPowerupMultiplier = 1.2,
 	gunBaseDamagePerSecond = 20,
+	gunMinimumTransparencyThreshold = 0.3, -- The minimum transparency a part must have for a ray to go through it.
 
 	shieldRegenBuffer = 8, -- The time it takes to start regenerating the shield after taking damage.
 	shieldRegenAmountPerSecond = 5,
