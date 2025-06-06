@@ -13,6 +13,7 @@ type TimeRange = Types.TimeRange
 local scope = Fusion.scoped(Fusion)
 
 local timeValue = scope:Value(workspace:GetServerTimeNow())
+local unixTimeValue = scope:Value(os.time())
 
 local function date(format: string, time: number?): number
 	local timeString = os.date(format, time or workspace:GetServerTimeNow())
@@ -27,6 +28,7 @@ end
 
 local Time = {}
 Time.value = timeValue
+Time.unixValue = unixTimeValue
 
 --[[
     Gets the current year. Returns a number (e.g. 2020).
@@ -430,6 +432,7 @@ end
 
 RunService.RenderStepped:Connect(function()
 	timeValue:set(workspace:GetServerTimeNow())
+	unixTimeValue:set(os.time())
 end)
 
 return Time
