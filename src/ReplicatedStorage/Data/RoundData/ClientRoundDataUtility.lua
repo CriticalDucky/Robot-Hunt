@@ -22,6 +22,8 @@ local ClientRoundDataUtility = {}
 -- Event that fires when the map is finished loading
 ClientRoundDataUtility.mapLoadingFinished = Instance.new "BindableEvent"
 ClientRoundDataUtility.setUpRound = Instance.new "BindableEvent"
+ClientRoundDataUtility.playerStatusChanged = Instance.new "BindableEvent"
+ClientRoundDataUtility.terminalCompleted = Instance.new "BindableEvent"
 
 -- Whether or not players are currently loaded into the map
 ClientRoundDataUtility.isRoundActive = scope:Computed(function(use)
@@ -113,5 +115,6 @@ ClientServerCommunication.registerActionAsync(
 	"MapLoadingFinished",
 	function() ClientRoundDataUtility.mapLoadingFinished:Fire() end
 )
+
 
 return ClientRoundDataUtility
