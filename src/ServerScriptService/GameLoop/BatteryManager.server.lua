@@ -18,6 +18,52 @@ local Enums = require(ReplicatedFirst.Enums)
 
 type RoundPlayerData = Types.RoundPlayerData
 
+local function disappearBatteryModel(battery: Model) -- anchor it, put it somewhere hidden very far away
+	if not battery then return end
+
+	local batteryBody = battery:FindFirstChild "Body" :: Part
+	if not batteryBody then return end
+
+	batteryBody.Anchored = true
+
+	local map = workspace:FindFirstChild "Map" :: Model
+	if not map then return end
+
+	local hiddenFolder = map:FindFirstChild "HiddenBatteries" :: Folder
+	if not hiddenFolder then
+		hiddenFolder = Instance.new "Folder"
+		hiddenFolder.Name = "HiddenBatteries"
+		hiddenFolder.Parent = map
+	end
+
+	battery.Parent = hiddenFolder
+	battery:PivotTo(CFrame.new(0, -10000, 0))
+end
+
+local function reappearBatteryModel(battery: Model, CFrameToPutBattery: CFrame, player: Player)
+	if not battery then return end
+	if not CFrameToPutBattery then return end
+
+	local map = workspace:FindFirstChild "Map" :: Model
+	if not map then return end
+
+	local batteriesFolder = map:FindFirstChild "Batteries" :: Folder
+	if not batteriesFolder then return end
+
+	local body = battery:FindFirstChild "Body" :: Part
+	if not body then return end
+
+	battery.Parent = batteriesFolder
+	battery:PivotTo(CFrameToPutBattery)
+	body.Anchored = false
+	body:SetNetworkOwner(player)
+	task.defer(function()
+		if body and body:IsDescendantOf(batteriesFolder) and player:IsDescendantOf(Players)then
+			body:SetNetworkOwner(player) -- ugh
+		end
+	end)
+end
+
 local function putDownBattery(player: Player, deleteBattery: boolean?)
 	assert(player and player.Character)
 
@@ -61,8 +107,7 @@ local function putDownBattery(player: Player, deleteBattery: boolean?)
 			if not batteriesFolder or not CFrameToPutBattery then
 				battery:Destroy()
 			else
-				battery.Parent = batteriesFolder
-				battery:PivotTo(CFrameToPutBattery)
+				reappearBatteryModel(battery, CFrameToPutBattery, player)
 			end
 
 			RoundDataManager.updateBatteryStatus(data.id, nil)
@@ -88,7 +133,7 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 			if data.model == battery then
 				if data.holder ~= nil then return end
 
-				data.model.Parent = nil
+				disappearBatteryModel(battery)
 
 				RoundDataManager.updateBatteryStatus(data.id, player)
 
