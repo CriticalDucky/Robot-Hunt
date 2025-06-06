@@ -48,6 +48,10 @@ RoundDataManager.onPlayerStatusUpdated:Connect(function(playerData)
 					if descendant:IsA "Motor6D" or descendant:IsA "JointInstance" then
 						table.insert(joints, descendant)
 					elseif descendant:IsA "BasePart" then
+						if descendant.Name == "HumanoidRootPart" then
+							descendant:Destroy()
+						end
+
 						cframes[descendant] = descendant.CFrame
 					else
 						descendant:Destroy()
