@@ -731,6 +731,7 @@ function RoundDataManager.setUpRound(
 		playerData = playerDatas,
 		terminalData = terminalData,
 		batteryData = batteryData,
+		numRequiredTerminals = numRequiredTerminals,
 	})
 
 	onDataUpdatedEvent:Fire(roundData)
