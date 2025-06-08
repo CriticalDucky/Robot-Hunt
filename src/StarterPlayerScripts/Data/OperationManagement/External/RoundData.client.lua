@@ -227,6 +227,8 @@ ClientServerCommunication.registerActionAsync("KillPlayer", function(data)
 	end
 
 	roundData.playerData:set(newPlayerData)
+
+	ClientRoundDataUtility.playerStatusChanged:Fire(victimId, Enums.PlayerStatus.dead)
 end)
 
 --[[
@@ -262,6 +264,8 @@ ClientServerCommunication.registerActionAsync("RevivePlayer", function(data)
 	playerData.shield = RoundConfiguration.shieldBaseAmount
 
 	roundData.playerData:set(newPlayerData)
+
+	ClientRoundDataUtility.playerStatusChanged:Fire(playerId, Enums.PlayerStatus.alive)
 end)
 
 --[[
@@ -308,15 +312,23 @@ ClientServerCommunication.registerActionAsync("UpdateHealth", function(data)
 		playerData.shield = shield
 	end
 
+	local statusChanged = false
+
 	if health then
 		playerData.health = health
 
 		if health <= 0 then
 			playerData.status = Enums.PlayerStatus.lifeSupport
+
+			statusChanged = true
 		end
 	end
 
 	roundData.playerData:set(newPlayerData)
+
+	if statusChanged then
+		ClientRoundDataUtility.playerStatusChanged:Fire(playerId, Enums.PlayerStatus.lifeSupport)
+	end
 end)
 
 --[[
@@ -525,12 +537,18 @@ ClientServerCommunication.registerActionAsync("UpdateTerminalData", function(dat
 		terminal[key] = value
 	end
 
+	local terminalCompletedNow = false
+
 	if terminal.progress >= 100 then
 		terminal.progress = 100
 		terminal.cooldown = 0 -- reset cooldown when terminal is completed
 		terminal.isPuzzleMode = false -- reset puzzle mode when terminal is completed
 		terminal.hackers = {} -- clear hackers when terminal is completed
 		terminal.puzzleQueue = {} -- clear puzzle queue when terminal is completed
+
+		if data.progress then
+			terminalCompletedNow = true
+		end
 	end
 
 	roundData.terminalData:set(newTerminalData)
@@ -549,6 +567,10 @@ ClientServerCommunication.registerActionAsync("UpdateTerminalData", function(dat
 	end
 
 	roundData.playerData:set(newPlayerData)
+
+	if terminalCompletedNow then
+		ClientRoundDataUtility.terminalCompleted:Fire(terminalId)
+	end
 end)
 
 --[[
