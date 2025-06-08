@@ -16,7 +16,7 @@ local Enums = require(ReplicatedFirst.Enums)
 local ParkourState = Enums.ParkourState
 local parkourState = ClientState.actions.parkourState
 local RoundConfig = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
-local Platform = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild("Platform"))
+local Platform = require(ReplicatedFirst:WaitForChild("Utility"):WaitForChild "Platform")
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
 local scope = Fusion.scoped(Fusion)
 local peek = Fusion.peek
@@ -72,6 +72,12 @@ local ROLL_OBSTACLE_DIST = 1.0
 local DIVE_END_BUFFER = 0.3
 local TERRAIN_VOXEL_SIZE = 4
 local GROUND_LOCK_TIME = 0.20 -- grace air-lock after ladder / water exit
+
+-- Add these constants near the other constants
+local ROLL_TURN_SPEED = 2.8 -- How fast the roll can turn
+-- local ROLL_MAX_ANGLE = math.rad(45) -- Maximum angle from initial direction
+local rollStartDirection = Vector3.zero
+local rollTotalRotation = 0
 
 --------------------------------------------------------------------
 --  STATE
@@ -181,11 +187,18 @@ local function isParkourEnabled()
 	local playerData = peek(ClientState.external.roundData.playerData)[Player.UserId]
 	if not playerData then return true end
 
-	if peek(playerState) == Enums.PlayerStatus.lifeSupport and not playerData.isLobby then
-		return false
-	end
+	if peek(playerState) == Enums.PlayerStatus.lifeSupport and not playerData.isLobby then return false end
 
 	return true
+end
+
+-- Add this function to the UTILITY section
+local function GetPartBelowCharacter()
+    local result = FeetRay(1)
+    if result and result.Instance and result.Instance:IsA("BasePart") then
+        return result.Instance
+    end
+    return nil
 end
 
 --------------------------------------------------------------------
@@ -272,13 +285,25 @@ local function StartRoll()
 	currentState = ParkourState.roll
 	Humanoid.WalkSpeed = 0
 	HRP.CanCollide, UpperTorso.CanCollide = false, false
-	rollDir, rollStartTime = HRP.CFrame.LookVector.Unit, tick()
+	rollDir = HRP.CFrame.LookVector.Unit
+	rollStartDirection = rollDir -- Store initial direction
+	rollStartTime = tick()
+	rollTotalRotation = 0
 	play "roll"
 	Anim.Roll:Play()
+	
+	-- Get the part below the character and its velocity
+	local basePart = GetPartBelowCharacter()
+	local baseVelocity = Vector3.zero
+	if basePart then
+		baseVelocity = basePart:IsA("BasePart") and basePart.Velocity or Vector3.zero
+	end
+	
+	-- Apply roll velocity plus platform velocity
 	HRP.Velocity = Vector3.new(
-		rollDir.X * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER,
+		rollDir.X * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER + baseVelocity.X,
 		HRP.AssemblyLinearVelocity.Y,
-		rollDir.Z * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER
+		rollDir.Z * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER + baseVelocity.Z
 	)
 end
 
@@ -406,7 +431,7 @@ end
 --------------------------------------------------------------------
 --  HEARTBEAT LOOP
 --------------------------------------------------------------------
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function(dt)
 	local inWater = TerrainWaterCheck()
 	if inWater and currentState ~= ParkourState.swim then
 		StopRoll(false)
@@ -442,11 +467,39 @@ RunService.Heartbeat:Connect(function()
 			if hit and hit.Material == Enum.Material.Water then currentState = ParkourState.swim end
 		else
 			local vy = HRP.AssemblyLinearVelocity.Y
+
+			-- Get input direction
+			local moveDir = Humanoid.MoveDirection
+			if moveDir.Magnitude > 0.1 then
+				-- Calculate angle between current roll direction and desired direction
+				local angle = math.acos(rollDir:Dot(moveDir.Unit))
+				if angle > 0.01 then
+					-- Limit the turn rate and angle
+					local turnAmount = math.min(angle, ROLL_TURN_SPEED * dt)
+					local cross = rollDir:Cross(moveDir.Unit)
+					if cross.Y < 0 then turnAmount = -turnAmount end
+
+					-- Apply the rotation if within max angle limits
+					local totalAngle = math.acos(rollDir:Dot(rollStartDirection))
+					-- if math.abs(totalAngle + turnAmount) <= ROLL_MAX_ANGLE then
+					rollDir = (CFrame.fromAxisAngle(Vector3.new(0, 1, 0), turnAmount) * rollDir).Unit
+					-- end
+				end
+			end
+
+			-- Get the part below the character and its velocity
+			local basePart = GetPartBelowCharacter()
+			local baseVelocity = Vector3.zero
+			if basePart then
+				baseVelocity = basePart:IsA("BasePart") and basePart.Velocity or Vector3.zero
+			end
+
+			-- Update character position and velocity, incorporating platform velocity
 			HRP.CFrame = CFrame.new(HRP.Position, HRP.Position + rollDir)
 			HRP.Velocity = Vector3.new(
-				rollDir.X * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER,
+				rollDir.X * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER + baseVelocity.X,
 				vy,
-				rollDir.Z * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER
+				rollDir.Z * BASE_WALK_SPEED * ROLL_SPEED_MULTIPLIER + baseVelocity.Z
 			)
 		end
 	end
