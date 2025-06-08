@@ -18,6 +18,7 @@ local Platform = require(RF.Utility.Platform)
 local IK = require(RS.Utility.IK)
 local Types = require(RF.Utility.Types)
 local Enums = require(RF.Enums)
+local ItemCollector = require(RF.Utility.ItemCollector)
 
 local GunEffectsFolder = Instance.new "Folder"
 GunEffectsFolder.Name = "GunEffects"
@@ -50,6 +51,10 @@ local function getTargetPosition(player: Player)
 	local maxDepth = 256
 	local platform = peek(Platform.platform)
 
+	local transparentParts = if ItemCollector:IsQualityBound "GunTransparentParts"
+		then ItemCollector:GetPartsWithQuality "GunTransparentParts"
+		else {}
+
 	if platform == Enums.PlatformType.Mobile then
 		local camera = workspace.CurrentCamera
 		if not camera then return end
@@ -61,7 +66,10 @@ local function getTargetPosition(player: Player)
 		local rayCastParams = RaycastParams.new()
 
 		rayCastParams.FilterType = Enum.RaycastFilterType.Exclude
-		rayCastParams.FilterDescendantsInstances = { player.Character }
+		rayCastParams.FilterDescendantsInstances = {
+			player.Character,
+			unpack(transparentParts),
+		}
 
 		local result = workspace:Raycast(camera.CFrame.Position, ray.Direction * maxDepth, rayCastParams)
 
@@ -71,7 +79,7 @@ local function getTargetPosition(player: Player)
 			return ray.Origin + ray.Direction * maxDepth
 		end
 	else
-		return MouseUtil.getWorldPosition(nil, { player.Character }, maxDepth)
+		return MouseUtil.getWorldPosition(nil, { player.Character, unpack(transparentParts) }, maxDepth)
 	end
 end
 
@@ -148,7 +156,7 @@ local function onPlayer(player: Player)
 			table.insert(characterScope, beamR)
 		end
 
-		local colors = characterScope:Value({})
+		local colors = characterScope:Value {}
 		do
 			local colorsConfig = char:WaitForChild "Colors" :: Configuration
 
@@ -168,9 +176,7 @@ local function onPlayer(player: Player)
 			end
 
 			colorsConfig.ChildAdded:Connect(function(child)
-				if child:IsA "Configuration" then
-					forChildren(child)
-				end
+				if child:IsA "Configuration" then forChildren(child) end
 			end)
 		end
 
@@ -479,18 +485,24 @@ local function onPlayer(player: Player)
 
 								IK.SetTemporaryAimPosition(mouseWorldPosition)
 								-- if on mobile, just make hrp follow the camera
-								if peek(Platform.platform) == Enums.PlatformType.Mobile then
-									local camera = workspace.CurrentCamera
+								if peek(ClientState.actions.parkourState) ~= Enums.ParkourState.dive then
+									if peek(Platform.platform) == Enums.PlatformType.Mobile then
+										local camera = workspace.CurrentCamera
 
-									if camera then
-										local camLook =
-											Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z).Unit
-										rootPart.CFrame = CFrame.lookAt(rootPart.Position, rootPart.Position + camLook)
+										if camera then
+											local camLook = Vector3.new(
+												camera.CFrame.LookVector.X,
+												0,
+												camera.CFrame.LookVector.Z
+											).Unit
+											rootPart.CFrame =
+												CFrame.lookAt(rootPart.Position, rootPart.Position + camLook)
+										end
+									else
+										local flatLook =
+											Vector3.new(mouseWorldPosition.X, rootPart.Position.Y, mouseWorldPosition.Z)
+										rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
 									end
-								else
-									local flatLook =
-										Vector3.new(mouseWorldPosition.X, rootPart.Position.Y, mouseWorldPosition.Z)
-									rootPart.CFrame = CFrame.lookAt(rootPart.Position, flatLook)
 								end
 							end
 

@@ -8,15 +8,28 @@ local CAS = game:GetService "ContextActionService"
 local UIS = game:GetService "UserInputService"
 local RunService = game:GetService "RunService"
 
+-- folder references
+local RFUtility = RF:WaitForChild "Utility"
+local RSData = RS:WaitForChild "Data"
+local RSConfig = RS:WaitForChild "Configuration"
+
 -- modules
-local ClientState = require(RS.Data.ClientState)
-local CRDU = require(RS.Data.RoundData.ClientRoundDataUtility)
-local Net = require(RS.Data.ClientServerCommunication)
-local Fusion = require(RF.Vendor.Fusion)
-local Mouse = require(RF.Utility.Mouse)
-local Platform = require(RF.Utility.Platform)
-local RoundConfig = require(RS.Configuration.RoundConfiguration)
-local Enums = require(RF.Enums)
+local ClientState = require(RSData:WaitForChild "ClientState")
+local CRDU = require(RSData:WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
+local Net = require(RSData:WaitForChild "ClientServerCommunication")
+local Fusion = require(RF:WaitForChild("Vendor"):WaitForChild "Fusion")
+local Mouse = require(RFUtility:WaitForChild "Mouse")
+local Platform = require(RFUtility:WaitForChild "Platform")
+local RoundConfig = require(RSConfig:WaitForChild "RoundConfiguration")
+local Enums = require(RF:WaitForChild "Enums")
+local ItemCollector = require(RFUtility:WaitForChild "ItemCollector")
+
+ItemCollector:BindQuality("GunTransparentParts", workspace, function(descendant)
+	if descendant:IsA "BasePart" and descendant.Transparency >= RoundConfig.gunMinimumTransparencyThreshold then
+		return true
+	end
+	return false
+end)
 
 -------------------------------------------------------------------
 -- Fusion helpers
@@ -46,8 +59,6 @@ local contextButton = mobileButtons:WaitForChild "Context"
 -------------------------------------------------------------------
 -- derived Fusion states
 -------------------------------------------------------------------
-local parkourState = ClientState.actions.parkourState
-
 local isShooting = scope:Computed(function(use)
 	local pd = use(ClientState.external.roundData.playerData)[player.UserId]
 	return pd and pd.actions.isShooting or false
@@ -68,6 +79,8 @@ local function isAnythingIntersectingGuns(): boolean
 	local r = false
 
 	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+	overlapParams.FilterDescendantsInstances = { table.unpack(ItemCollector:GetPartsWithQuality "GunTransparentParts") }
 	for _, part in ipairs(workspace:GetPartsInPart(cageL, overlapParams)) do
 		if not part:IsDescendantOf(player.Character) then
 			l = true
@@ -97,6 +110,8 @@ local function shootThread()
 	while true do
 		RunService.RenderStepped:Wait()
 
+		local transparentParts = ItemCollector:GetPartsWithQuality "GunTransparentParts"
+
 		-- make sure character & parts exist
 		if not (rootPart and neonL and neonR and cageL and cageR) then continue end
 
@@ -116,7 +131,7 @@ local function shootThread()
 				local rayCastParams = RaycastParams.new()
 
 				rayCastParams.FilterType = Enum.RaycastFilterType.Exclude
-				rayCastParams.FilterDescendantsInstances = { player.Character }
+				rayCastParams.FilterDescendantsInstances = { player.Character, table.unpack(transparentParts) }
 
 				local result = workspace:Raycast(camera.CFrame.Position, ray.Direction * maxDepth, rayCastParams)
 
@@ -126,7 +141,8 @@ local function shootThread()
 					mouseWorldPosition = ray.Origin + ray.Direction * maxDepth
 				end
 			else
-				mouseWorldPosition = Mouse.getWorldPosition(nil, { player.Character }, maxDepth)
+				mouseWorldPosition =
+					Mouse.getWorldPosition(nil, { player.Character, table.unpack(transparentParts) }, maxDepth)
 			end
 		end
 
@@ -134,7 +150,7 @@ local function shootThread()
 		-- build exclusion list (own character + every gun model)
 		-------------------------------------------------------------------
 		local params = RaycastParams.new()
-		params.FilterDescendantsInstances = { player.Character }
+		params.FilterDescendantsInstances = { player.Character, table.unpack(transparentParts) }
 		params.FilterType = Enum.RaycastFilterType.Exclude
 		params.IgnoreWater = true
 
@@ -175,9 +191,7 @@ local function shootThread()
 				-- if isL then
 				-- 	pd.gunHitPositionL = nil
 				-- end
-				if isR then
-					pd.gunHitPositionR = nil
-				end
+				if isR then pd.gunHitPositionR = nil end
 				pd.victims = {}
 				ClientState.external.roundData.playerData:set(newData)
 			end
@@ -262,7 +276,7 @@ local function updateShooting()
 			task.cancel(thread)
 			thread = nil
 		end
-		
+
 		Net.replicateAsync "UpdateShootingStatus"
 	end
 end
