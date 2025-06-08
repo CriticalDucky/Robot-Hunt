@@ -82,7 +82,7 @@ function promptPuzzle(terminalData: Types.RoundTerminalData)
 
 	for _, player in pairs(terminalData.hackers) do
 		table.insert(terminalData.puzzleQueue, player)
-		ClientServerCommunication.replicateAsync("PromptTerminalPuzzle", player)
+		ClientServerCommunication.replicateAsync("PromptTerminalPuzzle", nil, player)
 
 		task.delay(RoundConfiguration.puzzleTimeout, function()
 			if table.find(terminalData.puzzleQueue, player) then
