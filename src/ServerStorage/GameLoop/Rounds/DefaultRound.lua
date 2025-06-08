@@ -73,7 +73,7 @@ function DefaultRound.begin()
 				local batteryModels = batteriesFolder:GetChildren()
 				local terminalModels = terminalsFolder:GetChildren()
 
-				local numDesiredBatteries = math.ceil(#batteryModels * batteryPercentage)
+				local numDesiredBatteryGroups = math.ceil(#batteryModels * batteryPercentage)
 				local numDesiredTerminals = math.min(totalTerminals, #terminalModels)
 
 				numRequiredTerminals = math.min(numRequiredTerminals, #terminalModels)
@@ -90,12 +90,31 @@ function DefaultRound.begin()
 					end
 				end
 
-				deleteRandomModels(batteriesFolder, numDesiredBatteries)
+				deleteRandomModels(batteriesFolder, numDesiredBatteryGroups)
 				deleteRandomModels(terminalsFolder, numDesiredTerminals)
 
 				-- now we get the models again
 
+				for _, child in batteriesFolder:GetChildren() do
+					if child.Name == "Group" then
+						for _, child2 in child:GetChildren() do
+							child2.Parent = batteriesFolder
+						end
+
+						child:Destroy()
+					end
+				end
+
 				batteryModels = batteriesFolder:GetChildren()
+
+				for _, battery in batteryModels do
+					for _, part in battery:GetDescendants() do
+						if part:IsA "BasePart" then
+							part.CollisionGroup = "Battery"
+						end
+					end
+				end
+
 				terminalModels = terminalsFolder:GetChildren()
 
 				-- now we create the data for the terminals
