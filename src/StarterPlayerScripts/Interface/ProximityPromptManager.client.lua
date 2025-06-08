@@ -2,7 +2,10 @@ local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local ReplicatedFirst = game:GetService "ReplicatedFirst"
 local Players = game:GetService "Players"
 
-local ClientState = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild "ClientState")
+local dataFolder = ReplicatedStorage:WaitForChild "Data"
+
+local ClientState = require(dataFolder:WaitForChild "ClientState")
+local CRDU = require(dataFolder:WaitForChild("RoundData"):WaitForChild "ClientRoundDataUtility")
 local RoundConfiguration = require(ReplicatedStorage:WaitForChild("Configuration"):WaitForChild "RoundConfiguration")
 
 local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
@@ -29,7 +32,9 @@ local function onDescendantAdded(descendant)
 					local isHacking = playerData.actions.isHacking
 					local isAlive = playerData.status == Enums.PlayerStatus.alive
 
-					return not isShooting and not isHacking and isAlive
+					local isHoldingBattery = use(CRDU.isHoldingBattery)
+
+					return not isShooting and not isHacking and isAlive and not isHoldingBattery
 				end),
 			}
 		elseif descendant.Name == "Terminal" then
@@ -97,11 +102,13 @@ local function onDescendantAdded(descendant)
 						warn("Terminal data not found: " .. terminalId)
 						return false
 					end
-					if terminalData.progress >= 100 then
-						return false
-					end
+					if terminalData.progress >= 100 then return false end
 
-					return parkourState == Enums.ParkourState.grounded and not isShooting and not isHacking and isAlive and not isHoldingBattery
+					return parkourState == Enums.ParkourState.grounded
+						and not isShooting
+						and not isHacking
+						and isAlive
+						and not isHoldingBattery
 				end),
 			}
 		elseif descendant.Name == "HealRobot" then
@@ -124,25 +131,15 @@ local function onDescendantAdded(descendant)
 						return false
 					end
 
-					if not playerData then
-						return false
-					end
+					if not playerData then return false end
 
 					local currentPhase = use(ClientState.external.roundData.currentPhaseType)
 
-					if not RoundConfiguration.roundPhases[currentPhase] then
-						return false
-					end
+					if not RoundConfiguration.roundPhases[currentPhase] then return false end
 
-					if playerData.team ~= proximityPlayerData.team then
-						return false
-					end
-					if proximityPlayerData.status == Enums.PlayerStatus.dead then
-						return false
-					end
-					if proximityPlayerData.health >= 100 then
-						return false
-					end
+					if playerData.team ~= proximityPlayerData.team then return false end
+					if proximityPlayerData.status == Enums.PlayerStatus.dead then return false end
+					if proximityPlayerData.health >= 100 then return false end
 
 					local isHoldingBattery
 					do
