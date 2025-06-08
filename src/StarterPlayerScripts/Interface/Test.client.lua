@@ -1,73 +1,76 @@
--- local ReplicatedStorage = game:GetService "ReplicatedStorage"
--- local ReplicatedFirst = game:GetService "ReplicatedFirst"
--- local Players = game:GetService "Players"
+-- local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- local ReplicatedFirst = game:GetService("ReplicatedFirst")
+-- local Players = game:GetService("Players")
 
--- local componentsFolder = ReplicatedStorage:WaitForChild("Interface"):WaitForChild "Components"
+-- local BannerNotifications = require(ReplicatedStorage:WaitForChild("Interface"):WaitForChild("Utility"):WaitForChild("BannerNotifications"))
+-- local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild("Fusion"))
 
--- local Fusion = require(ReplicatedFirst:WaitForChild("Vendor"):WaitForChild "Fusion")
--- local New = Fusion.New
--- local peek = Fusion.peek
+-- local scope = Fusion.scoped(Fusion)
 -- local Children = Fusion.Children
--- local RadialProgress = require(componentsFolder:WaitForChild "RadialProgress")
-
--- local scope = Fusion.scoped(Fusion, { RadialProgress = RadialProgress })
 -- local player = Players.LocalPlayer
 
--- local screenGui = Instance.new "ScreenGui"
--- screenGui.Name = "TestRadialProgress"
--- screenGui.Parent = player:WaitForChild "PlayerGui"
+-- local function createTestButton(position: UDim2, text: string, callback: () -> ())
+--     return scope:New "TextButton" {
+--         Size = UDim2.fromOffset(200, 50),
+--         Position = position,
+--         Text = text,
+--         BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+--         TextColor3 = Color3.new(1, 1, 1),
+--         BorderSizePixel = 0,
+--         FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+--         TextSize = 18,
 
--- -- tanslate above into fusion
-
--- local progress = scope:Value(40)
--- local flip = scope:Value(false)
+--         [Fusion.OnEvent "Activated"] = callback,
+--     }
+-- end
 
 -- scope:New "ScreenGui" {
--- 	Name = "TastRadialProgress",
--- 	Parent = player:WaitForChild "PlayerGui",
+--     Name = "BannerTest",
+--     Parent = player:WaitForChild("PlayerGui"),
 
--- 	[Children] = {
--- 		scope:RadialProgress {
--- 			Progress = progress,
--- 			Size = UDim2.new(0, 100, 0, 100),
--- 			Position = UDim2.fromScale(0, 0),
--- 			AnchorPoint = Vector2.new(0, 0),
---             ProgressThickness = 20,
---             ProgressColor = Color3.fromRGB(0, 0, 255),
--- 			Rotation = 50,
--- 			Visible = true,
--- 			ZIndex = 1,
+--     [Children] = {
+--         createTestButton(UDim2.fromOffset(10, 10), "Normal Notification", function()
+--             BannerNotifications.addToQueue(4, "Normal Banner", "This is a normal banner notification")
+--         end),
 
--- 			IsPie = false,
--- 			Flip = flip,
+--         createTestButton(UDim2.fromOffset(10, 70), "Priority Notification", function()
+--             BannerNotifications.addToQueue(3, "Priority Banner!", "This notification jumps the queue!", nil, true)
+--         end),
 
--- 			BackgroundColor = Color3.fromRGB(255, 0, 0),
--- 			BackgroundTransparency = 0.75,
--- 		},
+--         createTestButton(UDim2.fromOffset(10, 130), "Queue Multiple", function()
+--             for i = 1, 3 do
+--                 BannerNotifications.addToQueue(
+--                     2,
+--                     string.format("Banner %d", i),
+--                     string.format("This is notification %d of 3", i)
+--                 )
+--             end
+--         end),
 
--- 		scope:RadialProgress {
--- 			Progress = progress,
---             Size = UDim2.new(0, 100, 0, 100),
---             Position = UDim2.fromOffset(100, 0),
---             AnchorPoint = Vector2.new(0, 0),
---             Rotation = 0,
---             Visible = true,
---             ZIndex = 1,
+--         createTestButton(UDim2.fromOffset(10, 190), "No Info Text", function()
+--             BannerNotifications.addToQueue(3, "Centered Title")
+--         end),
 
---             IsPie = true,
---             Flip = flip,
+--         createTestButton(UDim2.fromOffset(10, 250), "Color Test", function()
+--             BannerNotifications.addToQueue(4, "Colored Title", "With info text", Color3.fromRGB(255, 100, 100))
+--         end),
 
---             BackgroundColor = Color3.fromRGB(0, 0, 0),
---             BackgroundTransparency = 0.75,
--- 		},
--- 	},
+--         createTestButton(UDim2.fromOffset(10, 310), "Cancel All", function()
+--             BannerNotifications.cancelAll()
+--         end),
+
+--         createTestButton(UDim2.fromOffset(10, 370), "Game Event Test", function()
+--             -- Simulates a sequence of game events
+--             local id1 = BannerNotifications.addToQueue(5, "Phase One Starting!", "Hack the terminals!")
+            
+--             task.delay(2, function()
+--                 BannerNotifications.addToQueue(2, "Terminal Hacked!", "4 terminals remaining", Color3.fromRGB(100, 255, 100), true)
+--             end)
+            
+--             task.delay(4, function()
+--                 BannerNotifications.cancelNotification(id1)
+--                 BannerNotifications.addToQueue(3, "Player Eliminated!", "CriticalDucky was eliminated!", Color3.fromRGB(255, 100, 100))
+--             end)
+--         end),
+--     }
 -- }
-
--- task.spawn(function()
--- 	while true do
--- 		local dt = task.wait()
--- 		progress:set(peek(progress) + dt * 10)
-
--- 		if peek(progress) >= 100 then progress:set(0) end
--- 	end
--- end)
