@@ -2,21 +2,29 @@
 ---------------------------------------------------------------------
 -- SERVICES
 ---------------------------------------------------------------------
-local SS = game:GetService "ServerStorage"
-local RF = game:GetService "ReplicatedFirst"
-local RS = game:GetService "ReplicatedStorage"
+local ServerStorage = game:GetService "ServerStorage"
+local ReplicatedFirst = game:GetService "ReplicatedFirst"
+local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
 local RunService = game:GetService "RunService"
 
 ---------------------------------------------------------------------
 -- MODULES
 ---------------------------------------------------------------------
-local RoundDataManager = require(SS.GameLoop.RoundDataManager)
-local RoundConfig = require(RS.Configuration.RoundConfiguration)
-local Net = require(RS.Data.ClientServerCommunication)
-local Enums = require(RF.Enums)
+local RoundDataManager = require(ServerStorage.GameLoop.RoundDataManager)
+local RoundConfig = require(ReplicatedStorage.Configuration.RoundConfiguration)
+local Net = require(ReplicatedStorage.Data.ClientServerCommunication)
+local Enums = require(ReplicatedFirst.Enums)
+local ItemCollector = require(ReplicatedFirst.Utility.ItemCollector)
 
 local roundData = RoundDataManager.data
+
+ItemCollector:BindQuality("GunTransparentParts", workspace, function(descendant)
+	if descendant:IsA "BasePart" and descendant.Transparency >= RoundConfig.gunMinimumTransparencyThreshold then
+		return true
+	end
+	return false
+end)
 
 ---------------------------------------------------------------------
 -- helpers
@@ -46,9 +54,7 @@ end
 
 local function getPlayerFromCharDescendant(descendant: Instance): Player?
 	local player = Players:GetPlayerFromCharacter(descendant.Parent)
-	if not player and descendant.Parent then
-		player = Players:GetPlayerFromCharacter(descendant.Parent.Parent)
-	end
+	if not player and descendant.Parent then player = Players:GetPlayerFromCharacter(descendant.Parent.Parent) end
 	return player
 end
 
@@ -61,7 +67,7 @@ local function gunColliding(char: Model): boolean
 		char:FindFirstChild "RightGunCage",
 	}
 	local params = OverlapParams.new()
-	params.FilterDescendantsInstances = { char }
+	params.FilterDescendantsInstances = { char, table.unpack(ItemCollector:GetPartsWithQuality "GunTransparentParts") }
 	for _, cage in ipairs(cages) do
 		if cage then
 			for _, p in ipairs(workspace:GetPartsInPart(cage, params)) do
@@ -81,7 +87,7 @@ local function solveRay(player: Player, tip: Vector3, hitPos: Vector3): { pos: V
 
 	local dir = (hitPos - origin).Unit
 	local params = RaycastParams.new()
-	params.FilterDescendantsInstances = { char }
+	params.FilterDescendantsInstances = { char, table.unpack(ItemCollector:GetPartsWithQuality "GunTransparentParts") }
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.IgnoreWater = true
 
